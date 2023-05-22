@@ -19,9 +19,17 @@ public class ContentletService {
         return contentletRepository.existsById(contentletEntity.getId())
                 .flatMap(exists -> {
                     boolean isNew = !exists;
+                    log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
                     return contentletRepository.save(contentletEntity)
-                            .map(savedContentlet -> new ResultPair(savedContentlet, isNew));
+                            .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
+                            .doOnSuccess(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
                 });
+    }
+
+    public Mono<Void> deleteById(String id) {
+        log.info("Deleting contentlet: {}", id);
+        return contentletRepository.deleteById(id)
+                .doOnSuccess(result -> log.info("Deleted contentlet: {} successfully", id));
     }
 
     record ResultPair(ContentletEntity contentletEntity, boolean isNew) {

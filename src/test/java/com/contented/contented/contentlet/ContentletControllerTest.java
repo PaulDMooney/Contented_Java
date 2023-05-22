@@ -157,4 +157,50 @@ public class ContentletControllerTest {
 
         }
     }
+
+    @Nested
+    @DisplayName("DELETE endpoint")
+    class DeleteEndPoint {
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @DisplayName("when deleting a contentlet")
+        class DeleteAContentlet {
+
+            // Given
+            static ContentletEntity toDelete = new ContentletEntity("Contentlet3");
+
+            static WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+
+                // Save the contentlet to the database
+                contentletRepository.save(toDelete).block();
+
+                // When
+                response = webTestClient.delete().uri("/{id}", toDelete.getId()).exchange();
+            }
+
+            @Test
+            @DisplayName("it should return a 200 OK status code")
+            void should_return_a_200_OK_status_code() {
+
+                // Then
+                response.expectStatus()
+                        .isOk();
+            }
+
+            @Test
+            @DisplayName("it should have deleted the contentlet from the database")
+            void should_have_deleted_the_contentlet_from_the_database() {
+
+                // Then contentletRepository should not return the deleted contentlet
+                StepVerifier.create(contentletRepository.findById(toDelete.getId()))
+                        .expectNextCount(0)
+                        .verifyComplete();
+
+            }
+        }
+    }
 }
