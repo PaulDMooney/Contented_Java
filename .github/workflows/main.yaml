@@ -21,7 +21,7 @@ jobs:
             cache: 'maven'
             check-latest: true
       - name: Build and Test
-        uses: mvn --batch-mode surefire-report:report
+        run: mvn --batch-mode surefire-report:report
       - name: Upload Report
         uses: actions/upload-artifact@v3
         with:
