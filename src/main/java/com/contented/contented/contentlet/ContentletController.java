@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,9 +19,12 @@ public class ContentletController {
 
     final ContentletRepository contentletRepository;
 
+    final ContentletService contentletService;
+
     @Autowired
-    public ContentletController(ContentletRepository contentletRepository) {
+    public ContentletController(ContentletRepository contentletRepository, ContentletService contentletService) {
         this.contentletRepository = contentletRepository;
+        this.contentletService = contentletService;
     }
 
     @RequestMapping("/all")
@@ -32,8 +36,12 @@ public class ContentletController {
     @PutMapping
     Mono<ResponseEntity<ContentletEntity>> putContentlet(@RequestBody ContentletDTO contentletDTO) {
         ContentletEntity toSave = new ContentletEntity(contentletDTO.getId());
-        return contentletRepository.save(toSave)
-                .map(savedContentlet -> ResponseEntity.status(HttpStatusCode.valueOf(201))
-                        .body(savedContentlet));
+
+        return contentletService.save(toSave)
+                .map(resultPair -> {
+                    var statusCode = resultPair.isNew() ? HttpStatus.CREATED : HttpStatus.OK;
+                    return ResponseEntity.status(statusCode)
+                            .body(resultPair.contentletEntity());
+                });
     }
 }

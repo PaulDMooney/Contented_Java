@@ -91,7 +91,7 @@ public class ContentletControllerTest {
             }
 
             @Test
-            @DisplayName("should return a 201 CREATED status code")
+            @DisplayName("it should return a 201 CREATED status code")
             void should_return_a_201_CREATED_status_code() {
 
                 // Then
@@ -100,7 +100,7 @@ public class ContentletControllerTest {
             }
 
             @Test
-            @DisplayName("should have saved the contentlet to the database")
+            @DisplayName("it should have saved the contentlet to the database")
             void should_have_saved_the_contentlet_to_the_database() {
 
                 // Then contentletRepository should return the saved contentlet
@@ -113,6 +113,46 @@ public class ContentletControllerTest {
                         })
                         .verifyComplete();
 
+            }
+
+            @Nested
+            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+            @DisplayName("when saving a contentlet with an existing id")
+            class SaveAContentletWithAnExistingId {
+
+                static WebTestClient.ResponseSpec response;
+
+                @BeforeAll()
+                void beforeAll() {
+
+                    // When
+                    response = webTestClient.put().bodyValue(toSave).exchange();
+                }
+
+                @Test
+                @DisplayName("it should return a 200 CREATED status code")
+                void should_return_a_200_OK_status_code() {
+
+                    // Then
+                    response.expectStatus()
+                            .isOk();
+                }
+
+                @Test
+                @DisplayName("it should have saved the contentlet to the database")
+                void should_have_saved_the_contentlet_to_the_database() {
+
+                    // Then contentletRepository should return the saved contentlet
+                    StepVerifier.create(contentletRepository.findById(toSave.getId()))
+
+                            .expectNextMatches(savedContentlet -> {
+                                assertThat(savedContentlet).isNotNull();
+                                assertThat(savedContentlet.getId()).isEqualTo(toSave.getId());
+                                return true;
+                            })
+                            .verifyComplete();
+
+                }
             }
 
         }
