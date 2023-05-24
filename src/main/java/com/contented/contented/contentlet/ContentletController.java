@@ -24,10 +24,17 @@ public class ContentletController {
         this.contentletService = contentletService;
     }
 
-    @RequestMapping("/all")
+    @GetMapping("/all")
     Flux<ContentletEntity> getAll() {
         // TODO: Replace this with a paginated version in the future
         return contentletRepository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    Mono<ResponseEntity<ContentletEntity>> findById(@PathVariable String id) {
+        return contentletService.findById(id)
+                .map(contentletEntity -> ResponseEntity.ok(contentletEntity))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @PutMapping

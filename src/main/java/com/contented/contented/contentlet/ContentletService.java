@@ -32,6 +32,18 @@ public class ContentletService {
                 .doOnSuccess(result -> log.info("Deleted contentlet: {} successfully", id));
     }
 
+    public Mono<ContentletEntity> findById(String id) {
+        log.debug("Finding contentlet: {}", id);
+        return contentletRepository.findById(id)
+                .doOnSuccess(result -> {
+                    if (result != null) {
+                        log.debug("Found contentlet: {} successfully", id);
+                    } else {
+                        log.debug("contentlet: {} not found", id);
+                    }
+                });
+    }
+
     record ResultPair(ContentletEntity contentletEntity, boolean isNew) {
     }
 }
