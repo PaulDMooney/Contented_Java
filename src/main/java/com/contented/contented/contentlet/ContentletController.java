@@ -39,7 +39,7 @@ public class ContentletController {
 
     @PutMapping
     Mono<ResponseEntity<ContentletEntity>> putContentlet(@RequestBody ContentletDTO contentletDTO) {
-        ContentletEntity toSave = new ContentletEntity(contentletDTO.getId());
+        ContentletEntity toSave = new ContentletEntity(contentletDTO.getId(), contentletDTO.get());
 
         return contentletService.save(toSave)
                 .map(resultPair -> {

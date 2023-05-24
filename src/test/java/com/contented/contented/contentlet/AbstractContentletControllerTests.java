@@ -11,24 +11,24 @@ import org.testcontainers.junit.jupiter.Container;
 
 public class AbstractContentletControllerTests {
 
-    @BeforeAll()
-    void beforeEach() {
-        var baseURL = String.format("http://localhost:%s/%s", port, ContentletController.CONTENTLETS_PATH);
-        webTestClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
-    }
-
     @LocalServerPort
     protected int port;
 
     @Autowired
     protected ContentletRepository contentletRepository;
 
+    protected WebTestClient webTestClient;
+
+    @BeforeAll()
+    void beforeEach() {
+        var baseURL = String.format("http://localhost:%s/%s", port, ContentletController.CONTENTLETS_PATH);
+        webTestClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
+    }
+
     // ContentletRepository needs a MongoDB to communicate with
     @Container
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
             .withExposedPorts(27017);
-
-    WebTestClient webTestClient;
 
     @DynamicPropertySource
     static void mongoDbProperties(DynamicPropertyRegistry registry) {
