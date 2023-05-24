@@ -25,15 +25,14 @@ public class AbstractContentletControllerTests {
         webTestClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
     }
 
-    // ContentletRepository needs a MongoDB to communicate with
-    @Container
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:6.0")
-            .withExposedPorts(27017);
-
-    @DynamicPropertySource
-    static void mongoDbProperties(DynamicPropertyRegistry registry) {
-
+    protected static void startAndRegsiterMongoDBContainer(MongoDBContainer mongoDBContainer, DynamicPropertyRegistry registry) {
         mongoDBContainer.start();
         registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
+
+    protected static MongoDBContainer mongoDBContainer() {
+        return new MongoDBContainer("mongo:6.0")
+                .withExposedPorts(27017);
+    }
+
 }

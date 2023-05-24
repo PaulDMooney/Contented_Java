@@ -2,8 +2,12 @@ package com.contented.contented.contentlet;
 
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
@@ -15,6 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @DisplayName("ContentletController field tests")
 public class ContentletControllerFieldTests extends AbstractContentletControllerTests {
+
+    // ContentletRepository needs a MongoDB to communicate with
+    @Container
+    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+
+    @DynamicPropertySource
+    static void mongoDbProperties(DynamicPropertyRegistry registry) {
+        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+    }
 
     @Nested
     @DisplayName("PUT endpoint")
