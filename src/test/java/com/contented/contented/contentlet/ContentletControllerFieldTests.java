@@ -29,7 +29,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
     }
 
     @Nested
-	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     @DisplayName("PUT endpoint")
     class PutEndPoint {
 
@@ -40,8 +40,8 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             // Given
             SomethingThatLooksLikeAContentlet toSave =
-                    new SomethingThatLooksLikeAContentlet("Contentlet1",
-                            "field1Value", 123);
+                new SomethingThatLooksLikeAContentlet("Contentlet1",
+                    "field1Value", 123);
 
             WebTestClient.ResponseSpec response;
 
@@ -70,115 +70,115 @@ public class ContentletControllerFieldTests extends AbstractContentletController
     @DisplayName("GET /{id} endpoint")
     class GetByIdEndPoint {
 
-		@Nested
-		@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-		@DisplayName("given a contentlet with fields was saved")
-		class GivenAContentletWithFieldsWasSaved {
-			// Given
-			SomethingThatLooksLikeAContentlet toSave =
-					new SomethingThatLooksLikeAContentlet("Contentlet2",
-							"field1Value", 123);
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @DisplayName("given a contentlet with fields was saved")
+        class GivenAContentletWithFieldsWasSaved {
+            // Given
+            SomethingThatLooksLikeAContentlet toSave =
+                new SomethingThatLooksLikeAContentlet("Contentlet2",
+                    "field1Value", 123);
 
-			@BeforeAll
-			void beforeAll() {
+            @BeforeAll
+            void beforeAll() {
 
-				// TBD: Save directly to the DB instead?
-				// When
-				WebTestClient.ResponseSpec response = webTestClient.put().bodyValue(toSave).exchange();
+                // TBD: Save directly to the DB instead?
+                // When
+                WebTestClient.ResponseSpec response = webTestClient.put().bodyValue(toSave).exchange();
 
-				response.expectStatus().is2xxSuccessful();
-			}
+                response.expectStatus().is2xxSuccessful();
+            }
 
-			@Nested
-			@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-			@DisplayName("when getting that contentlet with fields")
-			class GetAContentlet {
+            @Nested
+            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+            @DisplayName("when getting that contentlet with fields")
+            class GetAContentlet {
 
-				WebTestClient.ResponseSpec response;
+                WebTestClient.ResponseSpec response;
 
-				@BeforeAll
-				void beforeAll() {
-					// When
-					response = webTestClient.get()
-							.uri("/" + toSave.id())
-							.exchange();
-				}
+                @BeforeAll
+                void beforeAll() {
+                    // When
+                    response = webTestClient.get()
+                        .uri("/" + toSave.id())
+                        .exchange();
+                }
 
-				@Test
-				@DisplayName("it should return the contentlet with its fields")
-				void it_should_return_the_contentlet_with_its_fields() {
+                @Test
+                @DisplayName("it should return the contentlet with its fields")
+                void it_should_return_the_contentlet_with_its_fields() {
 
-					// Then
-					response.expectStatus().is2xxSuccessful()
-							.expectBody(SomethingThatLooksLikeAContentlet.class)
-							.value(contentlet -> {
-								assertThat(contentlet.id()).isEqualTo(toSave.id());
-								assertThat(contentlet.field1()).isEqualTo(toSave.field1());
-								assertThat(contentlet.field2()).isEqualTo(toSave.field2());
-							});
-				}
-			}
-		}
+                    // Then
+                    response.expectStatus().is2xxSuccessful()
+                        .expectBody(SomethingThatLooksLikeAContentlet.class)
+                        .value(contentlet -> {
+                            assertThat(contentlet.id()).isEqualTo(toSave.id());
+                            assertThat(contentlet.field1()).isEqualTo(toSave.field1());
+                            assertThat(contentlet.field2()).isEqualTo(toSave.field2());
+                        });
+                }
+            }
+        }
 
-		@Nested
-		@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-		@DisplayName("given a contentlet with complex fields was saved")
-		class GivenAContentletWithComplexFieldsWasSaved {
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @DisplayName("given a contentlet with complex fields was saved")
+        class GivenAContentletWithComplexFieldsWasSaved {
 
-			record ContentletWithComplexFields(String id, List<String> strings, List<ComplexField> stuff) {
-			}
+            record ContentletWithComplexFields(String id, List<String> strings, List<ComplexField> stuff) {
+            }
 
-			record ComplexField(String field1, int field2) {
-			}
+            record ComplexField(String field1, int field2) {
+            }
 
-			ContentletWithComplexFields toSave = new ContentletWithComplexFields(
-					"Contentlet3",
-					List.of("string1", "string2"),
-					List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
-			);
+            ContentletWithComplexFields toSave = new ContentletWithComplexFields(
+                "Contentlet3",
+                List.of("string1", "string2"),
+                List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
+            );
 
-			@BeforeAll
-			void given() {
+            @BeforeAll
+            void given() {
 
-				// Given
-				webTestClient.put().bodyValue(toSave).exchange()
-						.expectStatus().is2xxSuccessful();
+                // Given
+                webTestClient.put().bodyValue(toSave).exchange()
+                    .expectStatus().is2xxSuccessful();
 
-			}
+            }
 
-			@Nested
-			@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-			@DisplayName("when getting that contentlet with complex fields")
-			class GetContentletWithComplexFields {
+            @Nested
+            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+            @DisplayName("when getting that contentlet with complex fields")
+            class GetContentletWithComplexFields {
 
-				WebTestClient.ResponseSpec response;
+                WebTestClient.ResponseSpec response;
 
-				@BeforeAll
-				void when() {
+                @BeforeAll
+                void when() {
 
-					// When
-					response = webTestClient.get()
-							.uri("/" + toSave.id())
-							.exchange();
+                    // When
+                    response = webTestClient.get()
+                        .uri("/" + toSave.id())
+                        .exchange();
 
-				}
+                }
 
-				@Test
-				@DisplayName("it should return the contentlet with its complex fields")
-				void it_should_return_the_contentlet_with_its_complex_fields() {
+                @Test
+                @DisplayName("it should return the contentlet with its complex fields")
+                void it_should_return_the_contentlet_with_its_complex_fields() {
 
-					// Then
-					response.expectStatus().is2xxSuccessful()
-							.expectBody(ContentletWithComplexFields.class)
-							.value(contentlet -> {
-								assertThat(contentlet.id()).isEqualTo(toSave.id());
-								assertThat(contentlet.strings()).isEqualTo(toSave.strings());
-								assertThat(contentlet.stuff()).isEqualTo(toSave.stuff());
-							});
-				}
-			}
+                    // Then
+                    response.expectStatus().is2xxSuccessful()
+                        .expectBody(ContentletWithComplexFields.class)
+                        .value(contentlet -> {
+                            assertThat(contentlet.id()).isEqualTo(toSave.id());
+                            assertThat(contentlet.strings()).isEqualTo(toSave.strings());
+                            assertThat(contentlet.stuff()).isEqualTo(toSave.stuff());
+                        });
+                }
+            }
 
-		}
+        }
 
     }
 
