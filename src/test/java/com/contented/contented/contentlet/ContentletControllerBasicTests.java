@@ -1,5 +1,6 @@
 package com.contented.contented.contentlet;
 
+import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -12,6 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.*;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -24,7 +26,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     static MongoDBContainer mongoDBContainer = mongoDBContainer();
 
     @DynamicPropertySource
-    static void mongoDbProperties(DynamicPropertyRegistry registry) {
+    static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
         startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
     }
 
@@ -36,8 +38,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     @DisplayName("PUT endpoint")
     class PutEndPoint {
 
-        @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @NestedPerClass
         @DisplayName("when saving a new contentlet")
         class SaveANewContentlet {
 
@@ -50,7 +51,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = webTestClient.put().bodyValue(toSave).exchange();
+                response = contentletEndpointClient.put().bodyValue(toSave).exchange();
             }
 
             @Test
@@ -89,7 +90,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 void beforeAll() {
 
                     // When
-                    response = webTestClient.put().bodyValue(toSave).exchange();
+                    response = contentletEndpointClient.put().bodyValue(toSave).exchange();
                 }
 
                 @Test
@@ -134,7 +135,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             saveOneContentlet().block();
 
             // When
-            var response = webTestClient.get().uri("/all").exchange();
+            var response = contentletEndpointClient.get().uri("/all").exchange();
 
             // Then
             response.expectStatus()
@@ -167,7 +168,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = webTestClient.get().uri("/" + savedContentlet.getId()).exchange();
+                response = contentletEndpointClient.get().uri("/" + savedContentlet.getId()).exchange();
             }
 
             @Test
@@ -202,7 +203,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = webTestClient.get().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.get().uri("/some-non-existent-id").exchange();
             }
 
             @Test
@@ -236,7 +237,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 contentletRepository.save(toDelete).block();
 
                 // When
-                response = webTestClient.delete().uri("/{id}", toDelete.getId()).exchange();
+                response = contentletEndpointClient.delete().uri("/{id}", toDelete.getId()).exchange();
             }
 
             @Test

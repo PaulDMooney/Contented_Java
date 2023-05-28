@@ -12,6 +12,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -49,7 +50,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void when() {
 
                 // When
-                response = webTestClient.put().bodyValue(toSave).exchange();
+                response = contentletEndpointClient.put().bodyValue(toSave).exchange();
 
                 response.expectStatus().is2xxSuccessful();
             }
@@ -84,7 +85,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                 // TBD: Save directly to the DB instead?
                 // When
-                WebTestClient.ResponseSpec response = webTestClient.put().bodyValue(toSave).exchange();
+                WebTestClient.ResponseSpec response = contentletEndpointClient.put().bodyValue(toSave).exchange();
 
                 response.expectStatus().is2xxSuccessful();
             }
@@ -99,7 +100,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 @BeforeAll
                 void beforeAll() {
                     // When
-                    response = webTestClient.get()
+                    response = contentletEndpointClient.get()
                         .uri("/" + toSave.id())
                         .exchange();
                 }
@@ -141,7 +142,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void given() {
 
                 // Given
-                webTestClient.put().bodyValue(toSave).exchange()
+                contentletEndpointClient.put().bodyValue(toSave).exchange()
                     .expectStatus().is2xxSuccessful();
 
             }
@@ -157,7 +158,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 void when() {
 
                     // When
-                    response = webTestClient.get()
+                    response = contentletEndpointClient.get()
                         .uri("/" + toSave.id())
                         .exchange();
 
