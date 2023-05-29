@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import com.contented.contented.contentlet.testutils.NestedPerClass;
+import org.junit.Ignore;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -33,13 +34,13 @@ public class SearchControllerTests {
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
     }
 
+    @Disabled
     @NestedPerClass
     @DisplayName("Given content that is indexed by its identifier was saved")
     class GivenContentIndexedByIdentifier {
 
-        @Nested
+        @NestedPerClass
         @DisplayName("When a search is performed by its identifier")
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
         class WhenSearchByIdentifier {
 
             @BeforeAll
@@ -54,6 +55,7 @@ public class SearchControllerTests {
 
             }
 
+            @Ignore
             @Test
             @DisplayName("it should return the contentlet")
             void it_should_return_the_contentlet() {

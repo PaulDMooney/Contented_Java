@@ -7,6 +7,14 @@
           "type": "keyword"
         }
       }
+    },
+    {
+      "field1_as_text": {
+        "match": "field1",
+        "mapping": {
+          "type": "text"
+        }
+      }
     }
   ]
 }
