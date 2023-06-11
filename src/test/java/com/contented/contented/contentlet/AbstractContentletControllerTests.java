@@ -16,7 +16,7 @@ public abstract class AbstractContentletControllerTests {
     protected WebTestClient contentletEndpointClient;
 
     @BeforeAll()
-    void beforeEach() {
+    void beforeAll() {
         var baseURL = String.format("http://localhost:%s/%s", port, ContentletController.CONTENTLETS_PATH);
         contentletEndpointClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
     }

@@ -1,7 +1,10 @@
 package com.contented.contented.contentlet;
 
+import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
+import com.contented.contented.contentlet.testutils.ContentletIndexerUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -23,6 +26,9 @@ public class ContentletControllerFieldTests extends AbstractContentletController
     // ContentletRepository needs a MongoDB to communicate with
     @Container
     static MongoDBContainer mongoDBContainer = mongoDBContainer();
+
+    @MockBean
+    ContentletIndexer contentletIndexer;
 
     @DynamicPropertySource
     static void mongoDbProperties(DynamicPropertyRegistry registry) {
@@ -48,6 +54,9 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             @BeforeAll
             void when() {
+
+                // Not concerned with indexing, mock the indexer to just pass through
+                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
 
                 // When
                 response = contentletEndpointClient.put().bodyValue(toSave).exchange();
@@ -83,6 +92,9 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @BeforeAll
             void beforeAll() {
 
+                // Not concerned with indexing, mock the indexer to just pass through
+                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+
                 // TBD: Save directly to the DB instead?
                 // When
                 WebTestClient.ResponseSpec response = contentletEndpointClient.put().bodyValue(toSave).exchange();
@@ -99,6 +111,10 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                 @BeforeAll
                 void beforeAll() {
+
+                    // Not concerned with indexing, mock the indexer to just pass through
+                    ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+
                     // When
                     response = contentletEndpointClient.get()
                         .uri("/" + toSave.id())
@@ -141,6 +157,9 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @BeforeAll
             void given() {
 
+                // Not concerned with indexing, mock the indexer to just pass through
+                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+
                 // Given
                 contentletEndpointClient.put().bodyValue(toSave).exchange()
                     .expectStatus().is2xxSuccessful();
@@ -156,6 +175,9 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                 @BeforeAll
                 void when() {
+
+                    // Not concerned with indexing, mock the indexer to just pass through
+                    ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
 
                     // When
                     response = contentletEndpointClient.get()

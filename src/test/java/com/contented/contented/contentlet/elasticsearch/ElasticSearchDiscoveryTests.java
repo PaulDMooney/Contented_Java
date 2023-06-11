@@ -197,7 +197,7 @@ public class ElasticSearchDiscoveryTests {
                     .block();
 
                 // Seems this is needed to give time for the document to be searchable??
-                Thread.sleep(500);
+                Thread.sleep(1000);
             }
 
 

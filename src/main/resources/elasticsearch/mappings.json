@@ -1,0 +1,12 @@
+{
+  "dynamic_templates": [
+    {
+      "id_as_keyword": {
+        "match": "id",
+        "mapping": {
+          "type": "keyword"
+        }
+      }
+    }
+  ]
+}

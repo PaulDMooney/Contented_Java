@@ -1,10 +1,12 @@
 package com.contented.contented.contentlet;
 
+import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 
+import static com.contented.contented.contentlet.testutils.ContentletIndexerUtils.passThroughContentletIndexer;
 import static org.mockito.Mockito.*;
 
 public class ContentletServiceTest {
@@ -16,6 +18,8 @@ public class ContentletServiceTest {
 
         ContentletService contentletService;
         ContentletRepository repository;
+
+        ContentletIndexer contentletIndexer;
 
         ContentletEntity toSave = new ContentletEntity("Contentlet1");
 
@@ -33,7 +37,9 @@ public class ContentletServiceTest {
         @BeforeAll
         void beforeAll() {
             repository = Mockito.mock(ContentletRepository.class);
-            contentletService = new ContentletService(repository);
+            contentletIndexer = Mockito.mock(ContentletIndexer.class);
+            passThroughContentletIndexer(contentletIndexer);
+            contentletService = new ContentletService(repository, contentletIndexer);
         }
 
         @Nested
