@@ -1,8 +1,11 @@
 package com.contented.contented.contentlet;
 
+import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
+import javax.swing.text.AbstractDocument;
 
 @Log4j2
 @Service
@@ -10,20 +13,31 @@ public class ContentletService {
 
     private final ContentletRepository contentletRepository;
 
-    public ContentletService(ContentletRepository contentletRepository) {
+    private final ContentletIndexer contentletIndexer;
+
+    public ContentletService(ContentletRepository contentletRepository, ContentletIndexer contentletIndexer) {
         this.contentletRepository = contentletRepository;
+        this.contentletIndexer = contentletIndexer;
     }
 
     public Mono<ResultPair> save(ContentletEntity contentletEntity) {
         log.info("Saving contentlet: {}", contentletEntity.getId());
+        return saveToDB(contentletEntity)
+            .flatMap(resultPair ->  contentletIndexer.indexContentlet(resultPair.contentletEntity())
+                .doOnSuccess(indexedContentlet ->
+                    log.info("Indexed contentlet: {} successfully", indexedContentlet.getId()))
+                .map(indexedContentlet -> resultPair));
+    }
+
+    private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
         return contentletRepository.existsById(contentletEntity.getId())
-                .flatMap(exists -> {
-                    boolean isNew = !exists;
-                    log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
-                    return contentletRepository.save(contentletEntity)
-                            .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
-                            .doOnSuccess(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
-                });
+            .flatMap(exists -> {
+                boolean isNew = !exists;
+                log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
+                return contentletRepository.save(contentletEntity)
+                    .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
+                    .doOnSuccess(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
+            });
     }
 
     public Mono<Void> deleteById(String id) {

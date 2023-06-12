@@ -1,17 +1,26 @@
 package com.contented.contented.contentlet;
 
+import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
+import com.contented.contented.contentlet.testutils.ContentletIndexerUtils;
+import com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils;
+import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.*;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -23,8 +32,11 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     @Container
     static MongoDBContainer mongoDBContainer = mongoDBContainer();
 
+    @MockBean
+    ContentletIndexer contentletIndexer;
+
     @DynamicPropertySource
-    static void mongoDbProperties(DynamicPropertyRegistry registry) {
+    static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
         startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
     }
 
@@ -32,12 +44,18 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         return contentletRepository.save(new ContentletEntity("Contentlet1"));
     }
 
+    void mockContentletIndexer() {
+
+        // Mock the ContentletIndexer to return the contentlet it receives
+        // To avoid setting up ElasticSearch in this test. Is this a good idea?
+        ContentletIndexerUtils.passThroughContentletIndexer(this.contentletIndexer);
+    }
+
     @Nested
     @DisplayName("PUT endpoint")
     class PutEndPoint {
 
-        @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @NestedPerClass
         @DisplayName("when saving a new contentlet")
         class SaveANewContentlet {
 
@@ -48,9 +66,9 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
             @BeforeAll()
             void beforeAll() {
-
+                mockContentletIndexer();
                 // When
-                response = webTestClient.put().bodyValue(toSave).exchange();
+                response = contentletEndpointClient.put().bodyValue(toSave).exchange();
             }
 
             @Test
@@ -87,9 +105,9 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
                 @BeforeAll()
                 void beforeAll() {
-
+                    mockContentletIndexer();
                     // When
-                    response = webTestClient.put().bodyValue(toSave).exchange();
+                    response = contentletEndpointClient.put().bodyValue(toSave).exchange();
                 }
 
                 @Test
@@ -134,7 +152,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             saveOneContentlet().block();
 
             // When
-            var response = webTestClient.get().uri("/all").exchange();
+            var response = contentletEndpointClient.get().uri("/all").exchange();
 
             // Then
             response.expectStatus()
@@ -167,7 +185,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = webTestClient.get().uri("/" + savedContentlet.getId()).exchange();
+                response = contentletEndpointClient.get().uri("/" + savedContentlet.getId()).exchange();
             }
 
             @Test
@@ -202,7 +220,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = webTestClient.get().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.get().uri("/some-non-existent-id").exchange();
             }
 
             @Test
@@ -236,7 +254,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 contentletRepository.save(toDelete).block();
 
                 // When
-                response = webTestClient.delete().uri("/{id}", toDelete.getId()).exchange();
+                response = contentletEndpointClient.delete().uri("/{id}", toDelete.getId()).exchange();
             }
 
             @Test

@@ -1,0 +1,4 @@
+elasticsearch:
+  index:
+    name: "contentletindex"
+    mappingsfile: "elasticsearch/mappings.json"
