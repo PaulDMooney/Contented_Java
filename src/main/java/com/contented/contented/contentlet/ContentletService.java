@@ -23,11 +23,10 @@ public class ContentletService {
     public Mono<ResultPair> save(ContentletEntity contentletEntity) {
         log.info("Saving contentlet: {}", contentletEntity.getId());
         return saveToDB(contentletEntity)
-            .flatMap(resultPair -> {
-                var indexMono = contentletIndexer.indexContentlet(resultPair.contentletEntity());
-
-                return indexMono.doOnSuccess(indexedContentlet -> log.info("Indexed contentlet: {} successfully", indexedContentlet.getId()))
-                .map(indexedContentlet -> resultPair);});
+            .flatMap(resultPair ->  contentletIndexer.indexContentlet(resultPair.contentletEntity())
+                .doOnSuccess(indexedContentlet ->
+                    log.info("Indexed contentlet: {} successfully", indexedContentlet.getId()))
+                .map(indexedContentlet -> resultPair));
     }
 
     private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
