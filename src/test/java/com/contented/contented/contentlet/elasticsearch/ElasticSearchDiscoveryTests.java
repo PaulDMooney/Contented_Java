@@ -5,29 +5,31 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.index.AliasAction;
+import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
+import org.springframework.data.elasticsearch.core.index.AliasActions;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
-import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.*;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
+import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -197,6 +199,7 @@ public class ElasticSearchDiscoveryTests {
                     .block();
 
                 // Seems this is needed to give time for the document to be searchable??
+                // Maybe something with flush?
                 Thread.sleep(1000);
             }
 
@@ -252,6 +255,40 @@ public class ElasticSearchDiscoveryTests {
                         Assertions.assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
                     })
                     .verifyComplete();
+            }
+
+            @NestedPerClass
+            @DisplayName("And an alias is assigned to the index")
+            class AliasAssignedToIndex {
+
+                static final String ALIAS_NAME = "mytestalias";
+
+                @BeforeAll
+                void assignAlias() throws InterruptedException {
+                    AliasActions aliasActions = new AliasActions();
+                    aliasActions.add(new AliasAction.Add(AliasActionParameters.builder()
+                        .withIndices(INDEX_NAME3)
+                        .withAliases(ALIAS_NAME).build()));
+                    reactiveElasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions)
+                        .block();
+
+//                    Thread.sleep(10000);
+                }
+
+                @Test
+                @DisplayName("Then the document should be searchable via alias")
+                void then_the_document_should_be_searchable_via_alias() {
+
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
+                    reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(ALIAS_NAME))
+                        .collectList()
+                        .as(StepVerifier::create)
+                        .assertNext(searchHits -> {
+                            Assertions.assertThat(searchHits).hasSize(1);
+                            Assertions.assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
+                        })
+                        .verifyComplete();
+                }
             }
         }
     }
