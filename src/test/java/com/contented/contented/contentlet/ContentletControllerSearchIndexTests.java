@@ -75,8 +75,10 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         SomeContentlet toSave = new SomeContentlet("contentlet1234", "Some title", "Some body");
 
         @BeforeAll
-        void given() {
+        void given() throws InterruptedException {
             contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
+            // TODO: Need a better solution than waiting for ES to synchronize
+            Thread.sleep(500);
         }
 
         @NestedPerClass
@@ -92,8 +94,6 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                     .collectList()
                     .block();
 
-                // TODO: Need a better solution than waiting for ES to synchronize
-                Thread.sleep(2000);
             }
 
             @Test
