@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
 
@@ -30,7 +31,7 @@ public class ElasticSearchIndexCreator {
         this.mappingsFile = mappingsFile;
     }
 
-    public void createIndex() {
+    public Mono<Boolean> createIndex() {
         var createIndexRequest = CreateIndexRequest.of(builder ->
             builder.index(indexName)
                 .mappings(mappingsBuilder -> {
@@ -39,13 +40,16 @@ public class ElasticSearchIndexCreator {
             }));
 
         log.info("Creating index {}", indexName);
-        var response = reactiveElasticsearchClient.indices().create(createIndexRequest)
-            .block();
-        if (response.acknowledged()) {
-            log.info("Index {} created", indexName);
-        } else {
-            log.error("Index {} not created", indexName);
-        }
+        return reactiveElasticsearchClient.indices().create(createIndexRequest)
+            .map(response -> {
+                if (response.acknowledged()) {
+                    log.info("Index {} created", indexName);
+                    return true;
+                } else {
+                    log.error("Index {} not created", indexName);
+                    return false;
+                }
+            });
 
         // TODO: Throw error if response is not successful
     }
