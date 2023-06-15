@@ -2,6 +2,7 @@ package com.contented.contented.contentlet;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,7 @@ public class ContentletEntity {
     @Id
     private String id;
 
+    @JsonIgnore
     private Map<String, Object> schemalessData = new LinkedHashMap<>();
 
     public ContentletEntity(String id) {
