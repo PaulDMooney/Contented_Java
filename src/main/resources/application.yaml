@@ -2,3 +2,11 @@ elasticsearch:
   index:
     name: "contentletindex"
     mappingsfile: "elasticsearch/mappings.json"
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://root:example@localhost:27017/demo?authSource=admin
+  elasticsearch:
+    uris: localhost:9200
+

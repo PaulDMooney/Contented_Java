@@ -62,7 +62,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
     @BeforeAll
     void beforeAll() {
         super.beforeAll();
-        elasticSearchIndexCreator.createIndex();
+        elasticSearchIndexCreator.createIndex().block();
     }
 
     record SomeContentlet(String id, String title, String body) {
