@@ -1,5 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch;
 
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
@@ -9,24 +11,31 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
+import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.convert.ElasticsearchConverter;
 import org.springframework.data.elasticsearch.core.index.AliasAction;
 import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
 import org.springframework.data.elasticsearch.core.index.AliasActions;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
+
+import java.io.ByteArrayInputStream;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
@@ -48,6 +57,12 @@ public class ElasticSearchDiscoveryTests {
 
     @Autowired
     ReactiveElasticsearchOperations reactiveElasticsearchOperations;
+
+    @Autowired
+    ReactiveElasticsearchTemplate reactiveElasticsearchTemplate;
+
+    @Autowired
+    ElasticsearchConverter converter;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
@@ -212,6 +227,13 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
+            @DisplayName("the returned document is not just the same object reference as the saved document")
+            void the_returned_entity_is_not_just_the_same_object_as_the_saved_entity() {
+
+                Assertions.assertThat(savedEntity).isNotSameAs(toSave);
+            }
+
+            @Test
             @DisplayName("the document should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
@@ -253,6 +275,63 @@ public class ElasticSearchDiscoveryTests {
                     .assertNext(searchHits -> {
                         Assertions.assertThat(searchHits).hasSize(1);
                         Assertions.assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
+                    })
+                    .verifyComplete();
+            }
+
+            @Test
+            @DisplayName("the document should be searchable by json query on the id field")
+            void the_document_should_be_searchable_by_json_query_on_the_id_field() {
+
+                // This is what would be inside the "query" object.
+                var query = new StringQuery("""
+                    {
+                        "bool": {
+                            "must": {
+                                "exists": {
+                                    "field": "id"
+                                }
+                            }
+                        }
+                    }
+                    """);
+                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                    .collectList()
+                    .as(StepVerifier::create)
+                    .assertNext(searchHits -> {
+                        Assertions.assertThat(searchHits).size().isGreaterThan(0);
+                    })
+                    .verifyComplete();
+            }
+
+            @Test
+            @DisplayName("the document should be searchable by full JSON query request")
+            void the_document_should_be_searchable_by_full_json_query_request() {
+
+                // This is the "full" query like we would use if we were going
+                // directly to the elasticsearch /_search endpoint
+                var queryString = """
+                    {
+                        "query": {
+                            "bool": {
+                                "must": {
+                                    "exists": {
+                                        "field": "id"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    """;
+                SearchRequest.Builder builder = new SearchRequest.Builder();
+                builder.withJson(new ByteArrayInputStream(queryString.getBytes()));
+                SearchRequest searchRequest = builder.index(INDEX_NAME3).build();
+
+                reactiveElasticsearchClient.search(searchRequest, EntityAsMap.class)
+                    .as(StepVerifier::create)
+                    .assertNext(response -> {
+                        Assertions.assertThat(response.hits().total().value()).isGreaterThan(0);
+                        System.out.println(response);
                     })
                     .verifyComplete();
             }
