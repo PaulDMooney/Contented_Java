@@ -3,9 +3,11 @@ package com.contented.contented.contentlet;
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.swing.text.AbstractDocument;
+import java.util.List;
 
 @Log4j2
 @Service
@@ -56,6 +58,11 @@ public class ContentletService {
                         log.debug("contentlet: {} not found", id);
                     }
                 });
+    }
+
+    public Flux<ContentletEntity> findByIds(List<String> ids) {
+        log.debug("Finding {} contentlets", ids.size());
+        return contentletRepository.findAllById(ids);
     }
 
     record ResultPair(ContentletEntity contentletEntity, boolean isNew) {

@@ -284,17 +284,14 @@ public class ElasticSearchDiscoveryTests {
             void the_document_should_be_searchable_by_json_query_on_the_id_field() {
 
                 // This is what would be inside the "query" object.
-                var query = new StringQuery("""
+                var queryTemplate = """
                     {
-                        "bool": {
-                            "must": {
-                                "exists": {
-                                    "field": "id"
-                                }
-                            }
+                        "term": {
+                            "id": "%s"
                         }
                     }
-                    """);
+                    """;
+                var query = new StringQuery(String.format(queryTemplate,toSave.id()));
                 reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
                     .collectList()
                     .as(StepVerifier::create)
@@ -310,19 +307,16 @@ public class ElasticSearchDiscoveryTests {
 
                 // This is the "full" query like we would use if we were going
                 // directly to the elasticsearch /_search endpoint
-                var queryString = """
+                var queryStringTemplate = """
                     {
                         "query": {
-                            "bool": {
-                                "must": {
-                                    "exists": {
-                                        "field": "id"
-                                    }
-                                }
+                            "term": {
+                                "id": "%s"
                             }
                         }
                     }
                     """;
+                var queryString = String.format(queryStringTemplate, toSave.id());
                 SearchRequest.Builder builder = new SearchRequest.Builder();
                 builder.withJson(new ByteArrayInputStream(queryString.getBytes()));
                 SearchRequest searchRequest = builder.index(INDEX_NAME3).build();
