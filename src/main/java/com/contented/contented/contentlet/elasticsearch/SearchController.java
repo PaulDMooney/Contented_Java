@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.ContentletService;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
@@ -46,7 +47,7 @@ public class SearchController {
 
                 return contentletService.findByIds(extractedIds)
                     .collectList()
-                    .map(contentlets -> new SearchResultsWithContent<>(response, contentlets));
+                    .map(contentlets -> new SearchResultsWithContent<>((SearchResponse<EntityAsMap>) response, contentlets));
 
             });
     }
