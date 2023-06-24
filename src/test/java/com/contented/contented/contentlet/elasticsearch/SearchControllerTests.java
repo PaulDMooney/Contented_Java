@@ -6,9 +6,12 @@ import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -21,10 +24,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.JsonNode;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.*;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -48,6 +53,8 @@ public class SearchControllerTests {
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
     }
 
+    @Autowired ElasticSearchIndexCreator elasticSearchIndexCreator;
+
     WebTestClient searchEndpointClient;
 
     WebTestClient contentletEndpointClient;
@@ -58,6 +65,9 @@ public class SearchControllerTests {
         searchEndpointClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
 
         contentletEndpointClient = AbstractContentletControllerTests.createContentletsEndpointClient(port);
+
+        // Create the index! Otherwise queries just return 0 results
+        elasticSearchIndexCreator.createIndex();
     }
 
     @NestedPerClass
@@ -72,11 +82,13 @@ public class SearchControllerTests {
             final SomeContent savedContent = new SomeContent("123XYZ", "Some field value");
 
             @BeforeAll
-            void given() {
+            void given() throws InterruptedException {
 
                 // Could use rest endpoint, or could go directly to service
                 contentletEndpointClient.put().bodyValue(savedContent)
                     .exchange().expectStatus().is2xxSuccessful();
+
+                Thread.sleep(1000); // TODO: Need something better than just waiting
             }
 
 
@@ -96,10 +108,20 @@ public class SearchControllerTests {
 
                 WebTestClient.ResponseSpec response;
 
+                WebTestClient.BodySpec<ExpectedResponseStructure, ?> bodySpec;
+
+                record ExpectedResponseStructure(
+                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse esResponse,
+                    List<ContentletEntity> contentlets
+                ){};
+
                 @BeforeAll
                 void when() {
                     var queryString = String.format(queryForContentTemplate, savedContent.id());
                     response = searchEndpointClient.post().uri("/withcontent").bodyValue(queryString).exchange();
+
+                    // Calling `expectBody` multiple times has inconsistent results so just do it once.
+                    bodySpec = response.expectBody(ExpectedResponseStructure.class);
                 }
 
                 @Test
@@ -111,9 +133,31 @@ public class SearchControllerTests {
                 @Test
                 @DisplayName("it should return a response with ElasticSearch 'esResponse' field and 'contentlets' field")
                 void it_should_return_the_contentlet() {
-                    var bodySpec = response.expectBody();
-                    bodySpec.jsonPath("$.esResponse").exists();
-                    bodySpec.jsonPath("$.contentlets").exists();
+                    bodySpec.value(value -> {
+                        assertThat(value.esResponse()).isNotNull();
+                        assertThat(value.contentlets()).isNotNull();
+                    });
+                }
+
+                @Test
+                @DisplayName("the 'esResponse' should contain a hit with the id of the saved content")
+                void the_esResponse_should_contain_a_hit_with_the_id_of_the_saved_content() {
+                    bodySpec
+                            .value(value -> {
+                                var esResponse = value.esResponse();
+                                assertThat(esResponse.hits().hits()).hasSize(1);
+                            });
+                }
+
+                @Test
+                @DisplayName("the 'contentlets' should contain a contentlet with the id of the saved content")
+                void the_contentlets_should_contain_a_contentlet_with_the_id_of_the_saved_content() {
+                    bodySpec
+                            .value(value -> {
+                                var contentlets = value.contentlets();
+                                assertThat(contentlets).hasSize(1);
+                                assertThat(contentlets.get(0).getId()).isEqualTo(savedContent.id());
+                            });
                 }
 
             }
