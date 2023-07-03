@@ -2,13 +2,14 @@ package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
-import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
+import com.contented.contented.contentlet.transformation.BlogTransformer;
 import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static com.contented.contented.contentlet.testutils.ContentletIndexerUtils.passThroughContentletIndexer;
@@ -45,7 +46,8 @@ public class ContentletServiceTest {
             repository = Mockito.mock(ContentletRepository.class);
             contentletIndexer = Mockito.mock(ContentletIndexer.class);
             passThroughContentletIndexer(contentletIndexer);
-            contentletService = new ContentletService(repository, contentletIndexer);
+            var transformationHandler = new TransformationHandler(List.of(new BlogTransformer()));
+            contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
         }
 
         @NestedPerClass
@@ -126,7 +128,6 @@ public class ContentletServiceTest {
             }
         }
 
-        @Disabled
         @NestedPerClass
         @DisplayName("Given content that matches criteria for transformations")
         class SavingContentletWithTransformations {
@@ -136,10 +137,6 @@ public class ContentletServiceTest {
 
             @BeforeAll
             void beforeAll() {
-                repository = Mockito.mock(ContentletRepository.class);
-                contentletIndexer = Mockito.mock(ContentletIndexer.class);
-                passThroughContentletIndexer(contentletIndexer);
-                contentletService = new ContentletService(repository, contentletIndexer);
 
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
                 when(repository.save(Mockito.any(ContentletEntity.class))).thenReturn(Mono.just(toSave));
@@ -162,6 +159,8 @@ public class ContentletServiceTest {
                     verify(repository).save(argumentCaptor.capture());
 
                     var savedValue = argumentCaptor.getValue();
+
+                    // Expected Transformations from the BlogTransformer
                     assertThat(savedValue.getSchemalessData())
                         .hasEntrySatisfying("contentType", value -> assertThat(value).isEqualTo("Blog"));
                     assertThat(savedValue.getSchemalessData())
