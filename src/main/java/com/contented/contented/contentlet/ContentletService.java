@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.swing.text.AbstractDocument;
 import java.util.List;
 
 @Log4j2
@@ -17,14 +16,18 @@ public class ContentletService {
 
     private final ContentletIndexer contentletIndexer;
 
-    public ContentletService(ContentletRepository contentletRepository, ContentletIndexer contentletIndexer) {
+    private final TransformationHandler transformationHandler;
+
+    public ContentletService(ContentletRepository contentletRepository, ContentletIndexer contentletIndexer, TransformationHandler transformationHandler) {
         this.contentletRepository = contentletRepository;
         this.contentletIndexer = contentletIndexer;
+        this.transformationHandler = transformationHandler;
     }
 
     public Mono<ResultPair> save(ContentletEntity contentletEntity) {
         log.info("Saving contentlet: {}", contentletEntity.getId());
-        return saveToDB(contentletEntity)
+        var toSave = transformationHandler.applyTransformation(contentletEntity);
+        return saveToDB(toSave)
             .flatMap(resultPair ->  contentletIndexer.indexContentlet(resultPair.contentletEntity())
                 .doOnSuccess(indexedContentlet ->
                     log.info("Indexed contentlet: {} successfully", indexedContentlet.getId()))
