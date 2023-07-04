@@ -2,17 +2,20 @@ package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
-import com.contented.contented.contentlet.transformation.BlogTransformer;
+import com.contented.contented.contentlet.transformation.StandardDMSContentTransformer;
 import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
 import static com.contented.contented.contentlet.testutils.ContentletIndexerUtils.passThroughContentletIndexer;
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -46,7 +49,8 @@ public class ContentletServiceTest {
             repository = Mockito.mock(ContentletRepository.class);
             contentletIndexer = Mockito.mock(ContentletIndexer.class);
             passThroughContentletIndexer(contentletIndexer);
-            var transformationHandler = new TransformationHandler(List.of(new BlogTransformer()));
+            Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+            var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
             contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
         }
 
@@ -133,7 +137,10 @@ public class ContentletServiceTest {
         class SavingContentletWithTransformations {
 
             ContentletEntity toSave = new ContentletEntity("1234",
-                Map.of("language", "en", "stName", "Blog"));
+                Map.ofEntries(
+                    entry("language", "en"),
+                    entry("stName", "Blog"),
+                    entry("parentDmsId", "parentDmsIdABCDE")));
 
             @BeforeAll
             void beforeAll() {
@@ -160,11 +167,11 @@ public class ContentletServiceTest {
 
                     var savedValue = argumentCaptor.getValue();
 
-                    // Expected Transformations from the BlogTransformer
+                    // Some expected Transformations
                     assertThat(savedValue.getSchemalessData())
                         .hasEntrySatisfying("contentType", value -> assertThat(value).isEqualTo("Blog"));
                     assertThat(savedValue.getSchemalessData())
-                        .hasEntrySatisfying("identifier", value -> assertThat(value).isEqualTo("1234_en"));
+                        .hasEntrySatisfying("identifier", value -> assertThat(value).isEqualTo("parentDmsIdABCDE"));
 
                 }
             }
