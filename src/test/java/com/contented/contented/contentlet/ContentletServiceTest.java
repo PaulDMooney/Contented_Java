@@ -133,7 +133,7 @@ public class ContentletServiceTest {
         }
 
         @NestedPerClass
-        @DisplayName("Given content that matches criteria for transformations")
+        @DisplayName("Given content that matches criteria for entity transformations")
         class SavingContentletWithTransformations {
 
             ContentletEntity toSave = new ContentletEntity("1234",
@@ -175,7 +175,6 @@ public class ContentletServiceTest {
 
                 }
             }
-
         }
     }
 }

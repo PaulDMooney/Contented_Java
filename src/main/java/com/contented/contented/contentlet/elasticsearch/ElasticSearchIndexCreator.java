@@ -5,10 +5,9 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-
-import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
 
 @Component
 @Log4j2
@@ -18,35 +17,35 @@ public class ElasticSearchIndexCreator {
 
     final ReactiveElasticsearchClient reactiveElasticsearchClient;
 
-    final String indexName;
+    final IndexCoordinates indexCoordinates;
 
     final String mappingsFile;
 
     @Autowired
     public ElasticSearchIndexCreator(ReactiveElasticsearchClient reactiveElasticsearchClient,
-                                     @Value("${"+ INDEX_PROPERTY_KEY +"}") String indexName,
+                                     IndexCoordinates indexCoordinates,
                                      @Value("${"+MAPPINGS_FILE_PROPERTY_KEY+"}") String mappingsFile) {
         this.reactiveElasticsearchClient = reactiveElasticsearchClient;
-        this.indexName = indexName;
+        this.indexCoordinates = indexCoordinates;
         this.mappingsFile = mappingsFile;
     }
 
     public Mono<Boolean> createIndex() {
         var createIndexRequest = CreateIndexRequest.of(builder ->
-            builder.index(indexName)
+            builder.index(indexCoordinates.getIndexName())
                 .mappings(mappingsBuilder -> {
                 var mappingJson = this.getClass().getClassLoader().getResourceAsStream(mappingsFile);
                 return mappingsBuilder.withJson(mappingJson);
             }));
 
-        log.info("Creating index {}", indexName);
+        log.info("Creating index {}", indexCoordinates.getIndexName());
         return reactiveElasticsearchClient.indices().create(createIndexRequest)
             .map(response -> {
                 if (response.acknowledged()) {
-                    log.info("Index {} created", indexName);
+                    log.info("Index {} created", indexCoordinates.getIndexName());
                     return true;
                 } else {
-                    log.error("Index {} not created", indexName);
+                    log.error("Index {} not created", indexCoordinates.getIndexName());
                     return false;
                 }
             });
