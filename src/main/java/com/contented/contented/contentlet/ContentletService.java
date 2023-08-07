@@ -2,6 +2,7 @@ package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,10 +29,16 @@ public class ContentletService {
         log.info("Saving contentlet: {}", contentletEntity.getId());
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         return saveToDB(toSave)
-            .flatMap(resultPair ->  contentletIndexer.indexContentlet(resultPair.contentletEntity())
-                .doOnSuccess(indexedContentlet ->
-                    log.info("Indexed contentlet: {} successfully", indexedContentlet.getId()))
-                .map(indexedContentlet -> resultPair));
+            .flatMap(resultPair -> saveToES(resultPair.contentletEntity())
+                    .defaultIfEmpty(new EntityAsMap()) // Is there a better way to handle a potentially empty mono here?
+                .map(indexedContentlet -> resultPair)
+            );
+    }
+
+    private Mono<EntityAsMap> saveToES(ContentletEntity contentletEntity) {
+        return contentletIndexer.indexContentlet(contentletEntity)
+            .doOnNext(indexedContentlet ->
+                    log.info("Indexed contentlet: {} successfully", indexedContentlet.get("identifier")));
     }
 
     private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
@@ -41,14 +48,14 @@ public class ContentletService {
                 log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
                 return contentletRepository.save(contentletEntity)
                     .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
-                    .doOnSuccess(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
+                    .doOnNext(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
             });
     }
 
     public Mono<Void> deleteById(String id) {
         log.info("Deleting contentlet: {}", id);
         return contentletRepository.deleteById(id)
-                .doOnSuccess(result -> log.info("Deleted contentlet: {} successfully", id));
+                .doOnNext(result -> log.info("Deleted contentlet: {} successfully", id));
     }
 
     public Mono<ContentletEntity> findById(String id) {
@@ -68,6 +75,6 @@ public class ContentletService {
         return contentletRepository.findAllById(ids);
     }
 
-    record ResultPair(ContentletEntity contentletEntity, boolean isNew) {
+    public record ResultPair(ContentletEntity contentletEntity, boolean isNew) {
     }
 }
