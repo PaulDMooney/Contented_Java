@@ -14,14 +14,7 @@ import static org.mockito.Mockito.when;
 public class StubbingUtils {
 
     public static OngoingStubbing<Mono<EntityAsMap>> passThroughContentletIndexer(ContentletIndexer toMock) {
-        return when(toMock.indexContentlet(any()))
-                .thenAnswer(invocation -> {
-                    if (invocation.getArgument(0) != null) {
-                        return Mono.just(invocation.getArgument(0));
-                    } else {
-                        return Mono.empty();
-                    }
-                });
+        return when(toMock.indexContentlet(any())).thenReturn(Mono.empty());
     }
 
     public static OngoingStubbing<Mono<EntityAsMap>> passthroughElasticSearchOperations(ReactiveElasticsearchOperations toMock) {
