@@ -1,8 +1,7 @@
 package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
-import com.contented.contented.contentlet.testutils.ContentletIndexerUtils;
-import com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils;
+import com.contented.contented.contentlet.testutils.StubbingUtils;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,7 +10,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Mono;
@@ -20,8 +18,8 @@ import reactor.test.StepVerifier;
 import static org.assertj.core.api.Assertions.*;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -48,7 +46,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
         // Mock the ContentletIndexer to return the contentlet it receives
         // To avoid setting up ElasticSearch in this test. Is this a good idea?
-        ContentletIndexerUtils.passThroughContentletIndexer(this.contentletIndexer);
+        StubbingUtils.passThroughContentletIndexer(this.contentletIndexer);
     }
 
     @Nested

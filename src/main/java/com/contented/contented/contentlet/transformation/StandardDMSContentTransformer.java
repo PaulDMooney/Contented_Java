@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.transformation;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import io.micrometer.common.util.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -73,26 +74,32 @@ public class StandardDMSContentTransformer implements ContentletEntityTransforme
 
     private void setINode(Map<String, Object> mutableSchemalessData) {
         mutableSchemalessData.put(INODE_FIELD,
-            mutableSchemalessData.get(DMS_ID_FIELD));
+                mutableSchemalessData.get(DMS_ID_FIELD));
     }
 
     private void normalizeLanguage(Map<String, Object> mutableSchemalessData) {
-        mutableSchemalessData.compute(LANGUAGE_FIELD, (key, oldValue) ->
-            ((String) oldValue).toLowerCase());
+        mutableSchemalessData.compute(LANGUAGE_FIELD, (key, oldValue) -> {
+            var oldValueStr = (String) oldValue;
+            if (StringUtils.isBlank(oldValueStr)) {
+                return null;
+            }
+            return oldValueStr.toLowerCase();
+        });
+
     }
 
     private void setIdentifier(Map<String, Object> mutableSchemalessData) {
         mutableSchemalessData.put(IDENTIFIER_FIELD,
-            mutableSchemalessData.get(PARENT_DMS_ID_FIELD));
+                mutableSchemalessData.get(PARENT_DMS_ID_FIELD));
     }
 
     private void setContentTypeAndSTName(Map<String, Object> mutableSchemalessData) {
 
         // One of these two fields must be populated.
         mutableSchemalessData.computeIfAbsent(CONTENT_TYPE_FIELD,
-            key -> mutableSchemalessData.get(ST_NAME_FIELD));
+                key -> mutableSchemalessData.get(ST_NAME_FIELD));
         mutableSchemalessData.computeIfAbsent(ST_NAME_FIELD,
-            key -> mutableSchemalessData.get(CONTENT_TYPE_FIELD));
+                key -> mutableSchemalessData.get(CONTENT_TYPE_FIELD));
 
         // TODO: Throw an exception if the two fields don't match.
     }
@@ -102,8 +109,8 @@ public class StandardDMSContentTransformer implements ContentletEntityTransforme
         String stName = (String) contentletEntity.getSchemalessData().get(ST_NAME_FIELD);
         String contentType = (String) contentletEntity.getSchemalessData().get(CONTENT_TYPE_FIELD);
         return SUPPORTED_TYPES.stream()
-            .anyMatch(type ->
-                type.equalsIgnoreCase(stName) || BLOG_VALUE.equalsIgnoreCase(contentType)
-            );
+                .anyMatch(type ->
+                        type.equalsIgnoreCase(stName) || BLOG_VALUE.equalsIgnoreCase(contentType)
+                );
     }
 }

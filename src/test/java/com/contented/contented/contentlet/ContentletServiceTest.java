@@ -1,11 +1,13 @@
 package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
+import com.contented.contented.contentlet.elasticsearch.transformation.BlogTransformer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.contented.contented.contentlet.transformation.StandardDMSContentTransformer;
 import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import reactor.core.publisher.Mono;
 
 import java.time.Clock;
@@ -14,7 +16,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
-import static com.contented.contented.contentlet.testutils.ContentletIndexerUtils.passThroughContentletIndexer;
+import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughContentletRepository;
+import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughElasticSearchOperations;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -30,6 +33,8 @@ public class ContentletServiceTest {
         ContentletRepository repository;
 
         ContentletIndexer contentletIndexer;
+
+        ReactiveElasticsearchOperations reactiveElasticsearchOperations;
 
         ContentletEntity toSave = new ContentletEntity("Contentlet1");
 
@@ -47,8 +52,10 @@ public class ContentletServiceTest {
         @BeforeAll
         void beforeAll() {
             repository = Mockito.mock(ContentletRepository.class);
-            contentletIndexer = Mockito.mock(ContentletIndexer.class);
-            passThroughContentletIndexer(contentletIndexer);
+            passthroughContentletRepository(repository);
+            reactiveElasticsearchOperations = Mockito.mock(ReactiveElasticsearchOperations.class);
+            passthroughElasticSearchOperations(reactiveElasticsearchOperations);
+            contentletIndexer = new ContentletIndexer(reactiveElasticsearchOperations, null, List.of(new BlogTransformer()));
             Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
             var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
             contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
@@ -62,9 +69,10 @@ public class ContentletServiceTest {
 
             @BeforeAll
             void beforeAll() {
+                passthroughContentletRepository(repository); // because we reset the repository in afterAll
+
                 // Given
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
-                when(repository.save(Mockito.any(ContentletEntity.class))).thenReturn(Mono.just(toSave));
 
                 // when
                 result = contentletService.save(toSave).block();
@@ -101,9 +109,11 @@ public class ContentletServiceTest {
             ContentletService.ResultPair result;
             @BeforeAll
             void beforeAll() {
+
+                passthroughContentletRepository(repository); // because we reset the repository in afterAll
+
                 // Given
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
-                when(repository.save(Mockito.any(ContentletEntity.class))).thenReturn(Mono.just(toSave));
 
                 result = contentletService.save(toSave).block();
             }
@@ -133,7 +143,7 @@ public class ContentletServiceTest {
         }
 
         @NestedPerClass
-        @DisplayName("Given content that matches criteria for transformations")
+        @DisplayName("Given content that matches criteria for entity transformations")
         class SavingContentletWithTransformations {
 
             ContentletEntity toSave = new ContentletEntity("1234",
@@ -146,7 +156,6 @@ public class ContentletServiceTest {
             void beforeAll() {
 
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
-                when(repository.save(Mockito.any(ContentletEntity.class))).thenReturn(Mono.just(toSave));
             }
 
             @NestedPerClass
@@ -175,7 +184,6 @@ public class ContentletServiceTest {
 
                 }
             }
-
         }
     }
 }

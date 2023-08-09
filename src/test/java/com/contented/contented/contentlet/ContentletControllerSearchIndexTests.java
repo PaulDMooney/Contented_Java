@@ -3,17 +3,16 @@ package com.contented.contented.contentlet;
 import com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
@@ -30,6 +29,7 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -65,14 +65,14 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         elasticSearchIndexCreator.createIndex().block();
     }
 
-    record SomeContentlet(String id, String title, String body) {
+    record SomeContentlet(String id, String contentType, String title, String body) {
     }
 
     @NestedPerClass
     @DisplayName("Given content that is indexed by its identifier was saved")
     class GivenContentIndexedByIdentifier {
 
-        SomeContentlet toSave = new SomeContentlet("contentlet1234", "Some title", "Some body");
+        SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
 
         @BeforeAll
         void given() throws InterruptedException {
@@ -82,15 +82,35 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         }
 
         @NestedPerClass
+        @DisplayName("When a search for any content is performed")
+        class WhenSearchForAnyContent {
+
+            List<SearchHit<EntityAsMap>> results;
+
+            @BeforeAll
+            void when() throws InterruptedException {
+                results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                    .collectList()
+                    .block();
+            }
+
+            @Test
+            @DisplayName("Then at least one hit is returned")
+            void thenAtLeastOneHitIsReturned() {
+                Assertions.assertThat(results).isNotEmpty();
+            }
+        }
+
+        @NestedPerClass
         @DisplayName("When a search is performed by its identifier")
         class WhenSearchByIdentifier {
 
-            List<SearchHit<SomeContentlet>> results;
+            List<SearchHit<EntityAsMap>> results;
 
             @BeforeAll
             void when() throws InterruptedException {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                results = reactiveElasticsearchOperations.search(criteriaQuery, SomeContentlet.class, IndexCoordinates.of(INDEX_NAME))
+                results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                     .collectList()
                     .block();
 

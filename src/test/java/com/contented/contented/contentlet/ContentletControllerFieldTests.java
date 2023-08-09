@@ -1,7 +1,7 @@
 package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
-import com.contented.contented.contentlet.testutils.ContentletIndexerUtils;
+import com.contented.contented.contentlet.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -17,6 +17,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -56,7 +57,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void when() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
 
                 // When
                 response = contentletEndpointClient.put().bodyValue(toSave).exchange();
@@ -93,7 +94,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void beforeAll() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
 
                 // TBD: Save directly to the DB instead?
                 // When
@@ -113,7 +114,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 void beforeAll() {
 
                     // Not concerned with indexing, mock the indexer to just pass through
-                    ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+                    StubbingUtils.passThroughContentletIndexer(contentletIndexer);
 
                     // When
                     response = contentletEndpointClient.get()
@@ -158,7 +159,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void given() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
 
                 // Given
                 contentletEndpointClient.put().bodyValue(toSave).exchange()
@@ -177,7 +178,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 void when() {
 
                     // Not concerned with indexing, mock the indexer to just pass through
-                    ContentletIndexerUtils.passThroughContentletIndexer(contentletIndexer);
+                    StubbingUtils.passThroughContentletIndexer(contentletIndexer);
 
                     // When
                     response = contentletEndpointClient.get()
