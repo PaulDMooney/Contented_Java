@@ -77,9 +77,9 @@ public class SearchControllerTests {
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            record SomeContent(String id, String someOtherField){};
+            record SomeContent(String id, String contentType, String someOtherField){};
 
-            final SomeContent savedContent = new SomeContent("123XYZ", "Some field value");
+            final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
 
             @BeforeAll
             void given() throws InterruptedException {
