@@ -88,7 +88,6 @@ public class ContentletServiceIntegrationTests {
                     Thread.sleep(1000); // Give ES a chance to process.
                 }
 
-                @Disabled
                 @Test
                 @DisplayName("the elasticsearch record's _source should contain the transformations")
                 void es_should_contain_transformations() {
