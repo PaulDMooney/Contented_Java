@@ -31,6 +31,7 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers

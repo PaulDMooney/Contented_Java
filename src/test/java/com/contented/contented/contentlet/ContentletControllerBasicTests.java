@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 import static org.mockito.ArgumentMatchers.any;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers

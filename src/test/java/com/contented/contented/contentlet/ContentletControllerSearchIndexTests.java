@@ -3,10 +3,7 @@ package com.contented.contented.contentlet;
 import com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -32,6 +29,7 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 
+@Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
