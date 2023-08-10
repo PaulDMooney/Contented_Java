@@ -38,7 +38,7 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 @Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Testcontainers(parallel = true)
+@Testcontainers()
 @DisplayName("ElasticSearch discovery tests")
 public class ElasticSearchDiscoveryTests {
 
