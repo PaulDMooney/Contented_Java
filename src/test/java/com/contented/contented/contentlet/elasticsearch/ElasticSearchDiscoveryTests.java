@@ -1,6 +1,10 @@
 package com.contented.contented.contentlet.elasticsearch;
 
+import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperationVariant;
+import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
@@ -31,6 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
@@ -358,6 +363,46 @@ public class ElasticSearchDiscoveryTests {
                         })
                         .verifyComplete();
                 }
+            }
+        }
+
+        @NestedPerClass
+        @DisplayName("When a document with a mapped keyword field and mapped text field is saved via bulk operations")
+        class WhenADocumentWithAMappedFieldIsBulkIndexed {
+
+            // id, and field1 are mapped in the discovery_test_mappings1.json file
+            record ESDocument(String id, String field1) { }
+            ESDocument toSave = new ESDocument("FGHIABCDE1234", "field value2");
+            @BeforeAll
+            void when() throws InterruptedException {
+
+                BulkOperationVariant operation = new IndexOperation.Builder<ESDocument>()
+                        .document(toSave)
+                        .id(toSave.id())
+                    .build();
+
+                var request = new BulkRequest.Builder()
+
+                        .operations(List.of(new BulkOperation(operation)))
+                        .index(INDEX_NAME3)
+                        .build();
+
+                reactiveElasticsearchClient.bulk(request).block();
+
+                // Seems this is needed to give time for the document to be searchable??
+                // Maybe something with flush?
+                Thread.sleep(1000);
+            }
+
+            @Test
+            @DisplayName("the document should be searchable by exact match on the keyword field")
+            void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
+                CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
+                var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                        .collectList()
+                        .block();
+                Assertions.assertThat(results).hasSize(1);
+                Assertions.assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
         }
     }
