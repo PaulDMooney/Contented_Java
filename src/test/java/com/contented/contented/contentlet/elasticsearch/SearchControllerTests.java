@@ -1,20 +1,14 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -22,13 +16,14 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.JsonNode;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 
-import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.*;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
+import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("IntegrationTest")
@@ -83,13 +78,13 @@ public class SearchControllerTests {
             final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
 
             @BeforeAll
-            void given() throws InterruptedException {
+            void given() {
 
                 // Could use rest endpoint, or could go directly to service
                 contentletEndpointClient.put().bodyValue(savedContent)
                     .exchange().expectStatus().is2xxSuccessful();
 
-                Thread.sleep(1000); // TODO: Need something better than just waiting
+                waitForESToAffectChanges();
             }
 
 

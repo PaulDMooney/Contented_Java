@@ -15,6 +15,7 @@ import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -26,6 +27,7 @@ import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConf
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 
@@ -69,59 +71,108 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
     }
 
     @NestedPerClass
-    @DisplayName("Given content that is indexed by its identifier was saved")
-    class GivenContentIndexedByIdentifier {
-
-        SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
-
-        @BeforeAll
-        void given() throws InterruptedException {
-            contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
-            // TODO: Need a better solution than waiting for ES to synchronize
-            Thread.sleep(500);
-        }
-
+    @DisplayName("PUT endpoint")
+    class PutEndpoint {
         @NestedPerClass
-        @DisplayName("When a search for any content is performed")
-        class WhenSearchForAnyContent {
+        @DisplayName("Given content that is indexed by its identifier was saved")
+        class GivenContentIndexedByIdentifier {
 
-            List<SearchHit<EntityAsMap>> results;
+            SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
 
             @BeforeAll
-            void when() throws InterruptedException {
-                results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
-                    .collectList()
-                    .block();
+            void given() throws InterruptedException {
+                contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
+                waitForESToAffectChanges();
             }
 
-            @Test
-            @DisplayName("Then at least one hit is returned")
-            void thenAtLeastOneHitIsReturned() {
-                Assertions.assertThat(results).isNotEmpty();
+            @NestedPerClass
+            @DisplayName("When a search for any content is performed")
+            class WhenSearchForAnyContent {
+
+                List<SearchHit<EntityAsMap>> results;
+
+                @BeforeAll
+                void when() throws InterruptedException {
+                    results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .collectList()
+                            .block();
+                }
+
+                @Test
+                @DisplayName("Then at least one hit is returned")
+                void thenAtLeastOneHitIsReturned() {
+                    Assertions.assertThat(results).isNotEmpty();
+                }
+            }
+
+            @NestedPerClass
+            @DisplayName("When a search is performed by its identifier")
+            class WhenSearchByIdentifier {
+
+                List<SearchHit<EntityAsMap>> results;
+
+                @BeforeAll
+                void when() throws InterruptedException {
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
+                    results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .collectList()
+                            .block();
+
+                }
+
+                @Test
+                @DisplayName("Then a hit with the same identifier is returned")
+                void thenContentIsReturned() {
+                    Assertions.assertThat(results).hasSize(1);
+                    Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", toSave.id());
+                }
             }
         }
+    }
+
+    @NestedPerClass
+    @DisplayName("DELETE endpoint")
+    class DeleteEndpoint {
 
         @NestedPerClass
-        @DisplayName("When a search is performed by its identifier")
-        class WhenSearchByIdentifier {
+        @DisplayName("Given content that is indexed by its identifier was saved")
+        class GivenContentIndexedByIdentifier {
 
-            List<SearchHit<EntityAsMap>> results;
+            static SomeContentlet toDelete = new SomeContentlet("contentlet1234_deleteme", "Blog", "Delete Me", "Some body");
+
+            static WebTestClient.ResponseSpec response;
 
             @BeforeAll
-            void when() throws InterruptedException {
-                CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
-                    .collectList()
-                    .block();
-
+            void given() {
+                contentletEndpointClient.put().bodyValue(toDelete).exchange().expectStatus().isCreated();
+                // TODO: Need a better solution than waiting for ES to synchronize
+                waitForESToAffectChanges();
             }
 
-            @Test
-            @DisplayName("Then a hit with the same identifier is returned")
-            void thenContentIsReturned() {
-                Assertions.assertThat(results).hasSize(1);
-                Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", toSave.id());
+            @NestedPerClass
+            @DisplayName("when the content is deleted")
+            class AndThenContentIsDeleted {
+
+                @BeforeAll
+                void when() {
+                    response = contentletEndpointClient.delete().uri("/{id}", toDelete.id()).exchange();
+
+                    waitForESToAffectChanges();
+                }
+
+//                @Disabled
+                @Test
+                @DisplayName("then the content should not longer be found when searching by its identifier")
+                void then_the_content_should_not_longer_be_found() {
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toDelete.id()));
+                    List<SearchHit<EntityAsMap>> results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .collectList()
+                            .block();
+
+                    Assertions.assertThat(results).hasSize(0);
+                }
             }
         }
+
     }
 }

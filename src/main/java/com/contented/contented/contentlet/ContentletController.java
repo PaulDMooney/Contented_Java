@@ -51,6 +51,7 @@ public class ContentletController {
 
     @DeleteMapping("/{id}")
     Mono<Void> deleteContentlet(@PathVariable String id) {
-        return contentletService.deleteById(id);
+        return contentletService.deleteById(id)
+                .then(Mono.empty());
     }
 }

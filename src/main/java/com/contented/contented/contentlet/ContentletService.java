@@ -52,10 +52,20 @@ public class ContentletService {
             });
     }
 
-    public Mono<Void> deleteById(String id) {
+    public Mono<String> deleteById(String id) {
         log.info("Deleting contentlet: {}", id);
+        return deleteByIdFromDB(id)
+                .then(deleteByIdFromES(id))
+                .doOnSuccess(result -> log.info("Deleted ES records for id: {} successfully", id));
+    }
+
+    private Mono<String> deleteByIdFromES(String id) {
+        return contentletIndexer.deleteRecord(id);
+    }
+
+    private Mono<Void> deleteByIdFromDB(String id) {
         return contentletRepository.deleteById(id)
-                .doOnNext(result -> log.info("Deleted contentlet: {} successfully", id));
+                .doOnSuccess(result -> log.info("Deleted contentlet: {} successfully", id));
     }
 
     public Mono<ContentletEntity> findById(String id) {
