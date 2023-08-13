@@ -8,7 +8,6 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
-import co.elastic.clients.elasticsearch.indices.FlushRequest;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
@@ -40,6 +39,7 @@ import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 
 @Tag("IntegrationTest")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -210,14 +210,12 @@ public class ElasticSearchDiscoveryTests {
             ESDocument savedEntity;
 
             @BeforeAll
-            void when() throws InterruptedException {
+            void when() {
 
                 savedEntity = reactiveElasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3))
                     .block();
 
-                // Seems this is needed to give time for the document to be searchable??
-                // Maybe something with flush?
-                Thread.sleep(1000);
+                waitForESToAffectChanges();
             }
 
 
@@ -339,7 +337,7 @@ public class ElasticSearchDiscoveryTests {
                 static final String ALIAS_NAME = "mytestalias";
 
                 @BeforeAll
-                void assignAlias() throws InterruptedException {
+                void assignAlias() {
                     AliasActions aliasActions = new AliasActions();
                     aliasActions.add(new AliasAction.Add(AliasActionParameters.builder()
                         .withIndices(INDEX_NAME3)
@@ -347,7 +345,6 @@ public class ElasticSearchDiscoveryTests {
                     reactiveElasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions)
                         .block();
 
-//                    Thread.sleep(10000);
                 }
 
                 @Test
@@ -375,7 +372,7 @@ public class ElasticSearchDiscoveryTests {
             record ESDocument(String id, String field1) { }
             ESDocument toSave = new ESDocument("FGHIABCDE1234", "field value2");
             @BeforeAll
-            void when() throws InterruptedException {
+            void when() {
 
                 BulkOperationVariant operation = new IndexOperation.Builder<ESDocument>()
                         .document(toSave)
@@ -390,9 +387,7 @@ public class ElasticSearchDiscoveryTests {
 
                 reactiveElasticsearchClient.bulk(request).block();
 
-                // Seems this is needed to give time for the document to be searchable??
-                // Maybe something with flush?
-                Thread.sleep(1000);
+                waitForESToAffectChanges();
             }
 
             @Test

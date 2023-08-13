@@ -21,6 +21,7 @@ import java.util.Map;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static java.util.Map.entry;
@@ -84,9 +85,9 @@ public class ContentletServiceIntegrationTests {
             class WhenSavingContentlet {
 
                 @BeforeAll
-                void beforeAll() throws InterruptedException {
+                void beforeAll() {
                     contentletService.save(toSave).block();
-                    Thread.sleep(1000); // Give ES a chance to process.
+                    waitForESToAffectChanges();
                 }
 
                 @Test

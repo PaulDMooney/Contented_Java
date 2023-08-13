@@ -27,6 +27,7 @@ import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConf
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 
@@ -81,8 +82,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             @BeforeAll
             void given() throws InterruptedException {
                 contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
-                // TODO: Need a better solution than waiting for ES to synchronize
-                Thread.sleep(500);
+                waitForESToAffectChanges();
             }
 
             @NestedPerClass
@@ -143,10 +143,10 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             static WebTestClient.ResponseSpec response;
 
             @BeforeAll
-            void given() throws InterruptedException {
+            void given() {
                 contentletEndpointClient.put().bodyValue(toDelete).exchange().expectStatus().isCreated();
                 // TODO: Need a better solution than waiting for ES to synchronize
-                Thread.sleep(500);
+                waitForESToAffectChanges();
             }
 
             @NestedPerClass
@@ -154,10 +154,10 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             class AndThenContentIsDeleted {
 
                 @BeforeAll
-                void when() throws InterruptedException {
+                void when() {
                     response = contentletEndpointClient.delete().uri("/{id}", toDelete.id()).exchange();
 
-                    Thread.sleep(1000);
+                    waitForESToAffectChanges();
                 }
 
 //                @Disabled
