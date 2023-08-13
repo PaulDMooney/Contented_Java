@@ -44,4 +44,8 @@ public class ContentletIndexer {
                     return Mono.empty();
                 });
     }
+
+    public Mono<String> deleteRecord(String id) {
+        return reactiveElasticsearchOperations.delete(id, indexCoordinates);
+    }
 }

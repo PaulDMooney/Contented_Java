@@ -138,31 +138,33 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            static SomeContentlet toSave = new SomeContentlet("contentlet1234_deleteme", "Blog", "Some title", "Some body");
+            static SomeContentlet toDelete = new SomeContentlet("contentlet1234_deleteme", "Blog", "Delete Me", "Some body");
 
             static WebTestClient.ResponseSpec response;
 
             @BeforeAll
             void given() throws InterruptedException {
-                contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
+                contentletEndpointClient.put().bodyValue(toDelete).exchange().expectStatus().isCreated();
                 // TODO: Need a better solution than waiting for ES to synchronize
                 Thread.sleep(500);
             }
 
             @NestedPerClass
-            @DisplayName("when then the content is deleted")
+            @DisplayName("when the content is deleted")
             class AndThenContentIsDeleted {
 
                 @BeforeAll
                 void when() throws InterruptedException {
-                    response = contentletEndpointClient.delete().uri("/{id}", toSave.id()).exchange();
+                    response = contentletEndpointClient.delete().uri("/{id}", toDelete.id()).exchange();
+
+                    Thread.sleep(1000);
                 }
 
-                @Disabled
+//                @Disabled
                 @Test
                 @DisplayName("then the content should not longer be found when searching by its identifier")
                 void then_the_content_should_not_longer_be_found() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toDelete.id()));
                     List<SearchHit<EntityAsMap>> results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .collectList()
                             .block();

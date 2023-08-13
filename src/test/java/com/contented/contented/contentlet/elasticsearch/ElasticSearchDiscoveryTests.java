@@ -8,6 +8,7 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.elasticsearch.indices.FlushRequest;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
