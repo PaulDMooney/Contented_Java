@@ -47,7 +47,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
         // Mock the ContentletIndexer to return the contentlet it receives
         // To avoid setting up ElasticSearch in this test. Is this a good idea?
-        StubbingUtils.passThroughContentletIndexer(this.contentletIndexer);
+        StubbingUtils.passThrough_indexContentlet(this.contentletIndexer);
     }
 
     @Nested
@@ -238,7 +238,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
         @Nested
         @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("when deleting a contentlet")
+        @DisplayName("Given content which already exists in the database")
         class DeleteAContentlet {
 
             // Given
@@ -248,6 +248,9 @@ public class ContentletControllerBasicTests extends AbstractContentletController
 
             @BeforeAll()
             void beforeAll() {
+
+                mockContentletIndexer();
+                StubbingUtils.passThrough_deleteRecord(contentletIndexer);
 
                 // Save the contentlet to the database
                 contentletRepository.save(toDelete).block();
@@ -274,6 +277,35 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                         .expectNextCount(0)
                         .verifyComplete();
 
+            }
+        }
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        @DisplayName("Given content which does not exist in the database")
+        class DeleteNonExistentContentlet {
+
+            // Given
+            static WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+
+                mockContentletIndexer();
+                StubbingUtils.passThrough_deleteRecord(contentletIndexer);
+
+                // When
+                response = contentletEndpointClient.delete().uri("/some-non-existent-id").exchange();
+            }
+
+            // TODO: Should update to return a 204
+            @Test
+            @DisplayName("it should return a 200 status code")
+            void should_return_a_200_status_code() {
+
+                // Then
+                response.expectStatus()
+                    .isOk();
             }
         }
     }
