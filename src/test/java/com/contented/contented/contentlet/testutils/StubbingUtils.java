@@ -13,8 +13,12 @@ import static org.mockito.Mockito.when;
 
 public class StubbingUtils {
 
-    public static OngoingStubbing<Mono<EntityAsMap>> passThroughContentletIndexer(ContentletIndexer toMock) {
-        return when(toMock.indexContentlet(any())).thenReturn(Mono.empty());
+    public static void passThrough_indexContentlet(ContentletIndexer toMock) {
+        when(toMock.indexContentlet(any())).thenReturn(Mono.empty());
+    }
+
+    public static void passThrough_deleteRecord(ContentletIndexer toMock) {
+        when(toMock.deleteRecord(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
     }
 
     public static OngoingStubbing<Mono<EntityAsMap>> passthroughElasticSearchOperations(ReactiveElasticsearchOperations toMock) {

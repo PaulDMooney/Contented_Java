@@ -9,17 +9,13 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
-import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.convert.ElasticsearchConverter;
 import org.springframework.data.elasticsearch.core.index.AliasAction;
 import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
 import org.springframework.data.elasticsearch.core.index.AliasActions;
@@ -40,16 +36,15 @@ import java.util.List;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("IntegrationTest")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Tag(INTEGRATION_TESTS)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers()
 @DisplayName("ElasticSearch discovery tests")
 public class ElasticSearchDiscoveryTests {
-
-    @LocalServerPort
-    int port;
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
@@ -60,11 +55,11 @@ public class ElasticSearchDiscoveryTests {
     @Autowired
     ReactiveElasticsearchOperations reactiveElasticsearchOperations;
 
-    @Autowired
-    ReactiveElasticsearchTemplate reactiveElasticsearchTemplate;
-
-    @Autowired
-    ElasticsearchConverter converter;
+//    @Autowired
+//    ReactiveElasticsearchTemplate reactiveElasticsearchTemplate;
+//
+//    @Autowired
+//    ElasticsearchConverter converter;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
@@ -90,7 +85,8 @@ public class ElasticSearchDiscoveryTests {
             var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
                 .block();
 
-            Assertions.assertThat(result.value()).isFalse();
+            assertThat(result).isNotNull()
+                .satisfies(response -> assertThat(response.value()).isFalse());
         }
 
         @NestedPerClass
@@ -113,8 +109,8 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("The response should be acknowledged and return the index name")
             void the_response_should_be_acknowledged() {
 
-                Assertions.assertThat(response.acknowledged()).isTrue();
-                Assertions.assertThat(response.index()).isEqualTo(INDEX_NAME1);
+                assertThat(response.acknowledged()).isTrue();
+                assertThat(response.index()).isEqualTo(INDEX_NAME1);
             }
 
             @Test
@@ -128,7 +124,8 @@ public class ElasticSearchDiscoveryTests {
                 var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
                     .block();
 
-                Assertions.assertThat(result.value()).isTrue();
+                assertThat(result).isNotNull()
+                    .satisfies(response -> assertThat(response.value()).isTrue());
             }
         }
 
@@ -159,8 +156,8 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("The response should be acknowledged and return the index name")
             void the_response_should_be_acknowledged() {
 
-                Assertions.assertThat(response.acknowledged()).isTrue();
-                Assertions.assertThat(response.index()).isEqualTo(INDEX_NAME2);
+                assertThat(response.acknowledged()).isTrue();
+                assertThat(response.index()).isEqualTo(INDEX_NAME2);
             }
 
             @Test
@@ -174,7 +171,8 @@ public class ElasticSearchDiscoveryTests {
                 var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
                     .block();
 
-                Assertions.assertThat(result.value()).isTrue();
+                assertThat(result).isNotNull()
+                    .satisfies(response -> assertThat(response.value()).isTrue());
             }
         }
     }
@@ -223,14 +221,14 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("the returned document should have the same values as the saved document")
             void the_returned_entity_should_have_the_same_values_as_the_saved_entity() {
 
-                Assertions.assertThat(savedEntity).isEqualTo(toSave);
+                assertThat(savedEntity).isEqualTo(toSave);
             }
 
             @Test
             @DisplayName("the returned document is not just the same object reference as the saved document")
             void the_returned_entity_is_not_just_the_same_object_as_the_saved_entity() {
 
-                Assertions.assertThat(savedEntity).isNotSameAs(toSave);
+                assertThat(savedEntity).isNotSameAs(toSave);
             }
 
             @Test
@@ -240,8 +238,8 @@ public class ElasticSearchDiscoveryTests {
                 var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
                     .collectList()
                     .block();
-                        Assertions.assertThat(results).hasSize(1);
-                        Assertions.assertThat(results.get(0).getContent()).isEqualTo(toSave);
+                        assertThat(results).hasSize(1);
+                        assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
 
             @Test
@@ -255,9 +253,7 @@ public class ElasticSearchDiscoveryTests {
                 reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
                     .collectList()
                     .as(StepVerifier::create)
-                    .assertNext(searchHits -> {
-                        Assertions.assertThat(searchHits).hasSize(0);
-                    })
+                    .assertNext(searchHits -> assertThat(searchHits).hasSize(0))
                     .verifyComplete();
             }
 
@@ -273,8 +269,8 @@ public class ElasticSearchDiscoveryTests {
                     .collectList()
                     .as(StepVerifier::create)
                     .assertNext(searchHits -> {
-                        Assertions.assertThat(searchHits).hasSize(1);
-                        Assertions.assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
+                        assertThat(searchHits).hasSize(1);
+                        assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
                     })
                     .verifyComplete();
             }
@@ -295,9 +291,7 @@ public class ElasticSearchDiscoveryTests {
                 reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
                     .collectList()
                     .as(StepVerifier::create)
-                    .assertNext(searchHits -> {
-                        Assertions.assertThat(searchHits).size().isGreaterThan(0);
-                    })
+                    .assertNext(searchHits -> assertThat(searchHits).size().isGreaterThan(0))
                     .verifyComplete();
             }
 
@@ -323,10 +317,10 @@ public class ElasticSearchDiscoveryTests {
 
                 reactiveElasticsearchClient.search(searchRequest, EntityAsMap.class)
                     .as(StepVerifier::create)
-                    .assertNext(response -> {
-                        Assertions.assertThat(response.hits().total().value()).isGreaterThan(0);
-                        System.out.println(response);
-                    })
+                    .assertNext(response ->
+                        assertThat(response.hits()).isNotNull()
+                            .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0))
+                    )
                     .verifyComplete();
             }
 
@@ -356,8 +350,8 @@ public class ElasticSearchDiscoveryTests {
                         .collectList()
                         .as(StepVerifier::create)
                         .assertNext(searchHits -> {
-                            Assertions.assertThat(searchHits).hasSize(1);
-                            Assertions.assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
+                            assertThat(searchHits).hasSize(1);
+                            assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
                         })
                         .verifyComplete();
                 }
@@ -397,8 +391,8 @@ public class ElasticSearchDiscoveryTests {
                 var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
                         .collectList()
                         .block();
-                Assertions.assertThat(results).hasSize(1);
-                Assertions.assertThat(results.get(0).getContent()).isEqualTo(toSave);
+                assertThat(results).hasSize(1);
+                assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
         }
     }

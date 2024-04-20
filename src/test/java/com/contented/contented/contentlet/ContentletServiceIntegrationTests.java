@@ -18,16 +18,18 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Map;
+import java.util.Objects;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("IntegrationTest")
+@Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -96,7 +98,7 @@ public class ContentletServiceIntegrationTests {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.getId()));
                     var results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).collectList().block();
 
-                    var hitSource = results.get(0).getContent();
+                    var hitSource = Objects.requireNonNull(results).get(0).getContent();
 
                     // This is an expected result from the Blog transformer.
                     assertThat(hitSource.get("blog.title")).isEqualTo("Blog Title");

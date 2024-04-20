@@ -30,8 +30,9 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 
-@Tag("IntegrationTest")
+@Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -80,7 +81,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
 
             @BeforeAll
-            void given() throws InterruptedException {
+            void given() {
                 contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
                 waitForESToAffectChanges();
             }
@@ -92,7 +93,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 List<SearchHit<EntityAsMap>> results;
 
                 @BeforeAll
-                void when() throws InterruptedException {
+                void when() {
                     results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .collectList()
                             .block();
@@ -112,7 +113,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 List<SearchHit<EntityAsMap>> results;
 
                 @BeforeAll
-                void when() throws InterruptedException {
+                void when() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
                     results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .collectList()

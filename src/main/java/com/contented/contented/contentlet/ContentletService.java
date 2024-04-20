@@ -26,7 +26,7 @@ public class ContentletService {
     }
 
     public Mono<ResultPair> save(ContentletEntity contentletEntity) {
-        log.info("Saving contentlet: {}", contentletEntity.getId());
+        log.info("Saving contentlet: `{}`", contentletEntity.getId());
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         return saveToDB(toSave)
             .flatMap(resultPair -> saveToES(resultPair.contentletEntity())
@@ -38,7 +38,7 @@ public class ContentletService {
     private Mono<EntityAsMap> saveToES(ContentletEntity contentletEntity) {
         return contentletIndexer.indexContentlet(contentletEntity)
             .doOnNext(indexedContentlet ->
-                    log.info("Indexed contentlet: {} successfully", indexedContentlet.get("identifier")));
+                    log.info("Indexed contentlet: `{}` successfully", indexedContentlet.get("identifier")));
     }
 
     private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
@@ -48,7 +48,7 @@ public class ContentletService {
                 log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
                 return contentletRepository.save(contentletEntity)
                     .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
-                    .doOnNext(resultPair -> log.info("Saved contentlet: {} successfully", resultPair.contentletEntity().getId()));
+                    .doOnNext(resultPair -> log.info("Saved contentlet: `{}` successfully", resultPair.contentletEntity().getId()));
             });
     }
 
@@ -56,7 +56,7 @@ public class ContentletService {
         log.info("Deleting contentlet: {}", id);
         return deleteByIdFromDB(id)
                 .then(deleteByIdFromES(id))
-                .doOnSuccess(result -> log.info("Deleted ES records for id: {} successfully", id));
+                .doOnSuccess(result -> log.info("Deleted ES records for id: `{}` successfully", id));
     }
 
     private Mono<String> deleteByIdFromES(String id) {
@@ -65,7 +65,7 @@ public class ContentletService {
 
     private Mono<Void> deleteByIdFromDB(String id) {
         return contentletRepository.deleteById(id)
-                .doOnSuccess(result -> log.info("Deleted contentlet: {} successfully", id));
+                .doOnSuccess(result -> log.info("Deleted contentlet: `{}` successfully", id));
     }
 
     public Mono<ContentletEntity> findById(String id) {
@@ -73,9 +73,9 @@ public class ContentletService {
         return contentletRepository.findById(id)
                 .doOnSuccess(result -> {
                     if (result != null) {
-                        log.debug("Found contentlet: {} successfully", id);
+                        log.debug("Found contentlet: `{}` successfully", id);
                     } else {
-                        log.debug("contentlet: {} not found", id);
+                        log.debug("contentlet: `{}` not found", id);
                     }
                 });
     }

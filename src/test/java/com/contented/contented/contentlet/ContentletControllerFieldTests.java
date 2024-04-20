@@ -14,10 +14,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
+import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
 
-@Tag("IntegrationTest")
+@Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -57,7 +58,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void when() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                 // When
                 response = contentletEndpointClient.put().bodyValue(toSave).exchange();
@@ -94,7 +95,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void beforeAll() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                 // TBD: Save directly to the DB instead?
                 // When
@@ -114,7 +115,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 void beforeAll() {
 
                     // Not concerned with indexing, mock the indexer to just pass through
-                    StubbingUtils.passThroughContentletIndexer(contentletIndexer);
+                    StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                     // When
                     response = contentletEndpointClient.get()
@@ -159,7 +160,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             void given() {
 
                 // Not concerned with indexing, mock the indexer to just pass through
-                StubbingUtils.passThroughContentletIndexer(contentletIndexer);
+                StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                 // Given
                 contentletEndpointClient.put().bodyValue(toSave).exchange()
@@ -178,7 +179,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 void when() {
 
                     // Not concerned with indexing, mock the indexer to just pass through
-                    StubbingUtils.passThroughContentletIndexer(contentletIndexer);
+                    StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                     // When
                     response = contentletEndpointClient.get()

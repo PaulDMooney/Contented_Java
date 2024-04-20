@@ -24,9 +24,10 @@ import static com.contented.contented.contentlet.testutils.ElasticSearchContaine
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("IntegrationTest")
+@Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
@@ -73,7 +74,7 @@ public class SearchControllerTests {
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            record SomeContent(String id, String contentType, String someOtherField){};
+            record SomeContent(String id, String contentType, String someOtherField){}
 
             final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
 
@@ -107,9 +108,9 @@ public class SearchControllerTests {
                 WebTestClient.BodySpec<ExpectedResponseStructure, ?> bodySpec;
 
                 record ExpectedResponseStructure(
-                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse esResponse,
+                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse<?> esResponse,
                     List<ContentletEntity> contentlets
-                ){};
+                ){}
 
                 @BeforeAll
                 void when() {
