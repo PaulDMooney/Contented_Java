@@ -26,7 +26,7 @@ public class SearchResponseDeserializer<T> extends StdDeserializer<SearchRespons
 
         ObjectMapper objectMapper = (ObjectMapper) jsonParser.getCodec();
         JacksonJsonpMapper mapper = new JacksonJsonpMapper(objectMapper);
-        JacksonJsonpParser parser = new JacksonJsonpParser(jsonParser);
+        JacksonJsonpParser parser = new JacksonJsonpParser(jsonParser, mapper);
         return new SearchResponse.Builder<T>().withJson(parser, mapper).build();
     }
 }
