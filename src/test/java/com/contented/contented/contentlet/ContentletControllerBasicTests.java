@@ -1,8 +1,8 @@
 package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
-import com.contented.contented.contentlet.testutils.StubbingUtils;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
+import com.contented.contented.contentlet.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -15,10 +15,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
+import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
-import static org.assertj.core.api.Assertions.*;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

@@ -74,7 +74,7 @@ public class SearchControllerTests {
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            record SomeContent(String id, String contentType, String someOtherField){};
+            record SomeContent(String id, String contentType, String someOtherField){}
 
             final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
 
@@ -108,9 +108,9 @@ public class SearchControllerTests {
                 WebTestClient.BodySpec<ExpectedResponseStructure, ?> bodySpec;
 
                 record ExpectedResponseStructure(
-                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse esResponse,
+                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse<?> esResponse,
                     List<ContentletEntity> contentlets
-                ){};
+                ){}
 
                 @BeforeAll
                 void when() {

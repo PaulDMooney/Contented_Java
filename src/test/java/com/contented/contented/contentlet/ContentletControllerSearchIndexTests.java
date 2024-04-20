@@ -81,7 +81,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
 
             @BeforeAll
-            void given() throws InterruptedException {
+            void given() {
                 contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
                 waitForESToAffectChanges();
             }
@@ -93,7 +93,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 List<SearchHit<EntityAsMap>> results;
 
                 @BeforeAll
-                void when() throws InterruptedException {
+                void when() {
                     results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .collectList()
                             .block();
@@ -113,7 +113,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 List<SearchHit<EntityAsMap>> results;
 
                 @BeforeAll
-                void when() throws InterruptedException {
+                void when() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
                     results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .collectList()
