@@ -4,10 +4,14 @@ import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import com.contented.contented.contentlet.elasticsearch.transformation.BlogTransformer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.contented.contented.contentlet.transformation.StandardDMSContentTransformer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import reactor.core.publisher.Mono;
 
 import java.time.Clock;
@@ -55,7 +59,7 @@ public class ContentletServiceTest {
             passthroughContentletRepository(repository);
             reactiveElasticsearchOperations = Mockito.mock(ReactiveElasticsearchOperations.class);
             passthroughElasticSearchOperations(reactiveElasticsearchOperations);
-            contentletIndexer = new ContentletIndexer(reactiveElasticsearchOperations, null, List.of(new BlogTransformer()));
+            contentletIndexer = new ContentletIndexer(reactiveElasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
             Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
             var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
             contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);

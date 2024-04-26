@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Log4j2
@@ -30,15 +32,19 @@ public class ContentletService {
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         return saveToDB(toSave)
             .flatMap(resultPair -> saveToES(resultPair.contentletEntity())
-                    .defaultIfEmpty(new EntityAsMap()) // Is there a better way to handle a potentially empty mono here?
-                .map(indexedContentlet -> resultPair)
+                    .defaultIfEmpty(Collections.EMPTY_LIST) // Is there a better way to handle a potentially empty mono here?
+                .map(indexedElasticSearchEntities -> resultPair)
             );
     }
 
-    private Mono<EntityAsMap> saveToES(ContentletEntity contentletEntity) {
+    private Mono<List<EntityAsMap>> saveToES(ContentletEntity contentletEntity) {
         return contentletIndexer.indexContentlet(contentletEntity)
-            .doOnNext(indexedContentlet ->
-                    log.info("Indexed contentlet: `{}` successfully", indexedContentlet.get("identifier")));
+            .doOnNext(elasticSearchEntities ->
+                    log.info("Indexed `{}` documents for contentlet: `{}` successfully",
+                        elasticSearchEntities.size(),
+                        contentletEntity.getId()
+                    )
+            );
     }
 
     private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
