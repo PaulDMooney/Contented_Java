@@ -31,13 +31,14 @@ public class ContentletIndexer {
         this.esTransformers = esTransformers;
     }
 
-    public Mono<EntityAsMap> indexContentlet(ContentletEntity contentletEntity) {
+    public Mono<List<EntityAsMap>> indexContentlet(ContentletEntity contentletEntity) {
         return esTransformers.stream()
                 .filter(esRecordTransformer -> esRecordTransformer.test(contentletEntity))
                 .findFirst()
                 .map(esRecordTransformer -> {
-                    var transformedEntity = esRecordTransformer.transform(contentletEntity);
-                    return reactiveElasticsearchOperations.save(transformedEntity, indexCoordinates);
+                    var transformedEntities = esRecordTransformer.transform(contentletEntity);
+                    return reactiveElasticsearchOperations.saveAll(transformedEntities, indexCoordinates)
+                        .collectList();
                 })
                 .orElseGet(() -> {
                     log.warn("No transformer found for contentlet: {}", contentletEntity.getId());

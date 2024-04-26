@@ -11,7 +11,7 @@ import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.Map;
 
 import static java.util.Map.entry;
@@ -47,7 +47,7 @@ class BlogTransformerTest {
             @DisplayName("When the contentlet entity is transformed")
             class WhenTransformed {
 
-                EntityAsMap result;
+                Collection<EntityAsMap> result;
                 @BeforeAll
                 void when() {
                     result = blogTransformer.transform(toTransform);
@@ -56,13 +56,16 @@ class BlogTransformerTest {
                 @Test
                 @DisplayName("the EntityMap should contain transformed fields")
                 void it_should_return_an_entity_map_with_transformed_fields() {
-                    var result = blogTransformer.transform(toTransform);
 
                     assertThat(result)
-                            .containsEntry("contentType", "blog")
-                            .containsEntry("blog.title", "Blog Title")
-                            .containsEntry("language", "en");
-
+                        .hasSize(1)
+                        .element(0)
+                        .satisfies(entityAsMap ->
+                            assertThat(entityAsMap)
+                                .containsEntry("contentType", "blog")
+                                .containsEntry("blog.title", "Blog Title")
+                                .containsEntry("language", "en")
+                        );
                 }
 
                 @Test
@@ -70,17 +73,18 @@ class BlogTransformerTest {
                 void it_should_return_an_entity_map_without_fields_unintended_for_indexing() {
                     var result = blogTransformer.transform(toTransform);
 
-                    assertThat(result)
-                            .doesNotContainKeys("stName", "title", "body");
+                    assertThat(result).element(0)
+                        .satisfies(entityAsMap -> assertThat(entityAsMap)
+                            .doesNotContainKeys("stName", "title", "body"));
                 }
 
                 @Test
-                @DisplayName("the EntityMap should contain an identifier")
+                @DisplayName("the EntityMap should contain an identifier constructed from the id and language")
                 void it_should_return_an_entity_map_with_an_identifier() {
-                    var result = blogTransformer.transform(toTransform);
 
-                    assertThat(result)
-                            .containsEntry("identifier", "1234");
+                    assertThat(result).element(0)
+                        .satisfies(entityAsMap -> assertThat(entityAsMap)
+                            .containsEntry("identifier", "1234_en"));
                 }
             }
 

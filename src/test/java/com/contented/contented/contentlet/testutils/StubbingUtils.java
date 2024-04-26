@@ -6,6 +6,8 @@ import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import org.mockito.stubbing.OngoingStubbing;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -21,15 +23,23 @@ public class StubbingUtils {
         when(toMock.deleteRecord(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
     }
 
-    public static OngoingStubbing<Mono<EntityAsMap>> passthroughElasticSearchOperations(ReactiveElasticsearchOperations toMock) {
-        return when(toMock.save(any(EntityAsMap.class), any()))
-                .thenAnswer(invocation -> {
-                    if (invocation.getArgument(0) != null) {
-                        return Mono.just(invocation.getArgument(0));
-                    } else {
-                        return Mono.empty();
-                    }
-                });
+    /**
+     * Mocks `save` and `saveAll` methods to simply return the EntityMaps passed to them.
+     * @param toMock
+     */
+    public static void passthroughElasticSearchOperations(ReactiveElasticsearchOperations toMock) {
+
+        when(toMock.saveAll(any(Iterable.class), any(IndexCoordinates.class)))
+                .thenAnswer(invocation -> Flux.fromIterable(invocation.getArgument(0)));
+
+        when(toMock.save(any(EntityAsMap.class), any()))
+            .thenAnswer(invocation -> {
+                if (invocation.getArgument(0) != null) {
+                    return Mono.just(invocation.getArgument(0));
+                } else {
+                    return Mono.empty();
+                }
+            });
     }
 
     public static OngoingStubbing<Mono<ContentletEntity>> passthroughContentletRepository(ContentletRepository toMock) {
