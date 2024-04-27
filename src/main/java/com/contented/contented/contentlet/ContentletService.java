@@ -1,15 +1,16 @@
 package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
+import jakarta.annotation.Nullable;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Log4j2
 @Service
@@ -27,18 +28,18 @@ public class ContentletService {
         this.transformationHandler = transformationHandler;
     }
 
-    public Mono<ResultPair> save(ContentletEntity contentletEntity) {
+    public Mono<ContentletSaveResult> save(ContentletEntity contentletEntity) {
         log.info("Saving contentlet: `{}`", contentletEntity.getId());
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         return saveToDB(toSave)
-            .flatMap(resultPair -> saveToES(resultPair.contentletEntity())
+            .flatMap(contentletSaveResult -> saveToES(contentletSaveResult.contentletEntity(), contentletSaveResult.previousContentletEntityVersion())
                     .defaultIfEmpty(Collections.EMPTY_LIST) // Is there a better way to handle a potentially empty mono here?
-                .map(indexedElasticSearchEntities -> resultPair)
+                .map(indexedElasticSearchEntities -> contentletSaveResult)
             );
     }
 
-    private Mono<List<EntityAsMap>> saveToES(ContentletEntity contentletEntity) {
-        return contentletIndexer.indexContentlet(contentletEntity)
+    private Mono<List<EntityAsMap>> saveToES(ContentletEntity contentletEntity, ContentletEntity previousContentletEntityVersion) {
+        return contentletIndexer.indexContentlet(contentletEntity, previousContentletEntityVersion)
             .doOnNext(elasticSearchEntities ->
                     log.info("Indexed `{}` documents for contentlet: `{}` successfully",
                         elasticSearchEntities.size(),
@@ -47,14 +48,16 @@ public class ContentletService {
             );
     }
 
-    private Mono<ResultPair> saveToDB(ContentletEntity contentletEntity) {
-        return contentletRepository.existsById(contentletEntity.getId())
-            .flatMap(exists -> {
-                boolean isNew = !exists;
-                log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
+    private Mono<ContentletSaveResult> saveToDB(ContentletEntity contentletEntity) {
+        return contentletRepository.findById(contentletEntity.getId())
+            .map(oldContentlet -> Optional.of(oldContentlet))
+            .switchIfEmpty(Mono.just(Optional.empty()))
+            .flatMap(oldContentlet -> {
+                boolean isNew = oldContentlet.isEmpty();
+                log.info("Contentlet {} already exists: {}", contentletEntity.getId(), !isNew);
                 return contentletRepository.save(contentletEntity)
-                    .map(savedContentlet -> new ResultPair(savedContentlet, isNew))
-                    .doOnNext(resultPair -> log.info("Saved contentlet: `{}` successfully", resultPair.contentletEntity().getId()));
+                    .map(savedContentlet -> new ContentletSaveResult(savedContentlet, isNew, oldContentlet.orElse(null)))
+                    .doOnNext(contentletSaveResult -> log.info("Saved contentlet: `{}` successfully", contentletSaveResult.contentletEntity().getId()));
             });
     }
 
@@ -91,6 +94,8 @@ public class ContentletService {
         return contentletRepository.findAllById(ids);
     }
 
-    public record ResultPair(ContentletEntity contentletEntity, boolean isNew) {
+    public record ContentletSaveResult(ContentletEntity contentletEntity,
+                                       boolean isNew,
+                                       @Nullable ContentletEntity previousContentletEntityVersion) {
     }
 }

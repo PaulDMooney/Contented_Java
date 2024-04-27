@@ -63,7 +63,7 @@ class ContentletIndexerTest {
                 var saveAllArgumentCaptor = ArgumentCaptor.forClass(Iterable.class);
 
                 // When
-                contentletIndexer.indexContentlet(contentletEntity).block();
+                contentletIndexer.indexContentlet(contentletEntity, null).block();
 
                 verify(reactiveElasticsearchOperations).saveAll(saveAllArgumentCaptor.capture(), any(IndexCoordinates.class));
 
@@ -82,7 +82,7 @@ class ContentletIndexerTest {
             @DisplayName("it should return a list of the entities that were saved")
             void shouldReturnAListOfTheEntitiesThatWereSaved() {
                 // When
-                var result = contentletIndexer.indexContentlet(contentletEntity).block();
+                var result = contentletIndexer.indexContentlet(contentletEntity, null).block();
 
                 // Then
                 assertThat(result).hasSize(3);
@@ -105,7 +105,7 @@ class ContentletIndexerTest {
             @DisplayName("it should return an empty mono")
             void shouldReturnAnEmptyMono() {
                 // When
-                var result = contentletIndexer.indexContentlet(contentletEntity);
+                var result = contentletIndexer.indexContentlet(contentletEntity, null);
 
                 // Then
                 StepVerifier.create(result)

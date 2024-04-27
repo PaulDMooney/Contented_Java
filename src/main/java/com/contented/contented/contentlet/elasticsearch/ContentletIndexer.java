@@ -2,6 +2,8 @@ package com.contented.contented.contentlet.elasticsearch;
 
 import com.contented.contented.contentlet.ContentletEntity;
 import com.contented.contented.contentlet.elasticsearch.transformation.ESRecordTransformer;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -31,7 +33,8 @@ public class ContentletIndexer {
         this.esTransformers = esTransformers;
     }
 
-    public Mono<List<EntityAsMap>> indexContentlet(ContentletEntity contentletEntity) {
+    public Mono<List<EntityAsMap>> indexContentlet(@Nonnull final ContentletEntity contentletEntity,
+                                                   @Nullable final ContentletEntity previousContentletEntityVersion) {
         return esTransformers.stream()
                 .filter(esRecordTransformer -> esRecordTransformer.test(contentletEntity))
                 .findFirst()

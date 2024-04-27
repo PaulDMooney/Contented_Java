@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 public class StubbingUtils {
 
     public static void passThrough_indexContentlet(ContentletIndexer toMock) {
-        when(toMock.indexContentlet(any())).thenReturn(Mono.empty());
+        when(toMock.indexContentlet(any(), any())).thenReturn(Mono.empty());
     }
 
     public static void passThrough_deleteRecord(ContentletIndexer toMock) {

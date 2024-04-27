@@ -59,7 +59,7 @@ public class ContentletServiceTest {
             passthroughContentletRepository(repository);
             reactiveElasticsearchOperations = Mockito.mock(ReactiveElasticsearchOperations.class);
             passthroughElasticSearchOperations(reactiveElasticsearchOperations);
-            contentletIndexer = new ContentletIndexer(reactiveElasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
+            contentletIndexer = spy(new ContentletIndexer(reactiveElasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer())));
             Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
             var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
             contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
@@ -69,14 +69,15 @@ public class ContentletServiceTest {
         @DisplayName("when saving contentlet that does not exist")
         class SavingContentletThatDoesNotExist {
 
-            ContentletService.ResultPair result;
+            ContentletService.ContentletSaveResult result;
 
             @BeforeAll
             void beforeAll() {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+//                when(repository.existsById(anyString())).thenReturn(Mono.just(false));
+                when(repository.findById(anyString())).thenReturn(Mono.empty());
 
                 // when
                 result = contentletService.save(toSave).block();
@@ -110,14 +111,17 @@ public class ContentletServiceTest {
         @DisplayName("when saving contentlet that does exist")
         class SavingContentletThatDoesExist {
 
-            ContentletService.ResultPair result;
+            ContentletEntity existingContentlet = new ContentletEntity(toSave.getId(), Map.of("something", "existing"));
+
+            ContentletService.ContentletSaveResult result;
             @BeforeAll
             void beforeAll() {
 
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
+//                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
+                when(repository.findById(eq(existingContentlet.getId()))).thenReturn(Mono.just(existingContentlet));
 
                 result = contentletService.save(toSave).block();
             }
@@ -144,6 +148,12 @@ public class ContentletServiceTest {
             void should_return_result_pair_with_isNew_false() {
                 assertThat(result.isNew()).isFalse();
             }
+
+            @Test
+            @DisplayName("it should pass both the old and the new contentlet to the `ContentletIndexer`")
+            void should_pass_both_the_old_and_the_new_contentlet_to_the_contentletIndexer() {
+                verify(contentletIndexer).indexContentlet(toSave, existingContentlet);
+            }
         }
 
         @NestedPerClass
@@ -159,7 +169,8 @@ public class ContentletServiceTest {
             @BeforeAll
             void beforeAll() {
 
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+                when(repository.existsById(anyString())).thenReturn(Mono.just(false));
+               when(repository.findById(anyString())).thenReturn(Mono.empty());
             }
 
             @NestedPerClass
