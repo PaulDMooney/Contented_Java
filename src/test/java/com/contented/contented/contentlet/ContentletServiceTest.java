@@ -66,7 +66,7 @@ public class ContentletServiceTest {
         }
 
         @NestedPerClass
-        @DisplayName("when saving contentlet that does not exist")
+        @DisplayName("Given a contentlet that does not already exist in the DB")
         class SavingContentletThatDoesNotExist {
 
             ContentletService.ContentletSaveResult result;
@@ -108,7 +108,7 @@ public class ContentletServiceTest {
         }
 
         @NestedPerClass
-        @DisplayName("when saving contentlet that does exist")
+        @DisplayName("Given a contentlet that already exists in the DB")
         class SavingContentletThatDoesExist {
 
             ContentletEntity existingContentlet = new ContentletEntity(toSave.getId(), Map.of("something", "existing"));

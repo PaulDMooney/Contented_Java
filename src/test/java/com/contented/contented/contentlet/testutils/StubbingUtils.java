@@ -11,6 +11,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class StubbingUtils {
@@ -40,6 +41,9 @@ public class StubbingUtils {
                     return Mono.empty();
                 }
             });
+
+        when(toMock.delete(anyString(), any(IndexCoordinates.class)))
+            .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
     }
 
     public static OngoingStubbing<Mono<ContentletEntity>> passthroughContentletRepository(ContentletRepository toMock) {

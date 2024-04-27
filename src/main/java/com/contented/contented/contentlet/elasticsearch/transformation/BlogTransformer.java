@@ -1,10 +1,10 @@
 package com.contented.contented.contentlet.elasticsearch.transformation;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import jakarta.annotation.Nullable;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
 import java.util.List;
 
 import static com.contented.contented.contentlet.elasticsearch.transformation.StandardContentletTransformations.applyStandardTransformations;
@@ -14,13 +14,13 @@ import static com.contented.contented.contentlet.transformation.StandardDMSConte
 @Component
 public class BlogTransformer implements ESRecordTransformer {
     @Override
-    public Collection<EntityAsMap> transform(ContentletEntity toTransform) {
+    public ESCrudContainer transform(ContentletEntity toTransform, @Nullable ContentletEntity previousContentletEntityVersion) {
 
         EntityAsMap entityAsMap = new EntityAsMap();
         applyStandardTransformations(toTransform, entityAsMap);
         entityAsMap.put("blog.title", toTransform.get("title"));
 
-        return List.of(entityAsMap);
+        return new ESCrudContainer(List.of(entityAsMap), null);
     }
 
     @Override
