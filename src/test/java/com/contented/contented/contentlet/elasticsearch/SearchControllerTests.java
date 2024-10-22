@@ -64,7 +64,7 @@ public class SearchControllerTests {
         contentletEndpointClient = AbstractContentletControllerTests.createContentletsEndpointClient(port);
 
         // Create the index! Otherwise queries just return 0 results
-        elasticSearchIndexCreator.createIndex();
+        elasticSearchIndexCreator.createIndex().block();
     }
 
     @NestedPerClass

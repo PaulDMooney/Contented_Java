@@ -13,10 +13,8 @@ import org.mockito.Mockito;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import reactor.test.StepVerifier;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -63,7 +61,7 @@ class ContentletIndexerTest {
                 var saveAllArgumentCaptor = ArgumentCaptor.forClass(Iterable.class);
 
                 // When
-                contentletIndexer.indexContentlet(contentletEntity).block();
+                contentletIndexer.indexContentlet(contentletEntity);
 
                 verify(reactiveElasticsearchOperations).saveAll(saveAllArgumentCaptor.capture(), any(IndexCoordinates.class));
 
@@ -82,7 +80,7 @@ class ContentletIndexerTest {
             @DisplayName("it should return a list of the entities that were saved")
             void shouldReturnAListOfTheEntitiesThatWereSaved() {
                 // When
-                var result = contentletIndexer.indexContentlet(contentletEntity).block();
+                var result = contentletIndexer.indexContentlet(contentletEntity);
 
                 // Then
                 assertThat(result).hasSize(3);
@@ -102,15 +100,13 @@ class ContentletIndexerTest {
                     CONTENT_TYPE_FIELD, "TypeWithNoTransformer"));
 
             @Test
-            @DisplayName("it should return an empty mono")
-            void shouldReturnAnEmptyMono() {
+            @DisplayName("it should return an empty list")
+            void shouldReturnAnEmptyList() {
                 // When
                 var result = contentletIndexer.indexContentlet(contentletEntity);
 
                 // Then
-                StepVerifier.create(result)
-                    .expectComplete()
-                    .verify();
+                assertThat(result).isEmpty();
             }
         }
     }

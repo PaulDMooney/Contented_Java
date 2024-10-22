@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.index.AliasAction;
 import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
 import org.springframework.data.elasticsearch.core.index.AliasActions;
@@ -28,7 +28,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -53,13 +52,7 @@ public class ElasticSearchDiscoveryTests {
     ReactiveElasticsearchClient reactiveElasticsearchClient;
 
     @Autowired
-    ReactiveElasticsearchOperations reactiveElasticsearchOperations;
-
-//    @Autowired
-//    ReactiveElasticsearchTemplate reactiveElasticsearchTemplate;
-//
-//    @Autowired
-//    ElasticsearchConverter converter;
+    ElasticsearchOperations elasticsearchOperations;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
@@ -210,9 +203,7 @@ public class ElasticSearchDiscoveryTests {
             @BeforeAll
             void when() {
 
-                savedEntity = reactiveElasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3))
-                    .block();
-
+                savedEntity = elasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3));
                 waitForESToAffectChanges();
             }
 
@@ -235,11 +226,9 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("the document should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .block();
-                        assertThat(results).hasSize(1);
-                        assertThat(results.get(0).getContent()).isEqualTo(toSave);
+                var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3));
+                assertThat(results).hasSize(1);
+                assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
 
             @Test
@@ -250,11 +239,8 @@ public class ElasticSearchDiscoveryTests {
                     .withQuery(q -> q.match(m ->
                         m.field("id").query("ABCDE")
                     )).build();
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> assertThat(searchHits).hasSize(0))
-                    .verifyComplete();
+                var results = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3));
+                assertThat(results).hasSize(0);
             }
 
             @Test
@@ -265,14 +251,9 @@ public class ElasticSearchDiscoveryTests {
                     .withQuery(q -> q.match(m ->
                         m.field("field1").query("value1")
                     )).build();
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> {
-                        assertThat(searchHits).hasSize(1);
-                        assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
-                    })
-                    .verifyComplete();
+                var results = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3));
+                assertThat(results).hasSize(1);
+                assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
 
             @Test
@@ -288,11 +269,8 @@ public class ElasticSearchDiscoveryTests {
                     }
                     """;
                 var query = new StringQuery(String.format(queryTemplate,toSave.id()));
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> assertThat(searchHits).size().isGreaterThan(0))
-                    .verifyComplete();
+                var results = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3));
+                assertThat(results).size().isGreaterThan(0);
             }
 
             @Test
@@ -315,13 +293,9 @@ public class ElasticSearchDiscoveryTests {
                 builder.withJson(new ByteArrayInputStream(queryString.getBytes()));
                 SearchRequest searchRequest = builder.index(INDEX_NAME3).build();
 
-                reactiveElasticsearchClient.search(searchRequest, EntityAsMap.class)
-                    .as(StepVerifier::create)
-                    .assertNext(response ->
-                        assertThat(response.hits()).isNotNull()
-                            .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0))
-                    )
-                    .verifyComplete();
+                var response = reactiveElasticsearchClient.search(searchRequest, EntityAsMap.class);
+                assertThat(response.hits()).isNotNull()
+                    .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0));
             }
 
             @NestedPerClass
@@ -336,8 +310,7 @@ public class ElasticSearchDiscoveryTests {
                     aliasActions.add(new AliasAction.Add(AliasActionParameters.builder()
                         .withIndices(INDEX_NAME3)
                         .withAliases(ALIAS_NAME).build()));
-                    reactiveElasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions)
-                        .block();
+                    elasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions);
 
                 }
 
@@ -346,14 +319,9 @@ public class ElasticSearchDiscoveryTests {
                 void then_the_document_should_be_searchable_via_alias() {
 
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                    reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(ALIAS_NAME))
-                        .collectList()
-                        .as(StepVerifier::create)
-                        .assertNext(searchHits -> {
-                            assertThat(searchHits).hasSize(1);
-                            assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
-                        })
-                        .verifyComplete();
+                    var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(ALIAS_NAME));
+                    assertThat(results).hasSize(1);
+                    assertThat(results.get(0).getContent()).isEqualTo(toSave);
                 }
             }
         }
@@ -379,7 +347,7 @@ public class ElasticSearchDiscoveryTests {
                         .index(INDEX_NAME3)
                         .build();
 
-                reactiveElasticsearchClient.bulk(request).block();
+                reactiveElasticsearchClient.bulk(request);
 
                 waitForESToAffectChanges();
             }
@@ -388,9 +356,7 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("the document should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                        .collectList()
-                        .block();
+                var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3));
                 assertThat(results).hasSize(1);
                 assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }

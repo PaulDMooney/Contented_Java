@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -34,22 +33,20 @@ public class SearchController {
     }
 
     @PostMapping("/withcontent")
-    public Mono<SearchResultsWithContent<EntityAsMap>> searchWithContent(@RequestBody String searchRequestJSON) {
+    public SearchResultsWithContent<EntityAsMap> searchWithContent(@RequestBody String searchRequestJSON) {
 
         SearchRequest request = builderFromJSON(searchRequestJSON)
             .index(indexCoordinates.getIndexName()).build();
 
-        return reactiveElasticsearchClient.search(request, EntityAsMap.class)
-            .flatMap(response -> {
-                List<String> extractedIds = response.hits().hits().stream()
-                    .map(hit -> (String) hit.source().get("id"))
-                    .toList();
+        SearchResponse<EntityAsMap> response = reactiveElasticsearchClient.search(request, EntityAsMap.class).block();
 
-                return contentletService.findByIds(extractedIds)
-                    .collectList()
-                    .map(contentlets -> new SearchResultsWithContent<>((SearchResponse<EntityAsMap>) response, contentlets));
+        List<String> extractedIds = response.hits().hits().stream()
+            .map(hit -> (String) hit.source().get("id"))
+            .toList();
 
-            });
+        List<ContentletEntity> contentlets = contentletService.findByIds(extractedIds);
+
+        return new SearchResultsWithContent<>(response, contentlets);
     }
 
     private SearchRequest.Builder builderFromJSON(String searchRequestJSON) {

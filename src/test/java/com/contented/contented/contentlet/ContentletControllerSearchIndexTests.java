@@ -15,7 +15,7 @@ import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -141,7 +141,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
             static SomeContentlet toDelete = new SomeContentlet("contentlet1234_deleteme", "Blog", "Delete Me", "Some body");
 
-            static WebTestClient.ResponseSpec response;
+            static TestRestTemplate.ResponseSpec response;
 
             @BeforeAll
             void given() {

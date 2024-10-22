@@ -12,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import reactor.core.publisher.Mono;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -76,10 +75,10 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+                when(repository.existsById(Mockito.anyString())).thenReturn(false);
 
                 // when
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -117,9 +116,9 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
+                when(repository.existsById(Mockito.anyString())).thenReturn(true);
 
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -159,7 +158,7 @@ public class ContentletServiceTest {
             @BeforeAll
             void beforeAll() {
 
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+                when(repository.existsById(Mockito.anyString())).thenReturn(false);
             }
 
             @NestedPerClass
@@ -168,7 +167,7 @@ public class ContentletServiceTest {
 
                 @BeforeAll
                 void beforeAll() {
-                    contentletService.save(toSave).block();
+                    contentletService.save(toSave);
                 }
 
                 @Test()

@@ -8,7 +8,6 @@ import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -31,22 +30,23 @@ public class ContentletIndexer {
         this.esTransformers = esTransformers;
     }
 
-    public Mono<List<EntityAsMap>> indexContentlet(ContentletEntity contentletEntity) {
+    public List<EntityAsMap> indexContentlet(ContentletEntity contentletEntity) {
         return esTransformers.stream()
                 .filter(esRecordTransformer -> esRecordTransformer.test(contentletEntity))
                 .findFirst()
                 .map(esRecordTransformer -> {
                     var transformedEntities = esRecordTransformer.transform(contentletEntity);
                     return reactiveElasticsearchOperations.saveAll(transformedEntities, indexCoordinates)
-                        .collectList();
+                        .collectList()
+                        .block();
                 })
                 .orElseGet(() -> {
                     log.warn("No transformer found for contentlet: {}", contentletEntity.getId());
-                    return Mono.empty();
+                    return List.of();
                 });
     }
 
-    public Mono<String> deleteRecord(String id) {
-        return reactiveElasticsearchOperations.delete(id, indexCoordinates);
+    public String deleteRecord(String id) {
+        return reactiveElasticsearchOperations.delete(id, indexCoordinates).block();
     }
 }

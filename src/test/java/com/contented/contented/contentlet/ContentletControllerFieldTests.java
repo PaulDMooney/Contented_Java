@@ -7,7 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -52,7 +52,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 new SomethingThatLooksLikeAContentlet("Contentlet1",
                     "field1Value", 123);
 
-            WebTestClient.ResponseSpec response;
+            TestRestTemplate.HttpClientOption response;
 
             @BeforeAll
             void when() {
@@ -99,7 +99,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                 // TBD: Save directly to the DB instead?
                 // When
-                WebTestClient.ResponseSpec response = contentletEndpointClient.put().bodyValue(toSave).exchange();
+                TestRestTemplate.HttpClientOption response = contentletEndpointClient.put().bodyValue(toSave).exchange();
 
                 response.expectStatus().is2xxSuccessful();
             }
@@ -109,7 +109,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @DisplayName("when getting that contentlet with fields")
             class GetAContentlet {
 
-                WebTestClient.ResponseSpec response;
+                TestRestTemplate.HttpClientOption response;
 
                 @BeforeAll
                 void beforeAll() {
@@ -173,7 +173,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @DisplayName("when getting that contentlet with complex fields")
             class GetContentletWithComplexFields {
 
-                WebTestClient.ResponseSpec response;
+                TestRestTemplate.HttpClientOption response;
 
                 @BeforeAll
                 void when() {
