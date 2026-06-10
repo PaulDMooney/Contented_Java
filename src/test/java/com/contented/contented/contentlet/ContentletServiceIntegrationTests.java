@@ -6,7 +6,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
@@ -46,7 +46,7 @@ public class ContentletServiceIntegrationTests {
     ContentletService contentletService;
 
     @Autowired
-    ReactiveElasticsearchOperations reactiveElasticsearchOperations;
+    ElasticsearchOperations elasticsearchOperations;
 
     @Autowired
     ElasticSearchIndexCreator elasticSearchIndexCreator;
@@ -96,7 +96,7 @@ public class ContentletServiceIntegrationTests {
                 @DisplayName("the elasticsearch record's _source should contain the transformations")
                 void es_should_contain_transformations() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.getId()));
-                    var results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).collectList().block();
+                    var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
 
                     var hitSource = Objects.requireNonNull(results).get(0).getContent();
 

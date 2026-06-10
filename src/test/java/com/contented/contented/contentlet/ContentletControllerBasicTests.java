@@ -12,8 +12,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
@@ -39,7 +37,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
     }
 
-    Mono<ContentletEntity> saveOneContentlet() {
+    ContentletEntity saveOneContentlet() {
         return contentletRepository.save(new ContentletEntity("Contentlet1"));
     }
 
@@ -84,15 +82,10 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void should_have_saved_the_contentlet_to_the_database() {
 
                 // Then contentletRepository should return the saved contentlet
-                StepVerifier.create(contentletRepository.findById(toSave.getId()))
+                var savedContentlet = contentletRepository.findById(toSave.getId());
 
-                        .expectNextMatches(savedContentlet -> {
-                            assertThat(savedContentlet).isNotNull();
-                            assertThat(savedContentlet.getId()).isEqualTo(toSave.getId());
-                            return true;
-                        })
-                        .verifyComplete();
-
+                assertThat(savedContentlet).isPresent();
+                assertThat(savedContentlet.get().getId()).isEqualTo(toSave.getId());
             }
 
             @Nested
@@ -123,15 +116,10 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 void should_have_saved_the_contentlet_to_the_database() {
 
                     // Then contentletRepository should return the saved contentlet
-                    StepVerifier.create(contentletRepository.findById(toSave.getId()))
+                    var savedContentlet = contentletRepository.findById(toSave.getId());
 
-                            .expectNextMatches(savedContentlet -> {
-                                assertThat(savedContentlet).isNotNull();
-                                assertThat(savedContentlet.getId()).isEqualTo(toSave.getId());
-                                return true;
-                            })
-                            .verifyComplete();
-
+                    assertThat(savedContentlet).isPresent();
+                    assertThat(savedContentlet.get().getId()).isEqualTo(toSave.getId());
                 }
             }
 
@@ -148,7 +136,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         void should_return_all_saved_contentlets() {
 
             // Given
-            saveOneContentlet().block();
+            saveOneContentlet();
 
             // When
             var response = contentletEndpointClient.get().uri("/all").exchange();
@@ -170,7 +158,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         void beforeAll() {
 
             // Given contentlet is saved
-            contentletRepository.save(savedContentlet).block();
+            contentletRepository.save(savedContentlet);
         }
 
         @Nested
@@ -253,7 +241,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 StubbingUtils.passThrough_deleteRecord(contentletIndexer);
 
                 // Save the contentlet to the database
-                contentletRepository.save(toDelete).block();
+                contentletRepository.save(toDelete);
 
                 // When
                 response = contentletEndpointClient.delete().uri("/{id}", toDelete.getId()).exchange();
@@ -273,10 +261,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void should_have_deleted_the_contentlet_from_the_database() {
 
                 // Then contentletRepository should not return the deleted contentlet
-                StepVerifier.create(contentletRepository.findById(toDelete.getId()))
-                        .expectNextCount(0)
-                        .verifyComplete();
-
+                assertThat(contentletRepository.findById(toDelete.getId())).isEmpty();
             }
         }
 

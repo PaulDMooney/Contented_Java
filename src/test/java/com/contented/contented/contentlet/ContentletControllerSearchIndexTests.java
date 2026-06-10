@@ -7,7 +7,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Criteria;
@@ -49,7 +49,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
 
     @Autowired
-    ReactiveElasticsearchOperations reactiveElasticsearchOperations;
+    ElasticsearchOperations elasticsearchOperations;
 
     @Autowired
     ElasticSearchIndexCreator elasticSearchIndexCreator;
@@ -94,9 +94,8 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
                 @BeforeAll
                 void when() {
-                    results = reactiveElasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
-                            .collectList()
-                            .block();
+                    results = elasticsearchOperations.search(Query.findAll(), EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .getSearchHits();
                 }
 
                 @Test
@@ -115,9 +114,8 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 @BeforeAll
                 void when() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                    results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
-                            .collectList()
-                            .block();
+                    results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .getSearchHits();
 
                 }
 
@@ -166,9 +164,8 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 @DisplayName("then the content should not longer be found when searching by its identifier")
                 void then_the_content_should_not_longer_be_found() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toDelete.id()));
-                    List<SearchHit<EntityAsMap>> results = reactiveElasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
-                            .collectList()
-                            .block();
+                    List<SearchHit<EntityAsMap>> results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
+                            .getSearchHits();
 
                     Assertions.assertThat(results).hasSize(0);
                 }

@@ -46,10 +46,10 @@ public class ContentletService {
     }
 
     private ResultPair saveToDB(ContentletEntity contentletEntity) {
-        boolean exists = Boolean.TRUE.equals(contentletRepository.existsById(contentletEntity.getId()).block());
+        boolean exists = contentletRepository.existsById(contentletEntity.getId());
         boolean isNew = !exists;
         log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
-        var savedContentlet = contentletRepository.save(contentletEntity).block();
+        var savedContentlet = contentletRepository.save(contentletEntity);
         log.info("Saved contentlet: `{}` successfully", savedContentlet.getId());
         return new ResultPair(savedContentlet, isNew);
     }
@@ -66,13 +66,13 @@ public class ContentletService {
     }
 
     private void deleteByIdFromDB(String id) {
-        contentletRepository.deleteById(id).block();
+        contentletRepository.deleteById(id);
         log.info("Deleted contentlet: `{}` successfully", id);
     }
 
     public Optional<ContentletEntity> findById(String id) {
         log.debug("Finding contentlet: {}", id);
-        var result = Optional.ofNullable(contentletRepository.findById(id).block());
+        var result = contentletRepository.findById(id);
         if (result.isPresent()) {
             log.debug("Found contentlet: `{}` successfully", id);
         } else {
@@ -83,7 +83,7 @@ public class ContentletService {
 
     public List<ContentletEntity> findByIds(List<String> ids) {
         log.debug("Finding {} contentlets", ids.size());
-        return contentletRepository.findAllById(ids).collectList().block();
+        return contentletRepository.findAllById(ids);
     }
 
     public record ResultPair(ContentletEntity contentletEntity, boolean isNew) {

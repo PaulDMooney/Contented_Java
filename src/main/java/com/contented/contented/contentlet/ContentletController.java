@@ -26,7 +26,7 @@ public class ContentletController {
     @GetMapping("/all")
     List<ContentletEntity> getAll() {
         // TODO: Replace this with a paginated version in the future
-        return contentletRepository.findAll().collectList().block();
+        return contentletRepository.findAll();
     }
 
     @GetMapping("/{id}")

@@ -7,7 +7,6 @@ import org.springframework.boot.actuate.autoconfigure.metrics.LogbackMetricsAuto
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.sql.init.SqlInitializationAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import reactor.core.publisher.Hooks;
 
 import java.time.Clock;
 
@@ -16,7 +15,6 @@ import java.time.Clock;
 public class ContentedApplication {
 
 	public static void main(String[] args) {
-        Hooks.enableAutomaticContextPropagation();
         SpringApplication.run(ContentedApplication.class, args);
 	}
 

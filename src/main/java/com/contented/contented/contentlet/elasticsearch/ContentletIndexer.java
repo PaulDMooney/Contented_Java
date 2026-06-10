@@ -5,10 +5,11 @@ import com.contented.contented.contentlet.elasticsearch.transformation.ESRecordT
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,17 +17,17 @@ import java.util.List;
 @Component
 public class ContentletIndexer {
 
-    final ReactiveElasticsearchOperations reactiveElasticsearchOperations;
+    final ElasticsearchOperations elasticsearchOperations;
 
     final IndexCoordinates indexCoordinates;
 
     final List<ESRecordTransformer> esTransformers;
 
     @Autowired
-    public ContentletIndexer(ReactiveElasticsearchOperations reactiveElasticsearchOperations,
+    public ContentletIndexer(ElasticsearchOperations elasticsearchOperations,
                              IndexCoordinates indexCoordinates,
                              List<ESRecordTransformer> esTransformers) {
-        this.reactiveElasticsearchOperations = reactiveElasticsearchOperations;
+        this.elasticsearchOperations = elasticsearchOperations;
         this.indexCoordinates = indexCoordinates;
         this.esTransformers = esTransformers;
     }
@@ -37,9 +38,10 @@ public class ContentletIndexer {
                 .findFirst()
                 .map(esRecordTransformer -> {
                     var transformedEntities = esRecordTransformer.transform(contentletEntity);
-                    return reactiveElasticsearchOperations.saveAll(transformedEntities, indexCoordinates)
-                        .collectList()
-                        .block();
+                    var savedEntities = elasticsearchOperations.save(transformedEntities, indexCoordinates);
+                    List<EntityAsMap> savedEntitiesList = new ArrayList<>();
+                    savedEntities.forEach(savedEntitiesList::add);
+                    return savedEntitiesList;
                 })
                 .orElseGet(() -> {
                     log.warn("No transformer found for contentlet: {}", contentletEntity.getId());
@@ -48,6 +50,6 @@ public class ContentletIndexer {
     }
 
     public String deleteRecord(String id) {
-        return reactiveElasticsearchOperations.delete(id, indexCoordinates).block();
+        return elasticsearchOperations.delete(id, indexCoordinates);
     }
 }

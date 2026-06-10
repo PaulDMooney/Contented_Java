@@ -1,11 +1,11 @@
 package com.contented.contented.contentlet.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.ContentletEntity;
 import com.contented.contented.contentlet.ContentletService;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
-import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -20,28 +21,26 @@ import java.util.List;
 public class SearchController {
     public static final String SEARCH_PATH = "search";
 
-    private final ReactiveElasticsearchClient reactiveElasticsearchClient;
+    private final ElasticsearchClient elasticsearchClient;
 
     private final IndexCoordinates indexCoordinates;
 
     private final ContentletService contentletService;
 
 
-    public SearchController(ReactiveElasticsearchClient reactiveElasticsearchClient, IndexCoordinates indexCoordinates, ContentletService contentletService) {
-        this.reactiveElasticsearchClient = reactiveElasticsearchClient;
+    public SearchController(ElasticsearchClient elasticsearchClient, IndexCoordinates indexCoordinates, ContentletService contentletService) {
+        this.elasticsearchClient = elasticsearchClient;
         this.indexCoordinates = indexCoordinates;
         this.contentletService = contentletService;
     }
 
     @PostMapping("/withcontent")
-    public SearchResultsWithContent<EntityAsMap> searchWithContent(@RequestBody String searchRequestJSON) {
+    public SearchResultsWithContent<EntityAsMap> searchWithContent(@RequestBody String searchRequestJSON) throws IOException {
 
         SearchRequest request = builderFromJSON(searchRequestJSON)
             .index(indexCoordinates.getIndexName()).build();
 
-        SearchResponse<EntityAsMap> response = (SearchResponse<EntityAsMap>) reactiveElasticsearchClient
-            .search(request, EntityAsMap.class)
-            .block();
+        SearchResponse<EntityAsMap> response = elasticsearchClient.search(request, EntityAsMap.class);
 
         List<String> extractedIds = response.hits().hits().stream()
             .map(hit -> (String) hit.source().get("id"))
