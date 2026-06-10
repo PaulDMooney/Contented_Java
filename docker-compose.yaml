@@ -23,12 +23,13 @@ services:
     depends_on:
       - mongo
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.18.8
     ports:
       - 9200:9200
       - 9300:9300
     environment:
       discovery.type: single-node
       cluster.name: elastic-cluster
+      xpack.security.enabled: "false"
     volumes:
       - .volumes/elasticsearch:/usr/share/elasticsearch/data
