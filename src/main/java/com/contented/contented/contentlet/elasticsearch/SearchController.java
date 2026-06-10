@@ -47,9 +47,7 @@ public class SearchController {
             .map(hit -> (String) hit.source().get("id"))
             .toList();
 
-        List<ContentletEntity> contentlets = contentletService.findByIds(extractedIds)
-            .collectList()
-            .block();
+        List<ContentletEntity> contentlets = contentletService.findByIds(extractedIds);
 
         return new SearchResultsWithContent<>(response, contentlets);
     }

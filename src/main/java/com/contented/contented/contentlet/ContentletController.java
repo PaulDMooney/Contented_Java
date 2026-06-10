@@ -33,15 +33,14 @@ public class ContentletController {
     ResponseEntity<ContentletEntity> findById(@PathVariable String id) {
         return contentletService.findById(id)
                 .map(contentletEntity -> ResponseEntity.ok(contentletEntity))
-                .defaultIfEmpty(ResponseEntity.notFound().build())
-                .block();
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping
     ResponseEntity<ContentletEntity> putContentlet(@RequestBody ContentletDTO contentletDTO) {
         ContentletEntity toSave = new ContentletEntity(contentletDTO.getId(), contentletDTO.get());
 
-        var resultPair = contentletService.save(toSave).block();
+        var resultPair = contentletService.save(toSave);
         var statusCode = resultPair.isNew() ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(statusCode)
                 .body(resultPair.contentletEntity());
@@ -49,6 +48,6 @@ public class ContentletController {
 
     @DeleteMapping("/{id}")
     void deleteContentlet(@PathVariable String id) {
-        contentletService.deleteById(id).block();
+        contentletService.deleteById(id);
     }
 }

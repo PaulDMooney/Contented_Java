@@ -88,7 +88,7 @@ public class ContentletServiceIntegrationTests {
 
                 @BeforeAll
                 void beforeAll() {
-                    contentletService.save(toSave).block();
+                    contentletService.save(toSave);
                     waitForESToAffectChanges();
                 }
 

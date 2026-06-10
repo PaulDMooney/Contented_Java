@@ -79,7 +79,7 @@ public class ContentletServiceTest {
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
 
                 // when
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -119,7 +119,7 @@ public class ContentletServiceTest {
                 // Given
                 when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
 
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -168,7 +168,7 @@ public class ContentletServiceTest {
 
                 @BeforeAll
                 void beforeAll() {
-                    contentletService.save(toSave).block();
+                    contentletService.save(toSave);
                 }
 
                 @Test()
