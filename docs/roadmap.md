@@ -35,8 +35,9 @@ becomes a plain loop).
 - ~~Remove `Hooks.enableAutomaticContextPropagation()` (Reactor-specific; see item 2).~~ ✅ Done.
 - `StepVerifier` is gone; `WebTestClient` test plumbing → `MockMvc`/`RestClient`
   remains (spring-webflux is now a test-only dependency; coordinate with item 4).
-- Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)
-  — still to do, now decoupled from the conversion.
+- ~~Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)~~
+  ✅ Done (`feat/java-25`): Boot 3.5.14 / Java 25, Elasticsearch server 8.18 to match the
+  client the Boot parent manages. Boot 4.x (Spring Framework 7) deliberately deferred.
 
 **Notes**: keep R2DBC out of consideration for the potential Postgres move — plain JDBC on
 virtual threads is the point of this conversion.

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Spring Boot (MVC, blocking, virtual threads enabled) content management API on Java 21. Contentlets — schemaless content records — are persisted to MongoDB (system of record) and indexed into Elasticsearch for search. Maven build via the wrapper (`./mvnw`).
+Spring Boot (MVC, blocking, virtual threads enabled) content management API on Java 25. Contentlets — schemaless content records — are persisted to MongoDB (system of record) and indexed into Elasticsearch for search. Maven build via the wrapper (`./mvnw`).
 
 ## Commands
 
