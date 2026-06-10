@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(IndexController.INDEX_PATH)
@@ -21,9 +20,8 @@ public class IndexController {
 
     // TODO: Temporary, A better design would allow for creating any index name, and then assign an alias to it.
     @PutMapping("/create")
-    public Mono<ResponseEntity> createIndex() {
-        return elasticSearchIndexCreator.createIndex().map(
-            result -> result ? ResponseEntity.ok().build() : ResponseEntity.internalServerError().build()
-        );
+    public ResponseEntity createIndex() {
+        Boolean result = elasticSearchIndexCreator.createIndex().block();
+        return Boolean.TRUE.equals(result) ? ResponseEntity.ok().build() : ResponseEntity.internalServerError().build();
     }
 }
