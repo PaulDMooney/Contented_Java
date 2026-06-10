@@ -1,5 +1,6 @@
 package com.contented.contented.contentlet.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
@@ -14,8 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
-import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.index.AliasAction;
 import org.springframework.data.elasticsearch.core.index.AliasActionParameters;
 import org.springframework.data.elasticsearch.core.index.AliasActions;
@@ -28,9 +28,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
@@ -50,16 +50,10 @@ public class ElasticSearchDiscoveryTests {
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
 
     @Autowired
-    ReactiveElasticsearchClient reactiveElasticsearchClient;
+    ElasticsearchClient elasticsearchClient;
 
     @Autowired
-    ReactiveElasticsearchOperations reactiveElasticsearchOperations;
-
-//    @Autowired
-//    ReactiveElasticsearchTemplate reactiveElasticsearchTemplate;
-//
-//    @Autowired
-//    ElasticsearchConverter converter;
+    ElasticsearchOperations elasticsearchOperations;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
@@ -76,14 +70,13 @@ public class ElasticSearchDiscoveryTests {
 
         @Test
         @DisplayName("No index should exist yet")
-        void no_index_should_exist_yet() {
+        void no_index_should_exist_yet() throws IOException {
 
             var indexExistsRequest = ExistsRequest.of(builder ->
                 builder.index(INDEX_NAME1)
             );
 
-            var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
-                .block();
+            var result = elasticsearchClient.indices().exists(indexExistsRequest);
 
             assertThat(result).isNotNull()
                 .satisfies(response -> assertThat(response.value()).isFalse());
@@ -96,13 +89,12 @@ public class ElasticSearchDiscoveryTests {
             CreateIndexResponse response;
 
             @BeforeAll
-            void when() {
+            void when() throws IOException {
                 var createIndexRequest = CreateIndexRequest.of(builder ->
                     builder.index(INDEX_NAME1)
                 );
 
-                response = reactiveElasticsearchClient.indices().create(createIndexRequest)
-                    .block();
+                response = elasticsearchClient.indices().create(createIndexRequest);
             }
 
             @Test
@@ -115,14 +107,13 @@ public class ElasticSearchDiscoveryTests {
 
             @Test
             @DisplayName("The index should exist")
-            void the_index_should_exist() {
+            void the_index_should_exist() throws IOException {
 
                 var indexExistsRequest = ExistsRequest.of(builder ->
                     builder.index(INDEX_NAME1)
                 );
 
-                var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
-                    .block();
+                var result = elasticsearchClient.indices().exists(indexExistsRequest);
 
                 assertThat(result).isNotNull()
                     .satisfies(response -> assertThat(response.value()).isTrue());
@@ -138,7 +129,7 @@ public class ElasticSearchDiscoveryTests {
             CreateIndexResponse response;
 
             @BeforeAll
-            void when() {
+            void when() throws IOException {
                 var createIndexRequest = CreateIndexRequest.of(builder ->
 
                     builder.index(INDEX_NAME2).mappings(mappingsBuilder -> {
@@ -148,8 +139,7 @@ public class ElasticSearchDiscoveryTests {
                     )
                 );
 
-                response = reactiveElasticsearchClient.indices().create(createIndexRequest)
-                    .block();
+                response = elasticsearchClient.indices().create(createIndexRequest);
             }
 
             @Test
@@ -162,14 +152,13 @@ public class ElasticSearchDiscoveryTests {
 
             @Test
             @DisplayName("The index should exist")
-            void the_index_should_exist() {
+            void the_index_should_exist() throws IOException {
 
                 var indexExistsRequest = ExistsRequest.of(builder ->
                     builder.index(INDEX_NAME2)
                 );
 
-                var result = reactiveElasticsearchClient.indices().exists(indexExistsRequest)
-                    .block();
+                var result = elasticsearchClient.indices().exists(indexExistsRequest);
 
                 assertThat(result).isNotNull()
                     .satisfies(response -> assertThat(response.value()).isTrue());
@@ -184,7 +173,7 @@ public class ElasticSearchDiscoveryTests {
         static final String INDEX_NAME3 = "mytestindex3";
 
         @BeforeAll
-        void given() {
+        void given() throws IOException {
             var createIndexRequest = CreateIndexRequest.of(builder ->
 
                 builder.index(INDEX_NAME3).mappings(mappingsBuilder -> {
@@ -194,8 +183,7 @@ public class ElasticSearchDiscoveryTests {
                 )
             );
 
-            reactiveElasticsearchClient.indices().create(createIndexRequest)
-                .block();
+            elasticsearchClient.indices().create(createIndexRequest);
         }
 
         @NestedPerClass
@@ -210,8 +198,7 @@ public class ElasticSearchDiscoveryTests {
             @BeforeAll
             void when() {
 
-                savedEntity = reactiveElasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3))
-                    .block();
+                savedEntity = elasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3));
 
                 waitForESToAffectChanges();
             }
@@ -235,9 +222,8 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("the document should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .block();
+                var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                    .getSearchHits();
                         assertThat(results).hasSize(1);
                         assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }
@@ -250,11 +236,9 @@ public class ElasticSearchDiscoveryTests {
                     .withQuery(q -> q.match(m ->
                         m.field("id").query("ABCDE")
                     )).build();
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> assertThat(searchHits).hasSize(0))
-                    .verifyComplete();
+                var searchHits = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                    .getSearchHits();
+                assertThat(searchHits).hasSize(0);
             }
 
             @Test
@@ -265,14 +249,10 @@ public class ElasticSearchDiscoveryTests {
                     .withQuery(q -> q.match(m ->
                         m.field("field1").query("value1")
                     )).build();
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> {
-                        assertThat(searchHits).hasSize(1);
-                        assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
-                    })
-                    .verifyComplete();
+                var searchHits = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                    .getSearchHits();
+                assertThat(searchHits).hasSize(1);
+                assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
             }
 
             @Test
@@ -288,16 +268,14 @@ public class ElasticSearchDiscoveryTests {
                     }
                     """;
                 var query = new StringQuery(String.format(queryTemplate,toSave.id()));
-                reactiveElasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                    .collectList()
-                    .as(StepVerifier::create)
-                    .assertNext(searchHits -> assertThat(searchHits).size().isGreaterThan(0))
-                    .verifyComplete();
+                var searchHits = elasticsearchOperations.search(query, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                    .getSearchHits();
+                assertThat(searchHits).size().isGreaterThan(0);
             }
 
             @Test
             @DisplayName("the document should be searchable by full JSON query request")
-            void the_document_should_be_searchable_by_full_json_query_request() {
+            void the_document_should_be_searchable_by_full_json_query_request() throws IOException {
 
                 // This is the "full" query like we would use if we were going
                 // directly to the elasticsearch /_search endpoint
@@ -315,13 +293,9 @@ public class ElasticSearchDiscoveryTests {
                 builder.withJson(new ByteArrayInputStream(queryString.getBytes()));
                 SearchRequest searchRequest = builder.index(INDEX_NAME3).build();
 
-                reactiveElasticsearchClient.search(searchRequest, EntityAsMap.class)
-                    .as(StepVerifier::create)
-                    .assertNext(response ->
-                        assertThat(response.hits()).isNotNull()
-                            .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0))
-                    )
-                    .verifyComplete();
+                var response = elasticsearchClient.search(searchRequest, EntityAsMap.class);
+                assertThat(response.hits()).isNotNull()
+                    .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0));
             }
 
             @NestedPerClass
@@ -336,8 +310,7 @@ public class ElasticSearchDiscoveryTests {
                     aliasActions.add(new AliasAction.Add(AliasActionParameters.builder()
                         .withIndices(INDEX_NAME3)
                         .withAliases(ALIAS_NAME).build()));
-                    reactiveElasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions)
-                        .block();
+                    elasticsearchOperations.indexOps(IndexCoordinates.of(INDEX_NAME3)).alias(aliasActions);
 
                 }
 
@@ -346,14 +319,10 @@ public class ElasticSearchDiscoveryTests {
                 void then_the_document_should_be_searchable_via_alias() {
 
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                    reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(ALIAS_NAME))
-                        .collectList()
-                        .as(StepVerifier::create)
-                        .assertNext(searchHits -> {
-                            assertThat(searchHits).hasSize(1);
-                            assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
-                        })
-                        .verifyComplete();
+                    var searchHits = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(ALIAS_NAME))
+                        .getSearchHits();
+                    assertThat(searchHits).hasSize(1);
+                    assertThat(searchHits.get(0).getContent()).isEqualTo(toSave);
                 }
             }
         }
@@ -366,7 +335,7 @@ public class ElasticSearchDiscoveryTests {
             record ESDocument(String id, String field1) { }
             ESDocument toSave = new ESDocument("FGHIABCDE1234", "field value2");
             @BeforeAll
-            void when() {
+            void when() throws IOException {
 
                 BulkOperationVariant operation = new IndexOperation.Builder<ESDocument>()
                         .document(toSave)
@@ -379,7 +348,7 @@ public class ElasticSearchDiscoveryTests {
                         .index(INDEX_NAME3)
                         .build();
 
-                reactiveElasticsearchClient.bulk(request).block();
+                elasticsearchClient.bulk(request);
 
                 waitForESToAffectChanges();
             }
@@ -388,9 +357,8 @@ public class ElasticSearchDiscoveryTests {
             @DisplayName("the document should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
-                var results = reactiveElasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
-                        .collectList()
-                        .block();
+                var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
+                        .getSearchHits();
                 assertThat(results).hasSize(1);
                 assertThat(results.get(0).getContent()).isEqualTo(toSave);
             }

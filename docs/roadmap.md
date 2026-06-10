@@ -6,7 +6,7 @@ fleshed out before implementation.
 
 | # | Initiative | Status | Design doc |
 |---|---|---|---|
-| 1 | Convert reactive → non-reactive (virtual threads) | Idea | — |
+| 1 | Convert reactive → non-reactive (virtual threads) | Mostly done | — |
 | 2 | Micrometer trace ids in logs | Idea | — |
 | 3 | MongoDB → Postgres migration | Idea | — |
 | 4 | Bring tests up to new testing standards | TBD | — |
@@ -28,14 +28,15 @@ becomes a plain loop).
 
 **Scope**:
 
-- Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS).
-- `spring-boot-starter-webflux` → `spring-boot-starter-web`; controllers return plain
-  values instead of `Mono`/`Flux`.
-- Reactive repositories → blocking ones (`ReactiveCrudRepository` → `CrudRepository`,
-  `ReactiveElasticsearchOperations`/`ReactiveElasticsearchClient` → blocking equivalents).
-- Remove `Hooks.enableAutomaticContextPropagation()` (Reactor-specific; see item 2).
-- `WebTestClient`/`StepVerifier` test plumbing → `MockMvc`/`RestClient`/plain assertions
-  (coordinate with item 4).
+- ~~`spring-boot-starter-webflux` → `spring-boot-starter-web`; controllers return plain
+  values instead of `Mono`/`Flux`.~~ ✅ Done (`feat/non-reactive-mvc`), virtual threads enabled.
+- ~~Reactive repositories → blocking ones (`ReactiveCrudRepository` → `CrudRepository`,
+  `ReactiveElasticsearchOperations`/`ReactiveElasticsearchClient` → blocking equivalents).~~ ✅ Done.
+- ~~Remove `Hooks.enableAutomaticContextPropagation()` (Reactor-specific; see item 2).~~ ✅ Done.
+- `StepVerifier` is gone; `WebTestClient` test plumbing → `MockMvc`/`RestClient`
+  remains (spring-webflux is now a test-only dependency; coordinate with item 4).
+- Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)
+  — still to do, now decoupled from the conversion.
 
 **Notes**: keep R2DBC out of consideration for the potential Postgres move — plain JDBC on
 virtual threads is the point of this conversion.

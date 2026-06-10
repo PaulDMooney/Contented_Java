@@ -2,6 +2,7 @@
 # Hidden folders
 .*/
 !.mvn/
+!.github/
 
 HELP.md
 target/

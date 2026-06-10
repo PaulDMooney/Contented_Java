@@ -10,9 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import reactor.core.publisher.Mono;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -38,7 +37,7 @@ public class ContentletServiceTest {
 
         ContentletIndexer contentletIndexer;
 
-        ReactiveElasticsearchOperations reactiveElasticsearchOperations;
+        ElasticsearchOperations elasticsearchOperations;
 
         ContentletEntity toSave = new ContentletEntity("Contentlet1");
 
@@ -57,9 +56,9 @@ public class ContentletServiceTest {
         void beforeAll() {
             repository = Mockito.mock(ContentletRepository.class);
             passthroughContentletRepository(repository);
-            reactiveElasticsearchOperations = Mockito.mock(ReactiveElasticsearchOperations.class);
-            passthroughElasticSearchOperations(reactiveElasticsearchOperations);
-            contentletIndexer = new ContentletIndexer(reactiveElasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
+            elasticsearchOperations = Mockito.mock(ElasticsearchOperations.class);
+            passthroughElasticSearchOperations(elasticsearchOperations);
+            contentletIndexer = new ContentletIndexer(elasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
             Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
             var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
             contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
@@ -76,10 +75,10 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+                when(repository.existsById(Mockito.anyString())).thenReturn(false);
 
                 // when
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -117,9 +116,9 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(true));
+                when(repository.existsById(Mockito.anyString())).thenReturn(true);
 
-                result = contentletService.save(toSave).block();
+                result = contentletService.save(toSave);
             }
 
             @AfterAll
@@ -159,7 +158,7 @@ public class ContentletServiceTest {
             @BeforeAll
             void beforeAll() {
 
-                when(repository.existsById(Mockito.anyString())).thenReturn(Mono.just(false));
+                when(repository.existsById(Mockito.anyString())).thenReturn(false);
             }
 
             @NestedPerClass
@@ -168,7 +167,7 @@ public class ContentletServiceTest {
 
                 @BeforeAll
                 void beforeAll() {
-                    contentletService.save(toSave).block();
+                    contentletService.save(toSave);
                 }
 
                 @Test()

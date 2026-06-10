@@ -8,6 +8,9 @@ elasticsearch:
     mappingsfile: "elasticsearch/mappings.json"
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   data:
     mongodb:
       uri: mongodb://root:example@localhost:27017/demo?authSource=admin

@@ -70,7 +70,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @DisplayName("it should save the contentlet with its given fields")
             void it_should_save_the_contentlet_with_its_given_fields() {
 
-                ContentletEntity savedEntity = contentletRepository.findById(toSave.id()).block();
+                ContentletEntity savedEntity = contentletRepository.findById(toSave.id()).orElseThrow();
 
                 assertThat((String) savedEntity.get("field1")).isEqualTo(toSave.field1());
                 assertThat((Integer) savedEntity.get("field2")).isEqualTo(toSave.field2());
