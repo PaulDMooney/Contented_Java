@@ -10,17 +10,19 @@ import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class StubbingUtils {
 
     public static void passThrough_indexContentlet(ContentletIndexer toMock) {
-        when(toMock.indexContentlet(any())).thenReturn(Mono.empty());
+        when(toMock.indexContentlet(any())).thenReturn(Collections.emptyList());
     }
 
     public static void passThrough_deleteRecord(ContentletIndexer toMock) {
-        when(toMock.deleteRecord(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        when(toMock.deleteRecord(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     /**

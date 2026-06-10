@@ -34,7 +34,7 @@ public class ContentletService {
     }
 
     private List<EntityAsMap> saveToES(ContentletEntity contentletEntity) {
-        var indexedElasticSearchEntities = contentletIndexer.indexContentlet(contentletEntity).block();
+        var indexedElasticSearchEntities = contentletIndexer.indexContentlet(contentletEntity);
         if (indexedElasticSearchEntities == null) {
             return Collections.emptyList();
         }
@@ -62,7 +62,7 @@ public class ContentletService {
     }
 
     private void deleteByIdFromES(String id) {
-        contentletIndexer.deleteRecord(id).block();
+        contentletIndexer.deleteRecord(id);
     }
 
     private void deleteByIdFromDB(String id) {

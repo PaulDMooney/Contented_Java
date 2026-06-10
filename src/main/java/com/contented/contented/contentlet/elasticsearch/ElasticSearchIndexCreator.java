@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 @Component
 @Log4j2
@@ -30,7 +29,7 @@ public class ElasticSearchIndexCreator {
         this.mappingsFile = mappingsFile;
     }
 
-    public Mono<Boolean> createIndex() {
+    public boolean createIndex() {
         var createIndexRequest = CreateIndexRequest.of(builder ->
             builder.index(indexCoordinates.getIndexName())
                 .mappings(mappingsBuilder -> {
@@ -39,16 +38,14 @@ public class ElasticSearchIndexCreator {
             }));
 
         log.info("Creating index {}", indexCoordinates.getIndexName());
-        return reactiveElasticsearchClient.indices().create(createIndexRequest)
-            .map(response -> {
-                if (response.acknowledged()) {
-                    log.info("Index {} created", indexCoordinates.getIndexName());
-                    return true;
-                } else {
-                    log.error("Index {} not created", indexCoordinates.getIndexName());
-                    return false;
-                }
-            });
+        var response = reactiveElasticsearchClient.indices().create(createIndexRequest).block();
+        if (response != null && response.acknowledged()) {
+            log.info("Index {} created", indexCoordinates.getIndexName());
+            return true;
+        } else {
+            log.error("Index {} not created", indexCoordinates.getIndexName());
+            return false;
+        }
 
         // TODO: Throw error if response is not successful
     }

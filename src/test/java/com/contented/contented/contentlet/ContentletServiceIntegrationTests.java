@@ -62,7 +62,7 @@ public class ContentletServiceIntegrationTests {
 
     @BeforeAll
     void beforeAll() {
-        elasticSearchIndexCreator.createIndex().block();
+        elasticSearchIndexCreator.createIndex();
     }
 
     @NestedPerClass

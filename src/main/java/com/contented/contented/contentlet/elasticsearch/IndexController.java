@@ -21,7 +21,7 @@ public class IndexController {
     // TODO: Temporary, A better design would allow for creating any index name, and then assign an alias to it.
     @PutMapping("/create")
     public ResponseEntity createIndex() {
-        Boolean result = elasticSearchIndexCreator.createIndex().block();
-        return Boolean.TRUE.equals(result) ? ResponseEntity.ok().build() : ResponseEntity.internalServerError().build();
+        boolean result = elasticSearchIndexCreator.createIndex();
+        return result ? ResponseEntity.ok().build() : ResponseEntity.internalServerError().build();
     }
 }
