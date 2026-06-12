@@ -7,7 +7,7 @@ fleshed out before implementation.
 | # | Initiative | Status | Design doc |
 |---|---|---|---|
 | 1 | Convert reactive → non-reactive (virtual threads) | Mostly done | — |
-| 2 | Micrometer trace ids in logs | Idea | — |
+| 2 | Micrometer trace ids in logs | Mostly done | — |
 | 3 | MongoDB → Postgres migration | Idea | — |
 | 4 | Bring tests up to new testing standards | TBD | — |
 | 5 | Content versioning (live / working / history) | Idea | — |
@@ -46,16 +46,20 @@ virtual threads is the point of this conversion.
 
 Ensure every log line carries trace/span ids via Micrometer Tracing.
 
-**Current state**: the pieces are partially in place — `micrometer-tracing-bridge-brave` is a
-dependency, `application.yaml` has the `%X{traceId}/%X{spanId}` logging pattern, and the
-reactive context propagation hook is enabled. Whether ids actually appear consistently today
-(across reactive boundaries) needs verification.
+**Current state** (`feat/log4j2-trace-ids`): HTTP-request-scoped logs carry trace/span ids,
+verified against the integration tests (all log lines of one `PUT /contentlets` save flow —
+Mongo save + ES indexing — share a trace id). The logging backend is now **Log4j2**
+(`spring-boot-starter-log4j2`; `spring-boot-starter-logging`/Logback excluded everywhere,
+including test scope), which matches the Lombok `@Log4j2` loggers the code already used.
+Correlation comes from Spring Boot 3.2+'s built-in correlation pattern (automatic when
+`micrometer-tracing-bridge-brave` is on the classpath); the old custom
+`logging.pattern.level` was removed — its `%X{traceId:-}` default-value syntax was
+Logback-specific and rendered empty on Log4j2.
 
-**Work**: after item 1, propagation becomes plain MDC over thread-locals, which is simpler and
-more reliable — verify ids appear for HTTP-request-scoped logs, and explicitly start/scope an
-observation for background work (e.g. the index rebuild job in item 8, so all logs from one
-rebuild share a trace id). Consider whether traces should also be exported anywhere (Zipkin
-etc.) or whether log correlation alone is the goal.
+**Remaining work**: explicitly start/scope an observation for background work (e.g. the index
+rebuild job in item 8, so all logs from one rebuild share a trace id — do this when item 8 is
+built). Trace export (Zipkin/OTLP) deliberately not set up: log correlation alone is the goal
+for now; no exporter dependency exists, so spans are created for correlation but go nowhere.
 
 ## 3. MongoDB → Postgres migration
 
