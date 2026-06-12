@@ -1,7 +1,5 @@
-logging:
-  pattern:
-    level: "%5p [%X{traceId:-},%X{spanId:-}]"
-
+# Trace/span ids in logs come from Spring Boot's built-in correlation pattern,
+# applied automatically because micrometer-tracing is on the classpath.
 elasticsearch:
   index:
     name: "contentletindex"
