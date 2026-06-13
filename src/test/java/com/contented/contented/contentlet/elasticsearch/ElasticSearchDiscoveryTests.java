@@ -35,7 +35,7 @@ import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
-import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -200,7 +200,7 @@ public class ElasticSearchDiscoveryTests {
 
                 savedEntity = elasticsearchOperations.save(toSave, IndexCoordinates.of(INDEX_NAME3));
 
-                waitForESToAffectChanges();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME3), toSave.id(), 1);
             }
 
 
@@ -350,7 +350,7 @@ public class ElasticSearchDiscoveryTests {
 
                 elasticsearchClient.bulk(request);
 
-                waitForESToAffectChanges();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME3), toSave.id(), 1);
             }
 
             @Test

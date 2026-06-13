@@ -4,15 +4,17 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,7 +23,7 @@ import java.util.List;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
-import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
@@ -51,6 +53,10 @@ public class SearchControllerTests {
     }
 
     @Autowired ElasticSearchIndexCreator elasticSearchIndexCreator;
+
+    @Autowired ElasticsearchOperations elasticsearchOperations;
+
+    @Autowired IndexCoordinates indexCoordinates;
 
     WebTestClient searchEndpointClient;
 
@@ -85,7 +91,7 @@ public class SearchControllerTests {
                 contentletEndpointClient.put().bodyValue(savedContent)
                     .exchange().expectStatus().is2xxSuccessful();
 
-                waitForESToAffectChanges();
+                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, savedContent.id(), 1);
             }
 
 

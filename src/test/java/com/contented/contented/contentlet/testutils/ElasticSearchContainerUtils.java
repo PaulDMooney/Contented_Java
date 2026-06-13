@@ -8,7 +8,7 @@ public class ElasticSearchContainerUtils {
     public static ElasticsearchContainer elasticsearchContainer() {
 
         // Keep in step with the elasticsearch-java client version managed by the Spring Boot parent
-        return new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:8.18.8")
+        return new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:9.4.2")
             .withEnv("xpack.security.enabled", "false")
             .withExposedPorts(9200);
     }

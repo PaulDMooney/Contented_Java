@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Spring Boot (MVC, blocking, virtual threads enabled) content management API on Java 25. Contentlets — schemaless content records — are persisted to MongoDB (system of record) and indexed into Elasticsearch for search. Maven build via the wrapper (`./mvnw`).
+Spring Boot 4 (MVC, blocking, virtual threads enabled) content management API on Java 25. Contentlets — schemaless content records — are persisted to MongoDB (system of record) and indexed into Elasticsearch for search. Maven build via the wrapper (`./mvnw`). JSON is Jackson 3 (`tools.jackson` packages; only the `com.fasterxml.jackson.annotation.*` annotations kept their Jackson 2 package).
 
 ## Commands
 
@@ -42,4 +42,4 @@ Swagger UI is available via springdoc at `/swagger-ui/index.html`.
 
 Tests are BDD-style: `@Nested`/`@NestedPerClass` classes named for the scenario ("when saving a new contentlet"), `@DisplayName` on everything, given/when in `@BeforeAll`, one assertion per `@Test`. `@NestedPerClass` (in `testutils`) is `@Nested` + `@TestInstance(PER_CLASS)`, which is what allows `@BeforeAll` on instance methods.
 
-Container setup is shared through `testutils.MongoDBContainerUtils` / `ElasticSearchContainerUtils`: declare a `@Container static` field and register its URI in a `@DynamicPropertySource` method. Controller tests extend `AbstractContentletControllerTests` for a `WebTestClient` bound to the contentlets endpoint (spring-webflux is a test-only dependency for this; replacing it with `RestClient`/`MockMvc` is part of roadmap item 4), and `@MockBean` the `ContentletIndexer` when ES isn't under test (stub helpers in `StubbingUtils`).
+Container setup is shared through `testutils.MongoDBContainerUtils` / `ElasticSearchContainerUtils`: declare a `@Container static` field and register its URI in a `@DynamicPropertySource` method. Controller tests extend `AbstractContentletControllerTests` for a `WebTestClient` bound to the contentlets endpoint (spring-webflux is a test-only dependency for this; replacing it with `RestClient`/`MockMvc` is part of roadmap item 4), and `@MockitoBean` the `ContentletIndexer` when ES isn't under test (stub helpers in `StubbingUtils`).

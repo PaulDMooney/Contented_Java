@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -22,7 +22,7 @@ import java.util.Objects;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
-import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
@@ -89,7 +89,7 @@ public class ContentletServiceIntegrationTests {
                 @BeforeAll
                 void beforeAll() {
                     contentletService.save(toSave);
-                    waitForESToAffectChanges();
+                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, toSave.getId(), 1);
                 }
 
                 @Test

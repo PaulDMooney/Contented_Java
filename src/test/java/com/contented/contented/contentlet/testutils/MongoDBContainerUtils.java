@@ -1,7 +1,7 @@
 package com.contented.contented.contentlet.testutils;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 
 public class MongoDBContainerUtils {
 
@@ -12,6 +12,6 @@ public class MongoDBContainerUtils {
 
     public static void startAndRegsiterMongoDBContainer(MongoDBContainer mongoDBContainer, DynamicPropertyRegistry registry) {
         mongoDBContainer.start();
-        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+        registry.add("spring.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
 }
