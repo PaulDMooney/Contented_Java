@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -23,8 +23,8 @@ import java.util.Objects;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ContentletServiceIntegrationTests {
 
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
@@ -56,7 +56,7 @@ public class ContentletServiceIntegrationTests {
 
     @DynamicPropertySource
     static void registerContainersAndOverrideProperties(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+        startAndRegisterPostgresContainer(postgres, registry);
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
     }
 

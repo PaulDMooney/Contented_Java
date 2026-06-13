@@ -19,10 +19,29 @@ contentlet id strings are preserved byte-for-byte, ES documents keep resolving.
 | Access technology | **Spring Data JDBC** | Surface is CRUD + one keyset query; no associations, no lazy loading, no dirty checking to earn Hibernate's keep. Least magic for a system of record. |
 | JSON mapping | `JdbcCustomConversions` converter on a **`SchemalessData`** wrapper type → `jsonb` | Per-property `@ValueConverter` is **not** the documented/supported path for Spring Data JDBC (MongoDB/Cassandra only); the global converter is. A dedicated wrapper keeps the converter unambiguous and dodges the relational module's `Map`/`Iterable` converter quirks. |
 | New-entity detection | Implement **`Persistable<…>`**, drive `isNew()` from the `existsById` check already made | Spring Data JDBC treats a non-null assigned id as an UPDATE; with assigned ids that breaks inserts. We already call `existsById` for the 201/200 decision — reuse it. |
-| Id column | **`uuid`** (recommended) with `text` documented as the low-friction fallback | Smaller index, native semantics, UUIDv7 locality. `text` if existing ids aren't all valid UUIDs or we want zero ripple. |
+| Id column | **`text`** (chosen) — current ids (incl. every test fixture) are arbitrary non-UUID strings; `uuid` deferred to production cutover | Keeps id `String` end-to-end (zero ripple to controller/DTO/transformer/ES); keyset order works on text. |
 | New id generation | **UUIDv7**, app-side | Time-ordered: append to the PK B-tree's right edge, scan locality for the rebuild backfill. |
 | Schema migrations | **Liquibase**, formatted-SQL changelogs | Free rollback, preconditions, contexts; formatted SQL keeps Postgres-specific DDL (`jsonb`, GIN) plain and avoids the cross-DB XML abstraction we'd never use. |
 | Test infra | Testcontainers `postgresql` module | Replaces the `mongodb` module; Liquibase runs on context startup so tests get the schema for free. |
+
+## As-built notes (deltas found during implementation)
+
+- **Spring Boot 4 modularised auto-configuration.** `LiquibaseAutoConfiguration` now lives in its
+  own `org.springframework.boot:spring-boot-liquibase` module and is *not* pulled in by
+  `spring-boot-starter-data-jdbc`. Adding `liquibase-core` alone gives the library but no
+  auto-config, so Liquibase silently never runs (no logs, no error, no table). **Both** deps are
+  required.
+- **`text` id, not `uuid`** (see table) — the test corpus alone (`"Contentlet1"`, `"1234"`, …)
+  settles it; revisit at production cutover.
+- **`@PersistenceCreator` sets `isNew=false`** on load; the public constructors default
+  `isNew=true`; the service flips it from the `existsById` check. No `AfterConvertCallback` needed.
+- **Testcontainers 2.x `PostgreSQLContainer` is non-generic** (`org.testcontainers.postgresql`,
+  no `<SELF>`), matching this repo's `MongoDBContainer`/`ElasticsearchContainer`.
+- **Postgres 18 image data-dir change**: mount the host volume at `/var/lib/postgresql`
+  (not `/var/lib/postgresql/data`), or the container exits immediately on start.
+- **Every `@SpringBootTest` needs a Postgres container now** — Spring Data JDBC resolves its
+  dialect over a live connection at startup, so even the context-load and ES-only tests
+  (`ContentedApplicationTests`, `ElasticSearchDiscoveryTests`) require one.
 
 ## Schema
 
@@ -30,7 +49,7 @@ A thin relational shell around the JSON document, as item 3 envisioned:
 
 ```sql
 CREATE TABLE contentlet (
-    id   uuid PRIMARY KEY,
+    id   text PRIMARY KEY,
     data jsonb NOT NULL
 );
 ```
@@ -224,8 +243,9 @@ another reason to preserve id strings exactly.
 ## Infrastructure & tests
 
 **`pom.xml`**: drop `spring-boot-starter-data-mongodb` and `testcontainers-mongodb`; add
-`spring-boot-starter-data-jdbc`, `org.postgresql:postgresql` (runtime), `org.liquibase:liquibase-core`,
-and `testcontainers-postgresql` (test).
+`spring-boot-starter-data-jdbc`, `org.springframework.boot:spring-boot-liquibase` (the Boot 4
+auto-config module — see As-built notes), `org.liquibase:liquibase-core`, `org.postgresql:postgresql`
+(compile scope — the converters reference `PGobject`), and `testcontainers-postgresql` (test).
 
 **`application.yaml`**: replace `spring.mongodb.uri` with a datasource + Liquibase block:
 
@@ -297,7 +317,7 @@ to the master.
 ```yaml
 databaseChangeLog:
   - include:
-      file: db/changelog/changes/001-create-contentlet.sql
+      file: changes/001-create-contentlet.sql
       relativeToChangelogFile: true
 ```
 
@@ -308,7 +328,7 @@ databaseChangeLog:
 
 --changeset contented:001-create-contentlet
 CREATE TABLE contentlet (
-    id   uuid PRIMARY KEY,   -- text if existing ids aren't all valid UUIDs (see Id strategy)
+    id   text PRIMARY KEY,
     data jsonb NOT NULL
 );
 --rollback DROP TABLE contentlet;
@@ -332,14 +352,15 @@ import org.testcontainers.postgresql.PostgreSQLContainer;   // Testcontainers 2.
 
 public class PostgresContainerUtils {
 
-    public static PostgreSQLContainer<?> postgresContainer() {
-        return new PostgreSQLContainer<>("postgres:18-alpine")   // match docker-compose
+    // Testcontainers 2.x: PostgreSQLContainer is non-generic (no <SELF>).
+    public static PostgreSQLContainer postgresContainer() {
+        return new PostgreSQLContainer("postgres:18-alpine")   // match docker-compose
             .withDatabaseName("demo")
             .withUsername("contented")
             .withPassword("example");
     }
 
-    public static void startAndRegisterPostgresContainer(PostgreSQLContainer<?> container,
+    public static void startAndRegisterPostgresContainer(PostgreSQLContainer container,
                                                           DynamicPropertyRegistry registry) {
         container.start();
         registry.add("spring.datasource.url", container::getJdbcUrl);

@@ -3,43 +3,79 @@ package com.contented.contented.contentlet;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.annotation.PersistenceCreator;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Data
-@Document
-@NoArgsConstructor
-@AllArgsConstructor
-public class ContentletEntity {
+@Table("contentlet")
+public class ContentletEntity implements Persistable<String> {
 
     @Id
     private String id;
 
     @JsonIgnore
-    private Map<String, Object> schemalessData = new LinkedHashMap<>();
+    private SchemalessData data;
+
+    // Drives Spring Data JDBC's INSERT-vs-UPDATE choice for our assigned (non-generated) ids;
+    // set from the existsById check in ContentletService.
+    @Transient
+    @JsonIgnore
+    private boolean isNew = true;
+
+    public ContentletEntity() {
+        this.data = new SchemalessData();
+    }
 
     public ContentletEntity(String id) {
         this(id, new LinkedHashMap<>());
     }
 
+    public ContentletEntity(String id, Map<String, Object> schemalessData) {
+        this.id = id;
+        this.data = new SchemalessData(new LinkedHashMap<>(schemalessData));
+    }
+
+    @PersistenceCreator
+    ContentletEntity(String id, SchemalessData data) {
+        this.id = id;
+        this.data = data;
+        this.isNew = false;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @Override
+    @JsonIgnore
+    public boolean isNew() {
+        return isNew;
+    }
+
+    public void setNew(boolean isNew) {
+        this.isNew = isNew;
+    }
+
     @JsonAnySetter
     public void add(String key, Object value) {
-        schemalessData.put(key, value);
+        data.put(key, value);
     }
 
     @JsonAnyGetter
-    public Map<String,Object> get() {
-        return schemalessData;
+    public Map<String, Object> getSchemalessData() {
+        return data.values();
     }
 
-    public <T extends Object> T get(String key) {
-        return (T) schemalessData.get(key);
+    public <T> T get(String key) {
+        return data.get(key);
     }
-
 }

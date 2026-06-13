@@ -9,12 +9,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,16 +25,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ContentletController basic tests")
 public class ContentletControllerBasicTests extends AbstractContentletControllerTests {
 
-    // ContentletRepository needs a MongoDB to communicate with
+    // ContentletRepository needs a database to communicate with
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @MockitoBean
     ContentletIndexer contentletIndexer;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+        startAndRegisterPostgresContainer(postgres, registry);
     }
 
     ContentletEntity saveOneContentlet() {

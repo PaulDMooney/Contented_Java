@@ -49,6 +49,7 @@ public class ContentletService {
         boolean exists = contentletRepository.existsById(contentletEntity.getId());
         boolean isNew = !exists;
         log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
+        contentletEntity.setNew(isNew);
         var savedContentlet = contentletRepository.save(contentletEntity);
         log.info("Saved contentlet: `{}` successfully", savedContentlet.getId());
         return new ResultPair(savedContentlet, isNew);
