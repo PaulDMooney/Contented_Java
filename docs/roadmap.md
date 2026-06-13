@@ -8,7 +8,7 @@ fleshed out before implementation.
 |---|---|---|---|
 | 1 | Convert reactive → non-reactive (virtual threads) | Mostly done | — |
 | 2 | Micrometer trace ids in logs | Mostly done | — |
-| 3 | MongoDB → Postgres migration | Idea | — |
+| 3 | MongoDB → Postgres migration | Designed | [postgres-migration-design.md](postgres-migration-design.md) |
 | 4 | Bring tests up to new testing standards | TBD | — |
 | 5 | Content versioning (live / working / history) | Idea | — |
 | 6 | Content grouping (language variants) | Idea | — |
@@ -69,18 +69,20 @@ for now; no exporter dependency exists, so spans are created for correlation but
 
 ## 3. MongoDB → Postgres migration
 
-Replace MongoDB with Postgres as the system of record.
+Replace MongoDB with Postgres as the system of record. Detailed design:
+**[postgres-migration-design.md](postgres-migration-design.md)**.
 
 **Scope**:
 
 - **Schema**: the schemaless contentlet maps naturally to a thin relational shell around a
   JSON document — `id uuid PRIMARY KEY, data jsonb` (plus promoted columns later as items 5/6
   give fields real meaning). `ContentletEntity`'s `@JsonAnySetter` shape can stay.
-- **Access technology**: decide between JPA/Hibernate, Spring Data JDBC, and jOOQ. The
-  current repository usage is simple CRUD + the keyset query, so Spring Data JDBC is likely
-  sufficient and the least magic.
-- **Schema migrations**: introduce Flyway (or Liquibase) — first time the project has a real
-  schema to version.
+- **Access technology**: **Spring Data JDBC** (decided) — the repository surface is simple
+  CRUD + the keyset query, so it is sufficient and the least magic. The schemaless map maps to
+  a single `jsonb` column via a `JdbcCustomConversions` converter on a `SchemalessData` wrapper
+  type (the per-property `@ValueConverter` path is MongoDB/Cassandra-only, not supported for JDBC).
+- **Schema migrations**: **Liquibase** (decided), formatted-SQL changelogs — first time the
+  project has a real schema to version.
 - **Ids**: native `uuid` column; adopt UUIDv7 for new ids (rationale in
   [index-rebuild-design.md](index-rebuild-design.md) → Database considerations).
 - **Data migration**: corpus is tens of thousands of records — a one-off batch copy (keyset
