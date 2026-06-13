@@ -27,7 +27,7 @@ import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConf
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
-import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESToAffectChanges;
+import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
 import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
@@ -83,7 +83,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             @BeforeAll
             void given() {
                 contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
-                waitForESToAffectChanges();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toSave.id(), 1);
             }
 
             @NestedPerClass
@@ -144,8 +144,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             @BeforeAll
             void given() {
                 contentletEndpointClient.put().bodyValue(toDelete).exchange().expectStatus().isCreated();
-                // TODO: Need a better solution than waiting for ES to synchronize
-                waitForESToAffectChanges();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toDelete.id(), 1);
             }
 
             @NestedPerClass
@@ -156,7 +155,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 void when() {
                     response = contentletEndpointClient.delete().uri("/{id}", toDelete.id()).exchange();
 
-                    waitForESToAffectChanges();
+                    waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toDelete.id(), 0);
                 }
 
 //                @Disabled
