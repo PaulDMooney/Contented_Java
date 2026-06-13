@@ -38,6 +38,12 @@ becomes a plain loop).
 - ~~Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)~~
   ✅ Done (`feat/java-25`): Boot 3.5.14 / Java 25, Elasticsearch server 8.18 to match the
   client the Boot parent manages. Boot 4.x (Spring Framework 7) deliberately deferred.
+- ~~Boot 4.x~~ ✅ Done (`chore/upgrade_to_spring_4_1_0`): Boot 4.1.0 / Spring Framework 7,
+  Jackson 2 → 3 (`tools.jackson`; the ES `SearchResponse` serializers now use the client's
+  `Jackson3Jsonp*` bridge), `@MockBean` → `@MockitoBean`, starter renamed
+  `web` → `webmvc`, Testcontainers 2.x (`testcontainers-*` artifact ids),
+  `spring.data.mongodb.uri` → `spring.mongodb.uri`, springdoc 3.x,
+  Elasticsearch server/client 9.4.2.
 
 **Notes**: keep R2DBC out of consideration for the potential Postgres move — plain JDBC on
 virtual threads is the point of this conversion.
@@ -101,7 +107,7 @@ suite against them.
 Current conventions worth either ratifying or revisiting when standards are defined:
 BDD-style nested classes (`@NestedPerClass`) with given/when in `@BeforeAll` and one
 assertion per `@Test`; Testcontainers for MongoDB/Elasticsearch integration tests tagged
-`IntegrationTest`; `@MockBean`-ing the indexer when ES is not under test.
+`IntegrationTest`; `@MockitoBean`-ing the indexer when ES is not under test.
 
 **Open questions**: unit vs integration coverage targets; whether `IntegrationTest` tagging
 should gate separate CI phases; test data builders; what replaces `StepVerifier` patterns

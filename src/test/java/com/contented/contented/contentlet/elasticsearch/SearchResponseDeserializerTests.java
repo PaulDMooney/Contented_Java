@@ -1,10 +1,10 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,11 +56,11 @@ public class SearchResponseDeserializerTests {
 
         @Test
         @DisplayName("it should not deserialize a SearchResponse from JSON")
-        public void it_should_not_deserialize_a_SearchResponse_from_JSON() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_not_deserialize_a_SearchResponse_from_JSON() {
+            var objectMapper = JsonMapper.builder().build();
 
             Assertions.assertThatThrownBy(() -> objectMapper.readValue(exampleSearchResponse, SearchResponse.class))
-                .isInstanceOf(JsonProcessingException.class);
+                .isInstanceOf(DatabindException.class);
 
         }
     }
@@ -71,11 +71,10 @@ public class SearchResponseDeserializerTests {
 
         @Test
         @DisplayName("it should deserialize a SearchResponse from JSON")
-        public void it_should_deserialize_a_SearchResponse_from_JSON() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_deserialize_a_SearchResponse_from_JSON() {
             var module = new SimpleModule();
             module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer());
-            objectMapper.registerModule(module);
+            var objectMapper = JsonMapper.builder().addModule(module).build();
 
             var searchResponse = objectMapper.readValue(exampleSearchResponse, SearchResponse.class);
 
@@ -100,9 +99,9 @@ public class SearchResponseDeserializerTests {
 
         @Test
         @DisplayName("it should deserialize a SearchResponse from JSON")
-        public void it_should_deserialize_a_SearchResponse_from_JSON() throws JsonProcessingException {
+        public void it_should_deserialize_a_SearchResponse_from_JSON() {
             var searchResponseAnnotatedJSON = String.format(wrapperJSON, exampleSearchResponse);
-            var objectMapper = new ObjectMapper();
+            var objectMapper = JsonMapper.builder().build();
 
             var annotatedObject = objectMapper.readValue(searchResponseAnnotatedJSON, SearchResponseAnnotated.class);
 

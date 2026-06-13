@@ -1,10 +1,9 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -64,8 +63,8 @@ public class SearchResponseSerializerTests {
 
         @Test
         @DisplayName("it should not serialize a SearchResponse to JSON")
-        public void it_should_not_serialize_a_SearchResponse_to_JSON() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_not_serialize_a_SearchResponse_to_JSON() {
+            var objectMapper = JsonMapper.builder().build();
             String serialized = objectMapper.writeValueAsString(exampleSearchResponseObj);
             assertThat(serialized).isEqualTo("{}");
         }
@@ -78,11 +77,10 @@ public class SearchResponseSerializerTests {
 
         @Test
         @DisplayName("it should serialize a SearchResponse to JSON")
-        public void it_should_serialize_a_SearchResponse_to_JSON() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_serialize_a_SearchResponse_to_JSON() {
             var module = new SimpleModule();
             module.addSerializer(SearchResponse.class, new SearchResponseSerializer());
-            objectMapper.registerModule(module);
+            var objectMapper = JsonMapper.builder().addModule(module).build();
 
             String serialized = objectMapper.writeValueAsString(exampleSearchResponseObj);
             assertThat(serialized).isNotBlank();
@@ -100,8 +98,8 @@ public class SearchResponseSerializerTests {
 
         @Test
         @DisplayName("it should serialize the SearchResponse field")
-        public void it_should_serialize_the_SearchResponse_field() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_serialize_the_SearchResponse_field() {
+            var objectMapper = JsonMapper.builder().build();
 
             var toSerialize = new ToSerialize(exampleSearchResponseObj);
             String serialized = objectMapper.writeValueAsString(toSerialize);
@@ -117,19 +115,18 @@ public class SearchResponseSerializerTests {
 
         @Test
         @DisplayName("SearchResponse does not serialize on its own")
-        public void SearchResponse_does_not_serialize_on_its_own() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void SearchResponse_does_not_serialize_on_its_own() {
+            var objectMapper = JsonMapper.builder().build();
             var result = objectMapper.writeValueAsString(exampleSearchResponseObj);
             assertThat(result).isEqualTo("{}");
         }
 
         @Test
         @DisplayName("it should serialize a SearchResponse to JSON")
-        public void it_should_serialize_a_SearchResponse_to_JSON() throws JsonProcessingException {
-            var objectMapper = new ObjectMapper();
+        public void it_should_serialize_a_SearchResponse_to_JSON() {
             var module = new SimpleModule();
             module.addSerializer(SearchResponse.class, new SearchResponseSerializer());
-            objectMapper.registerModule(module);
+            var objectMapper = JsonMapper.builder().addModule(module).build();
 
             String serialized = objectMapper.writeValueAsString(exampleSearchResponseObj);
             assertThat(serialized).isNotBlank();

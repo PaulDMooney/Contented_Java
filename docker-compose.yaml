@@ -23,7 +23,7 @@ services:
     depends_on:
       - mongo
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.18.8
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.2
     ports:
       - 9200:9200
       - 9300:9300

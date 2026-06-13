@@ -158,6 +158,8 @@ public class ContentletServiceTest {
             @BeforeAll
             void beforeAll() {
 
+                passthroughContentletRepository(repository); // because sibling classes reset the repository in their afterAll
+
                 when(repository.existsById(Mockito.anyString())).thenReturn(false);
             }
 
