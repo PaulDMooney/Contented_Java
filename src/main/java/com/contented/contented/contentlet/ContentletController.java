@@ -1,9 +1,9 @@
 package com.contented.contented.contentlet;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.UUID;
@@ -37,14 +37,34 @@ public class ContentletController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping
-    ResponseEntity<ContentletEntity> putContentlet(@RequestBody ContentletDTO contentletDTO) {
-        ContentletEntity toSave = new ContentletEntity(contentletDTO.getId(), contentletDTO.get());
+    @PostMapping
+    ResponseEntity<ContentletEntity> createContentlet(@RequestBody ContentletDTO contentletDTO,
+                                                      UriComponentsBuilder uriBuilder) {
+        // Ids are server-assigned; a client must not supply one when creating.
+        if (contentletDTO.getId() != null) {
+            return ResponseEntity.badRequest().build();
+        }
+        ContentletEntity toSave = new ContentletEntity(null, contentletDTO.get());
 
-        var resultPair = contentletService.save(toSave);
-        var statusCode = resultPair.isNew() ? HttpStatus.CREATED : HttpStatus.OK;
-        return ResponseEntity.status(statusCode)
-                .body(resultPair.contentletEntity());
+        var created = contentletService.create(toSave);
+        var location = uriBuilder.path("/{base}/{id}")
+                .buildAndExpand(CONTENTLETS_PATH, created.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(created);
+    }
+
+    @PutMapping("/{id}")
+    ResponseEntity<ContentletEntity> updateContentlet(@PathVariable UUID id,
+                                                      @RequestBody ContentletDTO contentletDTO) {
+        // The URL is the source of truth for identity; a body id must agree with it.
+        if (contentletDTO.getId() != null && !contentletDTO.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+        ContentletEntity toSave = new ContentletEntity(id, contentletDTO.get());
+
+        return contentletService.update(id, toSave)
+                .map(updated -> ResponseEntity.ok(updated))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

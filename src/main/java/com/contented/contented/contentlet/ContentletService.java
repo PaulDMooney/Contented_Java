@@ -26,16 +26,28 @@ public class ContentletService {
         this.transformationHandler = transformationHandler;
     }
 
-    public ResultPair save(ContentletEntity contentletEntity) {
-        log.info("Saving contentlet: `{}`", contentletEntity.getId());
+    public ContentletEntity create(ContentletEntity contentletEntity) {
         var toSave = transformationHandler.applyTransformation(contentletEntity);
-        if (toSave.getId() == null) {
-            toSave.setId(UuidV7.generate());
-            log.info("Assigned new id `{}` to contentlet", toSave.getId());
+        toSave.setId(UuidV7.generate());
+        toSave.setNew(true);
+        var saved = contentletRepository.save(toSave);
+        log.info("Created contentlet: `{}` successfully", saved.getId());
+        saveToES(saved);
+        return saved;
+    }
+
+    public Optional<ContentletEntity> update(UUID id, ContentletEntity contentletEntity) {
+        if (!contentletRepository.existsById(id)) {
+            log.info("Contentlet `{}` not found; nothing to update", id);
+            return Optional.empty();
         }
-        var resultPair = saveToDB(toSave);
-        saveToES(resultPair.contentletEntity());
-        return resultPair;
+        var toSave = transformationHandler.applyTransformation(contentletEntity);
+        toSave.setId(id);
+        toSave.setNew(false);
+        var saved = contentletRepository.save(toSave);
+        log.info("Updated contentlet: `{}` successfully", saved.getId());
+        saveToES(saved);
+        return Optional.of(saved);
     }
 
     private List<EntityAsMap> saveToES(ContentletEntity contentletEntity) {
@@ -48,16 +60,6 @@ public class ContentletService {
             contentletEntity.getId()
         );
         return indexedElasticSearchEntities;
-    }
-
-    private ResultPair saveToDB(ContentletEntity contentletEntity) {
-        boolean exists = contentletRepository.existsById(contentletEntity.getId());
-        boolean isNew = !exists;
-        log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
-        contentletEntity.setNew(isNew);
-        var savedContentlet = contentletRepository.save(contentletEntity);
-        log.info("Saved contentlet: `{}` successfully", savedContentlet.getId());
-        return new ResultPair(savedContentlet, isNew);
     }
 
     public void deleteById(UUID id) {
@@ -90,8 +92,5 @@ public class ContentletService {
     public List<ContentletEntity> findByIds(List<UUID> ids) {
         log.debug("Finding {} contentlets", ids.size());
         return contentletRepository.findAllById(ids);
-    }
-
-    public record ResultPair(ContentletEntity contentletEntity, boolean isNew) {
     }
 }

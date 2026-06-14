@@ -5,10 +5,14 @@ import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.contented.contented.contentlet.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import java.util.UUID;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -49,15 +53,63 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     }
 
     @Nested
-    @DisplayName("PUT endpoint")
-    class PutEndPoint {
+    @DisplayName("POST endpoint")
+    class PostEndPoint {
 
         @NestedPerClass
-        @DisplayName("when saving a new contentlet")
-        class SaveANewContentlet {
+        @DisplayName("when creating a new contentlet")
+        class CreateANewContentlet {
 
-            // Given
-            ContentletDTO toSave = new ContentletDTO(UuidV7.generate());
+            // Given a body with no id (ids are server-assigned)
+            ContentletDTO toCreate = new ContentletDTO();
+
+            EntityExchangeResult<ContentletEntity> result;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+                toCreate.add("field1", "value1");
+
+                // When
+                result = contentletEndpointClient.post()
+                        .bodyValue(toCreate)
+                        .exchange()
+                        .expectBody(ContentletEntity.class)
+                        .returnResult();
+            }
+
+            @Test
+            @DisplayName("it should return a 201 CREATED status code")
+            void should_return_a_201_CREATED_status_code() {
+                assertThat(result.getStatus()).isEqualTo(HttpStatus.CREATED);
+            }
+
+            @Test
+            @DisplayName("it should return a Location header for the new contentlet")
+            void should_return_a_location_header() {
+                assertThat(result.getResponseHeaders().getLocation()).isNotNull();
+            }
+
+            @Test
+            @DisplayName("it should return the contentlet with a generated id")
+            void should_return_a_generated_id() {
+                assertThat(result.getResponseBody().getId()).isNotNull();
+            }
+
+            @Test
+            @DisplayName("it should have saved the contentlet to the database")
+            void should_have_saved_the_contentlet_to_the_database() {
+                var savedContentlet = contentletRepository.findById(result.getResponseBody().getId());
+
+                assertThat(savedContentlet).isPresent();
+            }
+        }
+
+        @NestedPerClass
+        @DisplayName("when creating a contentlet with a client-supplied id")
+        class CreateWithSuppliedId {
+
+            ContentletDTO toCreate = new ContentletDTO(UuidV7.generate());
 
             WebTestClient.ResponseSpec response;
 
@@ -65,66 +117,109 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
                 mockContentletIndexer();
                 // When
-                response = contentletEndpointClient.put().bodyValue(toSave).exchange();
+                response = contentletEndpointClient.post().bodyValue(toCreate).exchange();
             }
 
             @Test
-            @DisplayName("it should return a 201 CREATED status code")
-            void should_return_a_201_CREATED_status_code() {
+            @DisplayName("it should return a 400 BAD REQUEST status code")
+            void should_return_a_400() {
+                response.expectStatus().isBadRequest();
+            }
+        }
+    }
 
-                // Then
-                response.expectStatus()
-                        .isCreated();
+    @Nested
+    @DisplayName("PUT /{id} endpoint")
+    class PutEndPoint {
+
+        @NestedPerClass
+        @DisplayName("when updating a contentlet that exists")
+        class UpdateExistingContentlet {
+
+            // Given an existing contentlet
+            ContentletEntity existing = new ContentletEntity(UuidV7.generate());
+
+            WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+                contentletRepository.save(existing);
+
+                ContentletDTO update = new ContentletDTO(existing.getId());
+                update.add("field1", "updatedValue");
+
+                // When
+                response = contentletEndpointClient.put()
+                        .uri("/{id}", existing.getId())
+                        .bodyValue(update)
+                        .exchange();
             }
 
             @Test
-            @DisplayName("it should have saved the contentlet to the database")
-            void should_have_saved_the_contentlet_to_the_database() {
+            @DisplayName("it should return a 200 OK status code")
+            void should_return_a_200_OK_status_code() {
+                response.expectStatus().isOk();
+            }
 
-                // Then contentletRepository should return the saved contentlet
-                var savedContentlet = contentletRepository.findById(toSave.getId());
+            @Test
+            @DisplayName("it should have updated the contentlet in the database")
+            void should_have_updated_the_contentlet() {
+                var savedContentlet = contentletRepository.findById(existing.getId());
 
                 assertThat(savedContentlet).isPresent();
-                assertThat(savedContentlet.get().getId()).isEqualTo(toSave.getId());
+                assertThat((String) savedContentlet.get().get("field1")).isEqualTo("updatedValue");
             }
-
-            @Nested
-            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-            @DisplayName("when saving a contentlet with an existing id")
-            class SaveAContentletWithAnExistingId {
-
-                static WebTestClient.ResponseSpec response;
-
-                @BeforeAll()
-                void beforeAll() {
-                    mockContentletIndexer();
-                    // When
-                    response = contentletEndpointClient.put().bodyValue(toSave).exchange();
-                }
-
-                @Test
-                @DisplayName("it should return a 200 CREATED status code")
-                void should_return_a_200_OK_status_code() {
-
-                    // Then
-                    response.expectStatus()
-                            .isOk();
-                }
-
-                @Test
-                @DisplayName("it should have saved the contentlet to the database")
-                void should_have_saved_the_contentlet_to_the_database() {
-
-                    // Then contentletRepository should return the saved contentlet
-                    var savedContentlet = contentletRepository.findById(toSave.getId());
-
-                    assertThat(savedContentlet).isPresent();
-                    assertThat(savedContentlet.get().getId()).isEqualTo(toSave.getId());
-                }
-            }
-
         }
 
+        @NestedPerClass
+        @DisplayName("when updating a contentlet that does not exist")
+        class UpdateNonExistentContentlet {
+
+            WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+                UUID id = UuidV7.generate();
+
+                // When
+                response = contentletEndpointClient.put()
+                        .uri("/{id}", id)
+                        .bodyValue(new ContentletDTO(id))
+                        .exchange();
+            }
+
+            @Test
+            @DisplayName("it should return a 404 NOT FOUND status code")
+            void should_return_a_404() {
+                response.expectStatus().isNotFound();
+            }
+        }
+
+        @NestedPerClass
+        @DisplayName("when the body id does not match the URL id")
+        class UpdateWithMismatchedBodyId {
+
+            WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+
+                // When the body carries a different id than the URL
+                response = contentletEndpointClient.put()
+                        .uri("/{id}", UuidV7.generate())
+                        .bodyValue(new ContentletDTO(UuidV7.generate()))
+                        .exchange();
+            }
+
+            @Test
+            @DisplayName("it should return a 400 BAD REQUEST status code")
+            void should_return_a_400() {
+                response.expectStatus().isBadRequest();
+            }
+        }
     }
 
     @Nested
