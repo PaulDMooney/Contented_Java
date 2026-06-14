@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(SearchController.SEARCH_PATH)
@@ -42,8 +43,9 @@ public class SearchController {
 
         SearchResponse<EntityAsMap> response = elasticsearchClient.search(request, EntityAsMap.class);
 
-        List<String> extractedIds = response.hits().hits().stream()
+        List<UUID> extractedIds = response.hits().hits().stream()
             .map(hit -> (String) hit.source().get("id"))
+            .map(UUID::fromString)
             .toList();
 
         List<ContentletEntity> contentlets = contentletService.findByIds(extractedIds);

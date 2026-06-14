@@ -16,7 +16,7 @@ import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -28,8 +28,8 @@ import static com.contented.contented.contentlet.elasticsearch.ElasticSearchInde
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 
 @Tag(INTEGRATION_TESTS)
@@ -41,9 +41,9 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
     public static final String INDEX_NAME = "controller-test-index1";
 
-    // ContentletRepository needs a MongoDB to communicate with
+    // ContentletRepository needs a database to communicate with
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
@@ -56,7 +56,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
     @DynamicPropertySource
     static void registerContainersAndOverrideProperties(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+        startAndRegisterPostgresContainer(postgres, registry);
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
         registry.add(INDEX_PROPERTY_KEY, () -> INDEX_NAME);
         registry.add(MAPPINGS_FILE_PROPERTY_KEY, () -> "elasticsearch/mappings.json");
@@ -78,7 +78,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
+            SomeContentlet toSave = new SomeContentlet(UuidV7.generate().toString(), "Blog", "Some title", "Some body");
 
             @BeforeAll
             void given() {
@@ -137,7 +137,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            static SomeContentlet toDelete = new SomeContentlet("contentlet1234_deleteme", "Blog", "Delete Me", "Some body");
+            static SomeContentlet toDelete = new SomeContentlet(UuidV7.generate().toString(), "Blog", "Delete Me", "Some body");
 
             static WebTestClient.ResponseSpec response;
 

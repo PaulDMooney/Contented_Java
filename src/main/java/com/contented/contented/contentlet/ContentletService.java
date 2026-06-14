@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Log4j2
 @Service
@@ -28,6 +29,10 @@ public class ContentletService {
     public ResultPair save(ContentletEntity contentletEntity) {
         log.info("Saving contentlet: `{}`", contentletEntity.getId());
         var toSave = transformationHandler.applyTransformation(contentletEntity);
+        if (toSave.getId() == null) {
+            toSave.setId(UuidV7.generate());
+            log.info("Assigned new id `{}` to contentlet", toSave.getId());
+        }
         var resultPair = saveToDB(toSave);
         saveToES(resultPair.contentletEntity());
         return resultPair;
@@ -49,28 +54,29 @@ public class ContentletService {
         boolean exists = contentletRepository.existsById(contentletEntity.getId());
         boolean isNew = !exists;
         log.info("Contentlet {} already exists: {}", contentletEntity.getId(), exists);
+        contentletEntity.setNew(isNew);
         var savedContentlet = contentletRepository.save(contentletEntity);
         log.info("Saved contentlet: `{}` successfully", savedContentlet.getId());
         return new ResultPair(savedContentlet, isNew);
     }
 
-    public void deleteById(String id) {
+    public void deleteById(UUID id) {
         log.info("Deleting contentlet: {}", id);
         deleteByIdFromDB(id);
         deleteByIdFromES(id);
         log.info("Deleted ES records for id: `{}` successfully", id);
     }
 
-    private void deleteByIdFromES(String id) {
-        contentletIndexer.deleteRecord(id);
+    private void deleteByIdFromES(UUID id) {
+        contentletIndexer.deleteRecord(id.toString());
     }
 
-    private void deleteByIdFromDB(String id) {
+    private void deleteByIdFromDB(UUID id) {
         contentletRepository.deleteById(id);
         log.info("Deleted contentlet: `{}` successfully", id);
     }
 
-    public Optional<ContentletEntity> findById(String id) {
+    public Optional<ContentletEntity> findById(UUID id) {
         log.debug("Finding contentlet: {}", id);
         var result = contentletRepository.findById(id);
         if (result.isPresent()) {
@@ -81,7 +87,7 @@ public class ContentletService {
         return result;
     }
 
-    public List<ContentletEntity> findByIds(List<String> ids) {
+    public List<ContentletEntity> findByIds(List<UUID> ids) {
         log.debug("Finding {} contentlets", ids.size());
         return contentletRepository.findAllById(ids);
     }

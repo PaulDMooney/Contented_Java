@@ -9,10 +9,13 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import com.contented.contented.contentlet.ContentletRepository;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
+import com.contented.contented.contentlet.testutils.NoDatabase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -41,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@NoDatabase
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers()
 @DisplayName("ElasticSearch discovery tests")
@@ -48,6 +52,11 @@ public class ElasticSearchDiscoveryTests {
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
+
+    // This test exercises only Elasticsearch; @NoDatabase keeps the DB out of the context, so the
+    // repository the context still wires is mocked.
+    @MockitoBean
+    ContentletRepository contentletRepository;
 
     @Autowired
     ElasticsearchClient elasticsearchClient;

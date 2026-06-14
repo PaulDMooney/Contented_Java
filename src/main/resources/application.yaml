@@ -9,8 +9,12 @@ spring:
   threads:
     virtual:
       enabled: true
-  mongodb:
-    uri: mongodb://root:example@localhost:27017/demo?authSource=admin
+  datasource:
+    url: jdbc:postgresql://localhost:5432/demo
+    username: contented
+    password: example
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
   elasticsearch:
     uris: localhost:9200
 

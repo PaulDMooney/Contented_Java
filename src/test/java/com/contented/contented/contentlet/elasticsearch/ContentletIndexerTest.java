@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.elasticsearch.transformation.ESRecordTransformer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.assertj.core.api.Condition;
@@ -51,7 +52,7 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWhoseTransformerSpawnsMultipleEntities {
 
-            ContentletEntity contentletEntity = new ContentletEntity("Contentlet1",
+            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(),
                 Map.of("identifier", "identifier1",
                     CONTENT_TYPE_FIELD, "TestMultiEntityContentType"));
 
@@ -96,7 +97,7 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWithNoMatchingTransformer {
 
-            ContentletEntity contentletEntity = new ContentletEntity("Contentlet1",
+            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(),
                 Map.of("identifier", "identifier1",
                     CONTENT_TYPE_FIELD, "TypeWithNoTransformer"));
 

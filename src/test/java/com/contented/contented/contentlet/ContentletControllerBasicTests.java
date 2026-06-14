@@ -9,12 +9,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,20 +25,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ContentletController basic tests")
 public class ContentletControllerBasicTests extends AbstractContentletControllerTests {
 
-    // ContentletRepository needs a MongoDB to communicate with
+    // ContentletRepository needs a database to communicate with
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @MockitoBean
     ContentletIndexer contentletIndexer;
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+        startAndRegisterPostgresContainer(postgres, registry);
     }
 
     ContentletEntity saveOneContentlet() {
-        return contentletRepository.save(new ContentletEntity("Contentlet1"));
+        return contentletRepository.save(new ContentletEntity(UuidV7.generate()));
     }
 
     void mockContentletIndexer() {
@@ -57,7 +57,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class SaveANewContentlet {
 
             // Given
-            ContentletDTO toSave = new ContentletDTO("Contentlet2");
+            ContentletDTO toSave = new ContentletDTO(UuidV7.generate());
 
             WebTestClient.ResponseSpec response;
 
@@ -152,7 +152,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     @DisplayName("GET /{id} endpoint")
     class GetByIdEndpoint {
 
-        ContentletEntity savedContentlet = new ContentletEntity("Contentlet4");
+        ContentletEntity savedContentlet = new ContentletEntity(UuidV7.generate());
 
         @BeforeAll
         void beforeAll() {
@@ -207,7 +207,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = contentletEndpointClient.get().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.get().uri("/" + UuidV7.generate()).exchange();
             }
 
             @Test
@@ -230,7 +230,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class DeleteAContentlet {
 
             // Given
-            static ContentletEntity toDelete = new ContentletEntity("Contentlet3");
+            static ContentletEntity toDelete = new ContentletEntity(UuidV7.generate());
 
             static WebTestClient.ResponseSpec response;
 
@@ -280,7 +280,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 StubbingUtils.passThrough_deleteRecord(contentletIndexer);
 
                 // When
-                response = contentletEndpointClient.delete().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.delete().uri("/" + UuidV7.generate()).exchange();
             }
 
             // TODO: Should update to return a 204

@@ -3,6 +3,7 @@ package com.contented.contented.contentlet.elasticsearch;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import org.junit.jupiter.api.*;
@@ -14,7 +15,7 @@ import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -24,8 +25,8 @@ import java.util.List;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.mongoDBContainer;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.startAndRegsiterMongoDBContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,16 +40,16 @@ public class SearchControllerTests {
     @LocalServerPort
     int port;
 
-    // ContentletRepository needs a MongoDB to communicate with
+    // ContentletRepository needs a database to communicate with
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
 
     @DynamicPropertySource
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+        startAndRegisterPostgresContainer(postgres, registry);
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
     }
 
@@ -82,7 +83,7 @@ public class SearchControllerTests {
 
             record SomeContent(String id, String contentType, String someOtherField){}
 
-            final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
+            final SomeContent savedContent = new SomeContent(UuidV7.generate().toString(), "Blog", "Some field value");
 
             @BeforeAll
             void given() {
@@ -159,7 +160,7 @@ public class SearchControllerTests {
                             .value(value -> {
                                 var contentlets = value.contentlets();
                                 assertThat(contentlets).hasSize(1);
-                                assertThat(contentlets.get(0).getId()).isEqualTo(savedContent.id());
+                                assertThat(contentlets.get(0).getId().toString()).isEqualTo(savedContent.id());
                             });
                 }
 

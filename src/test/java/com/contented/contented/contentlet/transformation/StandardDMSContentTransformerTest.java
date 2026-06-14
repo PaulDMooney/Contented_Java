@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.transformation;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,13 +68,13 @@ class StandardDMSContentTransformerTest {
             }
 
             @Test
-            @DisplayName("it should populate the `id` field from the `dmsId`")
-            void it_should_populate_id_field_from_dmsId() {
+            @DisplayName("it should leave the id unset for the service to assign")
+            void it_should_leave_the_id_unset() {
                 // When
                 var result = transformer.transform(contentletEntity);
 
                 // Then
-                assertThat(result.getId()).isEqualTo(contentletEntity.get("dmsId"));
+                assertThat(result.getId()).isNull();
             }
 
             @Test
@@ -91,7 +92,7 @@ class StandardDMSContentTransformerTest {
         @DisplayName("Given a contentletEntity with an id")
         class GivenContentletWithId {
 
-            ContentletEntity toSave = new ContentletEntity("Contentlet1", Map.ofEntries(
+            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(), Map.ofEntries(
                 entry("language", "en"),
                 entry("dmsId", "dmsid1234"),
                 entry("inode", "inode1234"),

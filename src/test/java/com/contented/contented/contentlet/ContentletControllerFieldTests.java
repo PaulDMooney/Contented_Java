@@ -8,15 +8,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils.*;
+import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.*;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -25,16 +26,16 @@ import static com.contented.contented.contentlet.testutils.MongoDBContainerUtils
 @DisplayName("ContentletController field tests")
 public class ContentletControllerFieldTests extends AbstractContentletControllerTests {
 
-    // ContentletRepository needs a MongoDB to communicate with
+    // ContentletRepository needs a database to communicate with
     @Container
-    static MongoDBContainer mongoDBContainer = mongoDBContainer();
+    static PostgreSQLContainer postgres = postgresContainer();
 
     @MockitoBean
     ContentletIndexer contentletIndexer;
 
     @DynamicPropertySource
-    static void mongoDbProperties(DynamicPropertyRegistry registry) {
-        startAndRegsiterMongoDBContainer(mongoDBContainer, registry);
+    static void datasourceProperties(DynamicPropertyRegistry registry) {
+        startAndRegisterPostgresContainer(postgres, registry);
     }
 
     @Nested
@@ -49,7 +50,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             // Given
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet("Contentlet1",
+                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
                     "field1Value", 123);
 
             WebTestClient.ResponseSpec response;
@@ -70,7 +71,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             @DisplayName("it should save the contentlet with its given fields")
             void it_should_save_the_contentlet_with_its_given_fields() {
 
-                ContentletEntity savedEntity = contentletRepository.findById(toSave.id()).orElseThrow();
+                ContentletEntity savedEntity = contentletRepository.findById(UUID.fromString(toSave.id())).orElseThrow();
 
                 assertThat((String) savedEntity.get("field1")).isEqualTo(toSave.field1());
                 assertThat((Integer) savedEntity.get("field2")).isEqualTo(toSave.field2());
@@ -88,7 +89,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
         class GivenAContentletWithFieldsWasSaved {
             // Given
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet("Contentlet2",
+                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
                     "field1Value", 123);
 
             @BeforeAll
@@ -151,7 +152,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             }
 
             ContentletWithComplexFields toSave = new ContentletWithComplexFields(
-                "Contentlet3",
+                UuidV7.generate().toString(),
                 List.of("string1", "string2"),
                 List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
             );

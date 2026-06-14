@@ -10,7 +10,7 @@ public class StandardContentletTransformations {
         toApplyTo.put("contentType", StringUtils.lowerCase(toTransform.get("contentType")));
         toApplyTo.put("language", toTransform.get("language"));
         toApplyTo.put("identifier", toTransform.getId() + "_" + toTransform.get("language"));
-        toApplyTo.put("id", toTransform.getId());
+        toApplyTo.put("id", toTransform.getId().toString());
         return toApplyTo;
     }
 }

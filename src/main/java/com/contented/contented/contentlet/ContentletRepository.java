@@ -1,7 +1,9 @@
 package com.contented.contented.contentlet;
 
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.repository.ListCrudRepository;
 
-public interface ContentletRepository extends MongoRepository<ContentletEntity, String> {
+import java.util.UUID;
+
+public interface ContentletRepository extends ListCrudRepository<ContentletEntity, UUID> {
 
 }
