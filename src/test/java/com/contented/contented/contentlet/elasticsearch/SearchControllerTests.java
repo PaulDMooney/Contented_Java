@@ -3,6 +3,7 @@ package com.contented.contented.contentlet.elasticsearch;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import org.junit.jupiter.api.*;
@@ -82,7 +83,7 @@ public class SearchControllerTests {
 
             record SomeContent(String id, String contentType, String someOtherField){}
 
-            final SomeContent savedContent = new SomeContent("00000000-0000-0000-0000-000000000001", "Blog", "Some field value");
+            final SomeContent savedContent = new SomeContent(UuidV7.generate().toString(), "Blog", "Some field value");
 
             @BeforeAll
             void given() {

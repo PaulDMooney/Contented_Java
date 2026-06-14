@@ -8,7 +8,7 @@ fleshed out before implementation.
 |---|---|---|---|
 | 1 | Convert reactive → non-reactive (virtual threads) | Mostly done | — |
 | 2 | Micrometer trace ids in logs | Mostly done | — |
-| 3 | MongoDB → Postgres migration | Mostly done | [postgres-migration-design.md](postgres-migration-design.md) |
+| 3 | MongoDB → Postgres migration | Mostly done | — |
 | 4 | Bring tests up to new testing standards | TBD | — |
 | 5 | Content versioning (live / working / history) | Idea | — |
 | 6 | Content grouping (language variants) | Idea | — |
@@ -69,8 +69,7 @@ for now; no exporter dependency exists, so spans are created for correlation but
 
 ## 3. MongoDB → Postgres migration
 
-Replace MongoDB with Postgres as the system of record. Detailed design:
-**[postgres-migration-design.md](postgres-migration-design.md)**.
+Replace MongoDB with Postgres as the system of record.
 
 **Scope**:
 

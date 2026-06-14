@@ -19,7 +19,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
@@ -75,7 +74,7 @@ public class ContentletServiceIntegrationTests {
         class SavingContentletWithESTransformations {
 
             // stName = "Blog" will match criteria for a transformation
-            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(),
                 Map.ofEntries(
                     entry("language", "en"),
                     entry("stName", "Blog"),

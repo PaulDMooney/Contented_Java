@@ -40,7 +40,7 @@ public class ContentletServiceTest {
 
         ElasticsearchOperations elasticsearchOperations;
 
-        ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        ContentletEntity toSave = new ContentletEntity(UuidV7.generate());
 
         void verifyContentletSaved() {
 
@@ -150,7 +150,7 @@ public class ContentletServiceTest {
         @DisplayName("Given content that matches criteria for entity transformations")
         class SavingContentletWithTransformations {
 
-            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000002"),
+            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(),
                 Map.ofEntries(
                     entry("language", "en"),
                     entry("stName", "Blog"),

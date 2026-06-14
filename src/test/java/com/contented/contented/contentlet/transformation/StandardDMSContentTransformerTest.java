@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.transformation;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
-import java.util.UUID;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,7 +92,7 @@ class StandardDMSContentTransformerTest {
         @DisplayName("Given a contentletEntity with an id")
         class GivenContentletWithId {
 
-            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"), Map.ofEntries(
+            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(), Map.ofEntries(
                 entry("language", "en"),
                 entry("dmsId", "dmsid1234"),
                 entry("inode", "inode1234"),

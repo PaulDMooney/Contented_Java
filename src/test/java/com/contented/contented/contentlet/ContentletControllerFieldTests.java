@@ -50,7 +50,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             // Given
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet("00000000-0000-0000-0000-000000000001",
+                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
                     "field1Value", 123);
 
             WebTestClient.ResponseSpec response;
@@ -89,7 +89,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
         class GivenAContentletWithFieldsWasSaved {
             // Given
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet("00000000-0000-0000-0000-000000000002",
+                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
                     "field1Value", 123);
 
             @BeforeAll
@@ -152,7 +152,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             }
 
             ContentletWithComplexFields toSave = new ContentletWithComplexFields(
-                "00000000-0000-0000-0000-000000000003",
+                UuidV7.generate().toString(),
                 List.of("string1", "string2"),
                 List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
             );

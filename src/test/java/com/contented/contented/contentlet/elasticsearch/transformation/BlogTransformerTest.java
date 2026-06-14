@@ -1,6 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch.transformation;
 
 import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.contented.contented.contentlet.transformation.StandardDMSContentTransformer;
 import org.junit.jupiter.api.BeforeAll;
@@ -13,7 +14,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +33,7 @@ class BlogTransformerTest {
 
             ContentletEntity toTransform = new StandardDMSContentTransformer(clock)
                     .transform(
-                            new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                            new ContentletEntity(UuidV7.generate(),
                                     Map.ofEntries(
                                             entry("stName", "Blog"),
                                             entry("title", "Blog Title"),
@@ -85,7 +85,7 @@ class BlogTransformerTest {
 
                     assertThat(result).element(0)
                         .satisfies(entityAsMap -> assertThat(entityAsMap)
-                            .containsEntry("identifier", "00000000-0000-0000-0000-000000000001_en"));
+                            .containsEntry("identifier", toTransform.getId() + "_en"));
                 }
             }
 
