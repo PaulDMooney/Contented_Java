@@ -85,9 +85,8 @@ public class ContentletServiceTest {
 
         ContentletEntity toCreate = new ContentletEntity(null,
             Map.ofEntries(
-                entry("language", "en"),
-                entry("stName", "Blog"),
-                entry("parentDmsId", "parentDmsIdABCDE")));
+                entry("language", "EN"),
+                entry("contentType", "Blog")));
 
         @BeforeAll
         void beforeAll() {
@@ -108,9 +107,9 @@ public class ContentletServiceTest {
 
             // Some expected Transformations
             assertThat(savedValue.getSchemalessData())
-                .hasEntrySatisfying("contentType", value -> assertThat(value).isEqualTo("Blog"));
+                .hasEntrySatisfying("language", value -> assertThat(value).isEqualTo("en"));
             assertThat(savedValue.getSchemalessData())
-                .hasEntrySatisfying("identifier", value -> assertThat(value).isEqualTo("parentDmsIdABCDE"));
+                .containsKey("modDate");
         }
     }
 

@@ -35,7 +35,7 @@ class BlogTransformerTest {
                     .transform(
                             new ContentletEntity(UuidV7.generate(),
                                     Map.ofEntries(
-                                            entry("stName", "Blog"),
+                                            entry("contentType", "Blog"),
                                             entry("title", "Blog Title"),
                                             entry("body", "Blog Body"),
                                             entry("language", "en")

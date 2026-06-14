@@ -73,14 +73,13 @@ public class ContentletServiceIntegrationTests {
         @DisplayName("Given content that matches criteria for elastic search transformations")
         class SavingContentletWithESTransformations {
 
-            // stName = "Blog" will match criteria for a transformation
+            // contentType = "Blog" will match criteria for a transformation
             ContentletEntity toSave = new ContentletEntity(null,
                 Map.ofEntries(
                     entry("language", "en"),
-                    entry("stName", "Blog"),
+                    entry("contentType", "Blog"),
                     entry("title", "Blog Title"),
-                    entry("slug", "blog-slug"),
-                    entry("parentDmsId", "parentDmsIdABCDE")));
+                    entry("slug", "blog-slug")));
 
             @NestedPerClass
             @DisplayName("when saving contentlet")
