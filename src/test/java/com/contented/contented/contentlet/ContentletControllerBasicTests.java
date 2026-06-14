@@ -6,6 +6,7 @@ import com.contented.contented.contentlet.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -125,6 +126,15 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
             }
+
+            @Test
+            @DisplayName("it should return a problem detail body")
+            void should_return_a_problem_detail_body() {
+                response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .expectBody()
+                        .jsonPath("$.status").isEqualTo(400)
+                        .jsonPath("$.detail").exists();
+            }
         }
     }
 
@@ -195,6 +205,15 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void should_return_a_404() {
                 response.expectStatus().isNotFound();
             }
+
+            @Test
+            @DisplayName("it should return a problem detail body")
+            void should_return_a_problem_detail_body() {
+                response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .expectBody()
+                        .jsonPath("$.status").isEqualTo(404)
+                        .jsonPath("$.detail").exists();
+            }
         }
 
         @NestedPerClass
@@ -218,6 +237,15 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             @DisplayName("it should return a 400 BAD REQUEST status code")
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
+            }
+
+            @Test
+            @DisplayName("it should return a problem detail body")
+            void should_return_a_problem_detail_body() {
+                response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .expectBody()
+                        .jsonPath("$.status").isEqualTo(400)
+                        .jsonPath("$.detail").exists();
             }
         }
     }

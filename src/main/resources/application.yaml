@@ -6,6 +6,9 @@ elasticsearch:
     mappingsfile: "elasticsearch/mappings.json"
 
 spring:
+  mvc:
+    problemdetails:
+      enabled: true
   threads:
     virtual:
       enabled: true
