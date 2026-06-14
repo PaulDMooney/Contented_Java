@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.elasticsearch.transformation.StandardContentletTransformations.applyStandardTransformations;
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughElasticSearchOperations;
@@ -51,7 +52,7 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWhoseTransformerSpawnsMultipleEntities {
 
-            ContentletEntity contentletEntity = new ContentletEntity("Contentlet1",
+            ContentletEntity contentletEntity = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 Map.of("identifier", "identifier1",
                     CONTENT_TYPE_FIELD, "TestMultiEntityContentType"));
 
@@ -96,7 +97,7 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWithNoMatchingTransformer {
 
-            ContentletEntity contentletEntity = new ContentletEntity("Contentlet1",
+            ContentletEntity contentletEntity = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 Map.of("identifier", "identifier1",
                     CONTENT_TYPE_FIELD, "TypeWithNoTransformer"));
 

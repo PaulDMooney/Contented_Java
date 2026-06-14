@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,13 +68,13 @@ class StandardDMSContentTransformerTest {
             }
 
             @Test
-            @DisplayName("it should populate the `id` field from the `dmsId`")
-            void it_should_populate_id_field_from_dmsId() {
+            @DisplayName("it should leave the id unset for the service to assign")
+            void it_should_leave_the_id_unset() {
                 // When
                 var result = transformer.transform(contentletEntity);
 
                 // Then
-                assertThat(result.getId()).isEqualTo(contentletEntity.get("dmsId"));
+                assertThat(result.getId()).isNull();
             }
 
             @Test
@@ -91,7 +92,7 @@ class StandardDMSContentTransformerTest {
         @DisplayName("Given a contentletEntity with an id")
         class GivenContentletWithId {
 
-            ContentletEntity toSave = new ContentletEntity("Contentlet1", Map.ofEntries(
+            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"), Map.ofEntries(
                 entry("language", "en"),
                 entry("dmsId", "dmsid1234"),
                 entry("inode", "inode1234"),

@@ -13,6 +13,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.UUID;
+
 import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
 import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
@@ -38,7 +40,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     }
 
     ContentletEntity saveOneContentlet() {
-        return contentletRepository.save(new ContentletEntity("Contentlet1"));
+        return contentletRepository.save(new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001")));
     }
 
     void mockContentletIndexer() {
@@ -57,7 +59,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class SaveANewContentlet {
 
             // Given
-            ContentletDTO toSave = new ContentletDTO("Contentlet2");
+            ContentletDTO toSave = new ContentletDTO(UUID.fromString("00000000-0000-0000-0000-000000000002"));
 
             WebTestClient.ResponseSpec response;
 
@@ -152,7 +154,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     @DisplayName("GET /{id} endpoint")
     class GetByIdEndpoint {
 
-        ContentletEntity savedContentlet = new ContentletEntity("Contentlet4");
+        ContentletEntity savedContentlet = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000004"));
 
         @BeforeAll
         void beforeAll() {
@@ -207,7 +209,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             void beforeAll() {
 
                 // When
-                response = contentletEndpointClient.get().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.get().uri("/00000000-0000-0000-0000-0000000000ff").exchange();
             }
 
             @Test
@@ -230,7 +232,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class DeleteAContentlet {
 
             // Given
-            static ContentletEntity toDelete = new ContentletEntity("Contentlet3");
+            static ContentletEntity toDelete = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000003"));
 
             static WebTestClient.ResponseSpec response;
 
@@ -280,7 +282,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 StubbingUtils.passThrough_deleteRecord(contentletIndexer);
 
                 // When
-                response = contentletEndpointClient.delete().uri("/some-non-existent-id").exchange();
+                response = contentletEndpointClient.delete().uri("/00000000-0000-0000-0000-0000000000ff").exchange();
             }
 
             // TODO: Should update to return a 204

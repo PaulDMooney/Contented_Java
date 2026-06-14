@@ -9,10 +9,13 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import com.contented.contented.contentlet.ContentletRepository;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
+import com.contented.contented.contentlet.testutils.NoDatabase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -26,7 +29,6 @@ import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -37,13 +39,12 @@ import java.util.List;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchUtils.waitForESDocumentCount;
-import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
-import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
 import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@NoDatabase
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers()
 @DisplayName("ElasticSearch discovery tests")
@@ -52,9 +53,10 @@ public class ElasticSearchDiscoveryTests {
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
 
-    // The full app context bootstraps Spring Data JDBC, which needs a datasource at startup.
-    @Container
-    static PostgreSQLContainer postgres = postgresContainer();
+    // This test exercises only Elasticsearch; @NoDatabase keeps the DB out of the context, so the
+    // repository the context still wires is mocked.
+    @MockitoBean
+    ContentletRepository contentletRepository;
 
     @Autowired
     ElasticsearchClient elasticsearchClient;
@@ -66,7 +68,6 @@ public class ElasticSearchDiscoveryTests {
     static void startAndRegisterContainers(DynamicPropertyRegistry registry) {
 
         startAndRegisterElasticsearchContainer(elasticsearchContainer, registry);
-        startAndRegisterPostgresContainer(postgres, registry);
     }
 
     // New instance is initialized in parent container above. May cause issues later due to test execution order??

@@ -2,6 +2,7 @@ package com.contented.contented.contentlet.persistence;
 
 import com.contented.contented.contentlet.SchemalessData;
 import org.postgresql.util.PGobject;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
@@ -20,6 +21,7 @@ import java.util.Map;
  * Extending {@link AbstractJdbcConfiguration} makes Spring Boot back off its own and use this one.
  */
 @Configuration
+@ConditionalOnProperty(prefix = "contented.persistence.jdbc", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class JdbcConfig extends AbstractJdbcConfiguration {
 
     private final ObjectMapper objectMapper;

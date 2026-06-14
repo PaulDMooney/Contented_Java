@@ -2,6 +2,8 @@ package com.contented.contented.contentlet;
 
 import org.springframework.data.repository.ListCrudRepository;
 
-public interface ContentletRepository extends ListCrudRepository<ContentletEntity, String> {
+import java.util.UUID;
+
+public interface ContentletRepository extends ListCrudRepository<ContentletEntity, UUID> {
 
 }

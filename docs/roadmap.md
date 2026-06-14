@@ -108,8 +108,11 @@ suite against them.
 
 Current conventions worth either ratifying or revisiting when standards are defined:
 BDD-style nested classes (`@NestedPerClass`) with given/when in `@BeforeAll` and one
-assertion per `@Test`; Testcontainers for MongoDB/Elasticsearch integration tests tagged
-`IntegrationTest`; `@MockitoBean`-ing the indexer when ES is not under test.
+assertion per `@Test`; Testcontainers for Postgres/Elasticsearch integration tests tagged
+`IntegrationTest`; `@MockitoBean`-ing the indexer when ES is not under test. A `@NoDatabase`
+test annotation (introduced with item 3) excludes the JDBC/Liquibase auto-config so DB-free
+tests start no Postgres container — generalise this (e.g. a `@NoElasticsearch` counterpart) when
+defining the standards.
 
 **Open questions**: unit vs integration coverage targets; whether `IntegrationTest` tagging
 should gate separate CI phases; test data builders; what replaces `StepVerifier` patterns

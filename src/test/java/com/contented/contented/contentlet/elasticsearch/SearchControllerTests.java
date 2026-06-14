@@ -82,7 +82,7 @@ public class SearchControllerTests {
 
             record SomeContent(String id, String contentType, String someOtherField){}
 
-            final SomeContent savedContent = new SomeContent("123XYZ", "Blog", "Some field value");
+            final SomeContent savedContent = new SomeContent("00000000-0000-0000-0000-000000000001", "Blog", "Some field value");
 
             @BeforeAll
             void given() {
@@ -159,7 +159,7 @@ public class SearchControllerTests {
                             .value(value -> {
                                 var contentlets = value.contentlets();
                                 assertThat(contentlets).hasSize(1);
-                                assertThat(contentlets.get(0).getId()).isEqualTo(savedContent.id());
+                                assertThat(contentlets.get(0).getId().toString()).isEqualTo(savedContent.id());
                             });
                 }
 

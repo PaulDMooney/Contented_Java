@@ -57,15 +57,7 @@ public class StandardDMSContentTransformer implements ContentletEntityTransforme
         setINode(mutableSchemalessData);
         setIdentifier(mutableSchemalessData);
         setModDate(mutableSchemalessData);
-        var id = deriveId(toTransform, mutableSchemalessData);
-        return new ContentletEntity(id, Collections.unmodifiableMap(mutableSchemalessData));
-    }
-
-    private String deriveId(ContentletEntity toTransform, Map<String, Object> mutableSchemalessData) {
-        if (toTransform.getId() == null) {
-            return (String) mutableSchemalessData.get(INODE_FIELD);
-        }
-        return toTransform.getId();
+        return new ContentletEntity(toTransform.getId(), Collections.unmodifiableMap(mutableSchemalessData));
     }
 
     private void setModDate(Map<String, Object> mutableSchemalessData) {

@@ -19,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
@@ -74,7 +75,7 @@ public class ContentletServiceIntegrationTests {
         class SavingContentletWithESTransformations {
 
             // stName = "Blog" will match criteria for a transformation
-            ContentletEntity toSave = new ContentletEntity("1234",
+            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 Map.ofEntries(
                     entry("language", "en"),
                     entry("stName", "Blog"),
@@ -89,13 +90,13 @@ public class ContentletServiceIntegrationTests {
                 @BeforeAll
                 void beforeAll() {
                     contentletService.save(toSave);
-                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, toSave.getId(), 1);
+                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, toSave.getId().toString(), 1);
                 }
 
                 @Test
                 @DisplayName("the elasticsearch record's _source should contain the transformations")
                 void es_should_contain_transformations() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.getId()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.getId().toString()));
                     var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
 
                     var hitSource = Objects.requireNonNull(results).get(0).getContent();

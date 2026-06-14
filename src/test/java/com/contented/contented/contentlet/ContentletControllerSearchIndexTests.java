@@ -78,7 +78,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            SomeContentlet toSave = new SomeContentlet("contentlet1234", "Blog", "Some title", "Some body");
+            SomeContentlet toSave = new SomeContentlet("00000000-0000-0000-0000-000000000001", "Blog", "Some title", "Some body");
 
             @BeforeAll
             void given() {
@@ -137,7 +137,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            static SomeContentlet toDelete = new SomeContentlet("contentlet1234_deleteme", "Blog", "Delete Me", "Some body");
+            static SomeContentlet toDelete = new SomeContentlet("00000000-0000-0000-0000-000000000002", "Blog", "Delete Me", "Some body");
 
             static WebTestClient.ResponseSpec response;
 

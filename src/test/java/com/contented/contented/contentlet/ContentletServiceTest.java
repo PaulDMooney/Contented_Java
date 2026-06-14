@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughContentletRepository;
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughElasticSearchOperations;
@@ -39,7 +40,7 @@ public class ContentletServiceTest {
 
         ElasticsearchOperations elasticsearchOperations;
 
-        ContentletEntity toSave = new ContentletEntity("Contentlet1");
+        ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000001"));
 
         void verifyContentletSaved() {
 
@@ -75,7 +76,7 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(false);
+                when(repository.existsById(any(UUID.class))).thenReturn(false);
 
                 // when
                 result = contentletService.save(toSave);
@@ -116,7 +117,7 @@ public class ContentletServiceTest {
                 passthroughContentletRepository(repository); // because we reset the repository in afterAll
 
                 // Given
-                when(repository.existsById(Mockito.anyString())).thenReturn(true);
+                when(repository.existsById(any(UUID.class))).thenReturn(true);
 
                 result = contentletService.save(toSave);
             }
@@ -149,7 +150,7 @@ public class ContentletServiceTest {
         @DisplayName("Given content that matches criteria for entity transformations")
         class SavingContentletWithTransformations {
 
-            ContentletEntity toSave = new ContentletEntity("1234",
+            ContentletEntity toSave = new ContentletEntity(UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 Map.ofEntries(
                     entry("language", "en"),
                     entry("stName", "Blog"),
@@ -160,7 +161,7 @@ public class ContentletServiceTest {
 
                 passthroughContentletRepository(repository); // because sibling classes reset the repository in their afterAll
 
-                when(repository.existsById(Mockito.anyString())).thenReturn(false);
+                when(repository.existsById(any(UUID.class))).thenReturn(false);
             }
 
             @NestedPerClass

@@ -10,6 +10,7 @@ import lombok.Setter;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,12 +18,12 @@ import java.util.Map;
 @AllArgsConstructor
 public class ContentletDTO {
 
-    private String id;
+    private UUID id;
 
     @JsonIgnore
     private Map<String, Object> schemalessData = new LinkedHashMap<>();
 
-    public ContentletDTO(String id) {
+    public ContentletDTO(UUID id) {
         this(id, new LinkedHashMap<>());
     }
     @JsonAnySetter

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(ContentletController.CONTENTLETS_PATH)
@@ -30,7 +31,7 @@ public class ContentletController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<ContentletEntity> findById(@PathVariable String id) {
+    ResponseEntity<ContentletEntity> findById(@PathVariable UUID id) {
         return contentletService.findById(id)
                 .map(contentletEntity -> ResponseEntity.ok(contentletEntity))
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -47,7 +48,7 @@ public class ContentletController {
     }
 
     @DeleteMapping("/{id}")
-    void deleteContentlet(@PathVariable String id) {
+    void deleteContentlet(@PathVariable UUID id) {
         contentletService.deleteById(id);
     }
 }

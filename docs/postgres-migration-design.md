@@ -19,7 +19,7 @@ contentlet id strings are preserved byte-for-byte, ES documents keep resolving.
 | Access technology | **Spring Data JDBC** | Surface is CRUD + one keyset query; no associations, no lazy loading, no dirty checking to earn Hibernate's keep. Least magic for a system of record. |
 | JSON mapping | `JdbcCustomConversions` converter on a **`SchemalessData`** wrapper type → `jsonb` | Per-property `@ValueConverter` is **not** the documented/supported path for Spring Data JDBC (MongoDB/Cassandra only); the global converter is. A dedicated wrapper keeps the converter unambiguous and dodges the relational module's `Map`/`Iterable` converter quirks. |
 | New-entity detection | Implement **`Persistable<…>`**, drive `isNew()` from the `existsById` check already made | Spring Data JDBC treats a non-null assigned id as an UPDATE; with assigned ids that breaks inserts. We already call `existsById` for the 201/200 decision — reuse it. |
-| Id column | **`text`** (chosen) — current ids (incl. every test fixture) are arbitrary non-UUID strings; `uuid` deferred to production cutover | Keeps id `String` end-to-end (zero ripple to controller/DTO/transformer/ES); keyset order works on text. |
+| Id column | **`uuid`** + **UUIDv7 minted when absent** (option 1) — type changed end-to-end, fixtures updated to UUIDs | Native type, smaller index, UUIDv7 locality for the rebuild. Client may still supply an id (PUT upsert); the app mints one when none is given. Server-generated POST/PUT split (option 3) deferred to item 5. |
 | New id generation | **UUIDv7**, app-side | Time-ordered: append to the PK B-tree's right edge, scan locality for the rebuild backfill. |
 | Schema migrations | **Liquibase**, formatted-SQL changelogs | Free rollback, preconditions, contexts; formatted SQL keeps Postgres-specific DDL (`jsonb`, GIN) plain and avoids the cross-DB XML abstraction we'd never use. |
 | Test infra | Testcontainers `postgresql` module | Replaces the `mongodb` module; Liquibase runs on context startup so tests get the schema for free. |
@@ -31,17 +31,21 @@ contentlet id strings are preserved byte-for-byte, ES documents keep resolving.
   `spring-boot-starter-data-jdbc`. Adding `liquibase-core` alone gives the library but no
   auto-config, so Liquibase silently never runs (no logs, no error, no table). **Both** deps are
   required.
-- **`text` id, not `uuid`** (see table) — the test corpus alone (`"Contentlet1"`, `"1234"`, …)
-  settles it; revisit at production cutover.
+- **`uuid` id + UUIDv7 mint-when-absent** (option 1). The id is `UUID` end-to-end; `ContentletDTO`
+  parses it at the boundary, `ContentletService` mints a UUIDv7 (`UuidV7`) when none is supplied,
+  and the ES edge uses `id.toString()`. Behavior change: `StandardDMSContentTransformer` no longer
+  derives the id from `inode`/`dmsId` — those stay as fields; an unset id is the service's to mint.
 - **`@PersistenceCreator` sets `isNew=false`** on load; the public constructors default
   `isNew=true`; the service flips it from the `existsById` check. No `AfterConvertCallback` needed.
 - **Testcontainers 2.x `PostgreSQLContainer` is non-generic** (`org.testcontainers.postgresql`,
   no `<SELF>`), matching this repo's `MongoDBContainer`/`ElasticsearchContainer`.
 - **Postgres 18 image data-dir change**: mount the host volume at `/var/lib/postgresql`
   (not `/var/lib/postgresql/data`), or the container exits immediately on start.
-- **Every `@SpringBootTest` needs a Postgres container now** — Spring Data JDBC resolves its
-  dialect over a live connection at startup, so even the context-load and ES-only tests
-  (`ContentedApplicationTests`, `ElasticSearchDiscoveryTests`) require one.
+- **`@SpringBootTest` needs a Postgres container unless it opts out** — Spring Data JDBC resolves
+  its dialect over a live connection at startup. The `@NoDatabase` test annotation (a seed for
+  item 4) excludes the JDBC/Liquibase auto-config and the gated `JdbcConfig` for tests that don't
+  touch the DB; `ElasticSearchDiscoveryTests` uses it (mocking `ContentletRepository`) and starts
+  no Postgres. `ContentedApplicationTests` keeps one (its whole point is to wire the real context).
 
 ## Schema
 
@@ -49,7 +53,7 @@ A thin relational shell around the JSON document, as item 3 envisioned:
 
 ```sql
 CREATE TABLE contentlet (
-    id   text PRIMARY KEY,
+    id   uuid PRIMARY KEY,
     data jsonb NOT NULL
 );
 ```
@@ -183,25 +187,23 @@ escape hatch if the `Persistable` route ever feels indirect.
 
 ## Id strategy
 
-Existing ids are legacy DMS `inode` values. The legacy DMS lineage uses UUIDs for `inode`/
-`identifier`, so a native `uuid` column is the expected fit — **verify first** that every existing
-id is a valid UUID (a quick scan of the Mongo `_id`s) before committing.
+**Chosen: native `uuid` column, Java field `UUID`, with UUIDv7 minted app-side when absent
+(option 1).** The id is `UUID` end-to-end: the controller path variable binds `String → UUID`
+automatically, `ContentletDTO` parses it on the way in (a malformed id → 400), and
+`ContentletIndexer` / `StandardContentletTransformations` use `id.toString()` for the ES `_id`.
+Fixtures were updated to canonical lowercase UUID strings.
 
-- **Recommended — `uuid` column, Java field `UUID`.** 16-byte index, native semantics, and
-  UUIDv7 ordering locality. Ripple is localized and arguably correctness-improving: the controller
-  path variable binds `String → UUID` automatically; `deriveId` parses the `inode` string to a
-  `UUID` at the boundary; `ContentletIndexer` uses `id.toString()` as the ES `_id`. **Caveat**:
-  `UUID.toString()` must reproduce the exact id string already stored as the ES `_id` (canonical
-  lowercase hex with dashes — which matches the legacy form) or ES docs orphan. Confirm during the
-  data-migration dry run.
-- **Fallback — `text` column, Java field stays `String`.** Zero ripple, zero ES-match risk,
-  keyset works on lexicographic order. The rebuild design is explicitly id-format-agnostic ("any
-  stable total order works"), so this is a legitimate lower-risk choice; the cost is a larger
-  index and forgoing native uuid semantics.
+**Generation model.** A client may still supply the id (PUT remains an upsert); when none is
+given, `ContentletService` mints a **UUIDv7** (`UuidV7.generate()`) before persisting. UUIDv7 is
+time-ordered, so new ids append to the PK B-tree's right edge and give the rebuild backfill scan
+locality (trade-off: v7 ids reveal creation time). `StandardDMSContentTransformer` no longer
+derives the id from `inode`/`dmsId`; those remain ordinary fields in the document.
 
-**New ids: UUIDv7**, generated app-side, for content the app mints itself (notably item 5 creating
-new `inode`s/versions). Time-ordered ids append to the PK B-tree's right edge and give the rebuild
-backfill scan locality. Trade-off: v7 ids reveal creation time.
+This is a stepping stone to **server-generated ids (option 3)** — a `POST` (create, server mints,
+returns the id) vs `PUT /{id}` (update) split. That redesign is bound up with the versioning
+identity model (`identifier`/`inode`), so it is deferred to item 5; nothing here backs out when it
+lands — the type, converter, generator, and fixtures all carry forward, only the create/update
+surface is added.
 
 ## Schema migrations: Liquibase
 
@@ -328,7 +330,7 @@ databaseChangeLog:
 
 --changeset contented:001-create-contentlet
 CREATE TABLE contentlet (
-    id   text PRIMARY KEY,
+    id   uuid PRIMARY KEY,
     data jsonb NOT NULL
 );
 --rollback DROP TABLE contentlet;

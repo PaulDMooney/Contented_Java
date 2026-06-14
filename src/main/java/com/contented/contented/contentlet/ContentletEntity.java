@@ -11,12 +11,13 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Table("contentlet")
-public class ContentletEntity implements Persistable<String> {
+public class ContentletEntity implements Persistable<UUID> {
 
     @Id
-    private String id;
+    private UUID id;
 
     @JsonIgnore
     private SchemalessData data;
@@ -31,27 +32,27 @@ public class ContentletEntity implements Persistable<String> {
         this.data = new SchemalessData();
     }
 
-    public ContentletEntity(String id) {
+    public ContentletEntity(UUID id) {
         this(id, new LinkedHashMap<>());
     }
 
-    public ContentletEntity(String id, Map<String, Object> schemalessData) {
+    public ContentletEntity(UUID id, Map<String, Object> schemalessData) {
         this.id = id;
         this.data = new SchemalessData(new LinkedHashMap<>(schemalessData));
     }
 
     @PersistenceCreator
-    ContentletEntity(String id, SchemalessData data) {
+    ContentletEntity(UUID id, SchemalessData data) {
         this.id = id;
         this.data = data;
         this.isNew = false;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
