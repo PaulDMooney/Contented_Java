@@ -3,7 +3,6 @@ package com.contented.contented.contentlet.elasticsearch;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
 import com.contented.contented.contentlet.ContentletEntity;
-import com.contented.contented.contentlet.UuidV7;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import org.junit.jupiter.api.*;
@@ -21,6 +20,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentlet.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
@@ -83,16 +83,21 @@ public class SearchControllerTests {
 
             record SomeContent(String id, String contentType, String someOtherField){}
 
-            final SomeContent savedContent = new SomeContent(UuidV7.generate().toString(), "Blog", "Some field value");
+            // Given a body with no id (ids are server-assigned)
+            final SomeContent savedContent = new SomeContent(null, "Blog", "Some field value");
+
+            UUID createdId;
 
             @BeforeAll
             void given() {
 
                 // Could use rest endpoint, or could go directly to service
-                contentletEndpointClient.put().bodyValue(savedContent)
-                    .exchange().expectStatus().is2xxSuccessful();
+                createdId = contentletEndpointClient.post().bodyValue(savedContent)
+                    .exchange().expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
 
-                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, savedContent.id(), 1);
+                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, createdId.toString(), 1);
             }
 
 
@@ -121,7 +126,7 @@ public class SearchControllerTests {
 
                 @BeforeAll
                 void when() {
-                    var queryString = String.format(queryForContentTemplate, savedContent.id());
+                    var queryString = String.format(queryForContentTemplate, createdId.toString());
                     response = searchEndpointClient.post().uri("/withcontent").bodyValue(queryString).exchange();
 
                     // Calling `expectBody` multiple times has inconsistent results so just do it once.
@@ -160,7 +165,7 @@ public class SearchControllerTests {
                             .value(value -> {
                                 var contentlets = value.contentlets();
                                 assertThat(contentlets).hasSize(1);
-                                assertThat(contentlets.get(0).getId().toString()).isEqualTo(savedContent.id());
+                                assertThat(contentlets.get(0).getId().toString()).isEqualTo(createdId.toString());
                             });
                 }
 

@@ -40,20 +40,19 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
     @Nested
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    @DisplayName("PUT endpoint")
-    class PutEndPoint {
+    @DisplayName("POST endpoint")
+    class PostEndPoint {
 
         @Nested
         @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("when saving a contentlet with fields")
-        class SaveANewContentlet {
+        @DisplayName("when creating a contentlet with fields")
+        class CreateANewContentlet {
 
-            // Given
+            // Given a body with no id (ids are server-assigned)
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
-                    "field1Value", 123);
+                new SomethingThatLooksLikeAContentlet(null, "field1Value", 123);
 
-            WebTestClient.ResponseSpec response;
+            UUID createdId;
 
             @BeforeAll
             void when() {
@@ -62,16 +61,17 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
                 // When
-                response = contentletEndpointClient.put().bodyValue(toSave).exchange();
-
-                response.expectStatus().is2xxSuccessful();
+                createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
+                    .expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
             }
 
             @Test
             @DisplayName("it should save the contentlet with its given fields")
             void it_should_save_the_contentlet_with_its_given_fields() {
 
-                ContentletEntity savedEntity = contentletRepository.findById(UUID.fromString(toSave.id())).orElseThrow();
+                ContentletEntity savedEntity = contentletRepository.findById(createdId).orElseThrow();
 
                 assertThat((String) savedEntity.get("field1")).isEqualTo(toSave.field1());
                 assertThat((Integer) savedEntity.get("field2")).isEqualTo(toSave.field2());
@@ -87,10 +87,11 @@ public class ContentletControllerFieldTests extends AbstractContentletController
         @TestInstance(TestInstance.Lifecycle.PER_CLASS)
         @DisplayName("given a contentlet with fields was saved")
         class GivenAContentletWithFieldsWasSaved {
-            // Given
+            // Given a body with no id (ids are server-assigned)
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet(UuidV7.generate().toString(),
-                    "field1Value", 123);
+                new SomethingThatLooksLikeAContentlet(null, "field1Value", 123);
+
+            UUID createdId;
 
             @BeforeAll
             void beforeAll() {
@@ -98,11 +99,11 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 // Not concerned with indexing, mock the indexer to just pass through
                 StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
-                // TBD: Save directly to the DB instead?
                 // When
-                WebTestClient.ResponseSpec response = contentletEndpointClient.put().bodyValue(toSave).exchange();
-
-                response.expectStatus().is2xxSuccessful();
+                createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
+                    .expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
             }
 
             @Nested
@@ -120,7 +121,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                     // When
                     response = contentletEndpointClient.get()
-                        .uri("/" + toSave.id())
+                        .uri("/" + createdId)
                         .exchange();
                 }
 
@@ -132,7 +133,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                     response.expectStatus().is2xxSuccessful()
                         .expectBody(SomethingThatLooksLikeAContentlet.class)
                         .value(contentlet -> {
-                            assertThat(contentlet.id()).isEqualTo(toSave.id());
+                            assertThat(contentlet.id()).isEqualTo(createdId.toString());
                             assertThat(contentlet.field1()).isEqualTo(toSave.field1());
                             assertThat(contentlet.field2()).isEqualTo(toSave.field2());
                         });
@@ -152,10 +153,12 @@ public class ContentletControllerFieldTests extends AbstractContentletController
             }
 
             ContentletWithComplexFields toSave = new ContentletWithComplexFields(
-                UuidV7.generate().toString(),
+                null,
                 List.of("string1", "string2"),
                 List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
             );
+
+            UUID createdId;
 
             @BeforeAll
             void given() {
@@ -163,9 +166,11 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 // Not concerned with indexing, mock the indexer to just pass through
                 StubbingUtils.passThrough_indexContentlet(contentletIndexer);
 
-                // Given
-                contentletEndpointClient.put().bodyValue(toSave).exchange()
-                    .expectStatus().is2xxSuccessful();
+                // Given a body with no id (ids are server-assigned)
+                createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
+                    .expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
 
             }
 
@@ -184,7 +189,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
                     // When
                     response = contentletEndpointClient.get()
-                        .uri("/" + toSave.id())
+                        .uri("/" + createdId)
                         .exchange();
 
                 }
@@ -197,7 +202,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                     response.expectStatus().is2xxSuccessful()
                         .expectBody(ContentletWithComplexFields.class)
                         .value(contentlet -> {
-                            assertThat(contentlet.id()).isEqualTo(toSave.id());
+                            assertThat(contentlet.id()).isEqualTo(createdId.toString());
                             assertThat(contentlet.strings()).isEqualTo(toSave.strings());
                             assertThat(contentlet.stuff()).isEqualTo(toSave.stuff());
                         });

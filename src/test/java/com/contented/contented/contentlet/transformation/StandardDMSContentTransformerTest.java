@@ -17,54 +17,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("StandardDMSContentTransformer")
 class StandardDMSContentTransformerTest {
 
+    Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
+    StandardDMSContentTransformer transformer = new StandardDMSContentTransformer(clock);
+
     @NestedPerClass
     @DisplayName("transform")
     class TransformTests {
-
-        Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-
-        StandardDMSContentTransformer transformer = new StandardDMSContentTransformer(clock);
 
         @NestedPerClass
         @DisplayName("Given a contentletEntity with no id")
         class GivenContentletWithNoId {
 
             ContentletEntity contentletEntity = new ContentletEntity(null,
-                Map.ofEntries(entry("language", "en"),
-                    entry("dmsId", "dmsid1234"),
-                    entry("parentDmsId", "parentdmsid1234"),
-                    entry("stName", "Blog")
+                Map.ofEntries(entry("language", "EN"),
+                    entry("contentType", "Blog")
                 )
             );
 
             @Test
-            @DisplayName("it should populate the `inode` from the `dmsId`")
-            void it_should_populate_inode_from_dmsId() {
+            @DisplayName("it should normalize the `language` to lowercase")
+            void it_should_normalize_language_to_lowercase() {
                 // When
                 var result = transformer.transform(contentletEntity);
 
                 // Then
-                assertThat((String) result.get("inode")).isEqualTo(contentletEntity.get("dmsId"));
-            }
-
-            @Test
-            @DisplayName("it should populate the `identifier` from the `parentDmsId`")
-            void it_should_populate_identifier_from_parentDmsId() {
-                // When
-                var result = transformer.transform(contentletEntity);
-
-                // Then
-                assertThat((String) result.get("identifier")).isEqualTo(contentletEntity.get("parentDmsId"));
-            }
-
-            @Test
-            @DisplayName("it should populate the `contentType` from the `stName`")
-            void it_should_populate_contentType_from_stName() {
-                // When
-                var result = transformer.transform(contentletEntity);
-
-                // Then
-                assertThat((String) result.get("contentType")).isEqualTo(contentletEntity.get("stName"));
+                assertThat((String) result.get("language")).isEqualTo("en");
             }
 
             @Test
@@ -94,21 +72,39 @@ class StandardDMSContentTransformerTest {
 
             ContentletEntity toSave = new ContentletEntity(UuidV7.generate(), Map.ofEntries(
                 entry("language", "en"),
-                entry("dmsId", "dmsid1234"),
-                entry("inode", "inode1234"),
-                entry("parentDmsId", "parentdmsid1234"),
-                entry("stName", "Blog")
+                entry("contentType", "Blog")
             ));
 
             @Test
-            @DisplayName("it should not override the id with the dmsId or inode")
-            void it_should_not_override_the_id_with_the_dmsId_or_inode() {
+            @DisplayName("it should preserve the id")
+            void it_should_preserve_the_id() {
                 // When
                 var result = transformer.transform(toSave);
 
                 // Then
                 assertThat(result.getId()).isEqualTo(toSave.getId());
             }
+        }
+    }
+
+    @NestedPerClass
+    @DisplayName("test")
+    class TestPredicate {
+
+        @Test
+        @DisplayName("it should match a contentlet whose contentType is supported")
+        void it_should_match_supported_content_type() {
+            var contentletEntity = new ContentletEntity(null, Map.of("contentType", "Blog"));
+
+            assertThat(transformer.test(contentletEntity)).isTrue();
+        }
+
+        @Test
+        @DisplayName("it should not match a contentlet whose contentType is unsupported")
+        void it_should_not_match_unsupported_content_type() {
+            var contentletEntity = new ContentletEntity(null, Map.of("contentType", "SomethingElse"));
+
+            assertThat(transformer.test(contentletEntity)).isFalse();
         }
     }
 }

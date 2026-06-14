@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
 import static com.contented.contented.contentlet.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
@@ -72,18 +73,24 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
     }
 
     @NestedPerClass
-    @DisplayName("PUT endpoint")
-    class PutEndpoint {
+    @DisplayName("POST endpoint")
+    class PostEndpoint {
         @NestedPerClass
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            SomeContentlet toSave = new SomeContentlet(UuidV7.generate().toString(), "Blog", "Some title", "Some body");
+            // Given a body with no id (ids are server-assigned)
+            SomeContentlet toSave = new SomeContentlet(null, "Blog", "Some title", "Some body");
+
+            UUID createdId;
 
             @BeforeAll
             void given() {
-                contentletEndpointClient.put().bodyValue(toSave).exchange().expectStatus().isCreated();
-                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toSave.id(), 1);
+                createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
+                    .expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
 
             @NestedPerClass
@@ -113,7 +120,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
                 @BeforeAll
                 void when() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(createdId.toString()));
                     results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .getSearchHits();
 
@@ -123,7 +130,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
                 @DisplayName("Then a hit with the same identifier is returned")
                 void thenContentIsReturned() {
                     Assertions.assertThat(results).hasSize(1);
-                    Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", toSave.id());
+                    Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", createdId.toString());
                 }
             }
         }
@@ -137,14 +144,20 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
         @DisplayName("Given content that is indexed by its identifier was saved")
         class GivenContentIndexedByIdentifier {
 
-            static SomeContentlet toDelete = new SomeContentlet(UuidV7.generate().toString(), "Blog", "Delete Me", "Some body");
+            // Given a body with no id (ids are server-assigned)
+            static SomeContentlet toDelete = new SomeContentlet(null, "Blog", "Delete Me", "Some body");
+
+            static UUID createdId;
 
             static WebTestClient.ResponseSpec response;
 
             @BeforeAll
             void given() {
-                contentletEndpointClient.put().bodyValue(toDelete).exchange().expectStatus().isCreated();
-                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toDelete.id(), 1);
+                createdId = contentletEndpointClient.post().bodyValue(toDelete).exchange()
+                    .expectStatus().isCreated()
+                    .expectBody(ContentletEntity.class)
+                    .returnResult().getResponseBody().getId();
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
 
             @NestedPerClass
@@ -153,16 +166,16 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
 
                 @BeforeAll
                 void when() {
-                    response = contentletEndpointClient.delete().uri("/{id}", toDelete.id()).exchange();
+                    response = contentletEndpointClient.delete().uri("/{id}", createdId).exchange();
 
-                    waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), toDelete.id(), 0);
+                    waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 0);
                 }
 
 //                @Disabled
                 @Test
                 @DisplayName("then the content should not longer be found when searching by its identifier")
                 void then_the_content_should_not_longer_be_found() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toDelete.id()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(createdId.toString()));
                     List<SearchHit<EntityAsMap>> results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .getSearchHits();
 

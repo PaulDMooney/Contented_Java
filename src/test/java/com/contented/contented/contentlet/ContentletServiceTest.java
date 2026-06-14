@@ -4,7 +4,6 @@ import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import com.contented.contented.contentlet.elasticsearch.transformation.BlogTransformer;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import com.contented.contented.contentlet.transformation.StandardDMSContentTransformer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +17,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughContentletRepository;
@@ -29,166 +29,161 @@ import static org.mockito.Mockito.*;
 @DisplayName("ContentletService")
 public class ContentletServiceTest {
 
+    static ContentletService newServiceWith(ContentletRepository repository) {
+        passthroughContentletRepository(repository);
+        var elasticsearchOperations = Mockito.mock(ElasticsearchOperations.class);
+        passthroughElasticSearchOperations(elasticsearchOperations);
+        var contentletIndexer = new ContentletIndexer(elasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
+        Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
+        return new ContentletService(repository, contentletIndexer, transformationHandler);
+    }
+
     @NestedPerClass
-    @DisplayName("save")
-    class Save {
+    @DisplayName("create")
+    class Create {
 
+        ContentletRepository repository = Mockito.mock(ContentletRepository.class);
         ContentletService contentletService;
-        ContentletRepository repository;
 
-        ContentletIndexer contentletIndexer;
-
-        ElasticsearchOperations elasticsearchOperations;
-
-        ContentletEntity toSave = new ContentletEntity(UuidV7.generate());
-
-        void verifyContentletSaved() {
-
-            // Could be a better test if we didn't have to know what ContentletRepository calls were being made.
-            // Then we could change out the calls and know the behavior was still correct.
-            verify(repository,times(1)).save(toSave);
-        }
-
-        void assertSameContentletSaved(ContentletEntity saved) {
-            assertThat(saved.getId()).isEqualTo(toSave.getId());
-        }
+        ContentletEntity toCreate = new ContentletEntity(null);
+        ContentletEntity created;
 
         @BeforeAll
         void beforeAll() {
-            repository = Mockito.mock(ContentletRepository.class);
-            passthroughContentletRepository(repository);
-            elasticsearchOperations = Mockito.mock(ElasticsearchOperations.class);
-            passthroughElasticSearchOperations(elasticsearchOperations);
-            contentletIndexer = new ContentletIndexer(elasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
-            Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-            var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
-            contentletService = new ContentletService(repository, contentletIndexer, transformationHandler);
+            contentletService = newServiceWith(repository);
+
+            // When
+            created = contentletService.create(toCreate);
         }
 
-        @NestedPerClass
-        @DisplayName("when saving contentlet that does not exist")
-        class SavingContentletThatDoesNotExist {
+        @Test
+        @DisplayName("it should save the contentlet")
+        void should_save_contentlet() {
+            verify(repository, times(1)).save(toCreate);
+        }
 
-            ContentletService.ResultPair result;
+        @Test
+        @DisplayName("it should assign a generated id")
+        void should_assign_a_generated_id() {
+            assertThat(created.getId()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("it should mark the contentlet as new")
+        void should_mark_the_contentlet_as_new() {
+            assertThat(created.isNew()).isTrue();
+        }
+    }
+
+    @NestedPerClass
+    @DisplayName("create given content that matches criteria for entity transformations")
+    class CreateWithTransformations {
+
+        ContentletRepository repository = Mockito.mock(ContentletRepository.class);
+        ContentletService contentletService;
+
+        ContentletEntity toCreate = new ContentletEntity(null,
+            Map.ofEntries(
+                entry("language", "EN"),
+                entry("contentType", "Blog")));
+
+        @BeforeAll
+        void beforeAll() {
+            contentletService = newServiceWith(repository);
+
+            // When
+            contentletService.create(toCreate);
+        }
+
+        @Test
+        @DisplayName("it should apply transformations before saving")
+        void it_should_apply_transformations_before_saving() {
+
+            var argumentCaptor = ArgumentCaptor.forClass(ContentletEntity.class);
+            verify(repository).save(argumentCaptor.capture());
+
+            var savedValue = argumentCaptor.getValue();
+
+            // Some expected Transformations
+            assertThat(savedValue.getSchemalessData())
+                .hasEntrySatisfying("language", value -> assertThat(value).isEqualTo("en"));
+            assertThat(savedValue.getSchemalessData())
+                .containsKey("modDate");
+        }
+    }
+
+    @NestedPerClass
+    @DisplayName("update")
+    class Update {
+
+        @NestedPerClass
+        @DisplayName("when the contentlet exists")
+        class WhenContentletExists {
+
+            ContentletRepository repository = Mockito.mock(ContentletRepository.class);
+            ContentletService contentletService;
+
+            UUID id = UuidV7.generate();
+            ContentletEntity toUpdate = new ContentletEntity(id);
+            Optional<ContentletEntity> result;
 
             @BeforeAll
             void beforeAll() {
-                passthroughContentletRepository(repository); // because we reset the repository in afterAll
+                contentletService = newServiceWith(repository);
 
                 // Given
-                when(repository.existsById(any(UUID.class))).thenReturn(false);
+                when(repository.existsById(id)).thenReturn(true);
 
-                // when
-                result = contentletService.save(toSave);
-            }
-
-            @AfterAll
-            void afterAll() {
-                Mockito.reset(repository);
+                // When
+                result = contentletService.update(id, toUpdate);
             }
 
             @Test
-            @DisplayName("it should save contentlet")
+            @DisplayName("it should save the contentlet")
             void should_save_contentlet() {
-                verifyContentletSaved();
+                verify(repository, times(1)).save(toUpdate);
             }
 
             @Test
-            @DisplayName("it should return result pair containing saved contentlet")
-            void should_return_result_pair_with_saved_contentlet() {
-                assertSameContentletSaved(result.contentletEntity());
-            }
-
-            @Test
-            @DisplayName("it should return result pair with isNew=true")
-            void should_return_result_pair_with_isNew_true() {
-                assertThat(result.isNew()).isTrue();
+            @DisplayName("it should return the updated contentlet")
+            void should_return_the_updated_contentlet() {
+                assertThat(result).isPresent();
+                assertThat(result.get().getId()).isEqualTo(id);
             }
         }
 
         @NestedPerClass
-        @DisplayName("when saving contentlet that does exist")
-        class SavingContentletThatDoesExist {
+        @DisplayName("when the contentlet does not exist")
+        class WhenContentletDoesNotExist {
 
-            ContentletService.ResultPair result;
+            ContentletRepository repository = Mockito.mock(ContentletRepository.class);
+            ContentletService contentletService;
+
+            UUID id = UuidV7.generate();
+            Optional<ContentletEntity> result;
+
             @BeforeAll
             void beforeAll() {
-
-                passthroughContentletRepository(repository); // because we reset the repository in afterAll
+                contentletService = newServiceWith(repository);
 
                 // Given
-                when(repository.existsById(any(UUID.class))).thenReturn(true);
+                when(repository.existsById(id)).thenReturn(false);
 
-                result = contentletService.save(toSave);
-            }
-
-            @AfterAll
-            void afterAll() {
-                Mockito.reset(repository);
+                // When
+                result = contentletService.update(id, new ContentletEntity(id));
             }
 
             @Test
-            @DisplayName("it should save contentlet")
-            void should_save_contentlet() {
-                verifyContentletSaved();
+            @DisplayName("it should return an empty result")
+            void should_return_empty_result() {
+                assertThat(result).isEmpty();
             }
 
             @Test
-            @DisplayName("it should return result pair containing saved contentlet")
-            void should_return_result_pair_with_saved_contentlet_and_isNew_false() {
-                assertSameContentletSaved(result.contentletEntity());
-            }
-
-            @Test
-            @DisplayName("it should return result pair with isNew=false")
-            void should_return_result_pair_with_isNew_false() {
-                assertThat(result.isNew()).isFalse();
-            }
-        }
-
-        @NestedPerClass
-        @DisplayName("Given content that matches criteria for entity transformations")
-        class SavingContentletWithTransformations {
-
-            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(),
-                Map.ofEntries(
-                    entry("language", "en"),
-                    entry("stName", "Blog"),
-                    entry("parentDmsId", "parentDmsIdABCDE")));
-
-            @BeforeAll
-            void beforeAll() {
-
-                passthroughContentletRepository(repository); // because sibling classes reset the repository in their afterAll
-
-                when(repository.existsById(any(UUID.class))).thenReturn(false);
-            }
-
-            @NestedPerClass
-            @DisplayName("when saving contentlet")
-            class WhenSavingContentlet {
-
-                @BeforeAll
-                void beforeAll() {
-                    contentletService.save(toSave);
-                }
-
-                @Test()
-                @DisplayName("it should apply transformations before saving")
-                void it_should_apply_transformations_before_saving() {
-
-                    var argumentCaptor = ArgumentCaptor.forClass(ContentletEntity.class);
-                    verify(repository).save(argumentCaptor.capture());
-
-                    var savedValue = argumentCaptor.getValue();
-
-                    // Some expected Transformations
-                    assertThat(savedValue.getSchemalessData())
-                        .hasEntrySatisfying("contentType", value -> assertThat(value).isEqualTo("Blog"));
-                    assertThat(savedValue.getSchemalessData())
-                        .hasEntrySatisfying("identifier", value -> assertThat(value).isEqualTo("parentDmsIdABCDE"));
-
-                }
+            @DisplayName("it should not save anything")
+            void should_not_save_anything() {
+                verify(repository, never()).save(any());
             }
         }
     }

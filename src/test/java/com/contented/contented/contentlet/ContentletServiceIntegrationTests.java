@@ -73,29 +73,30 @@ public class ContentletServiceIntegrationTests {
         @DisplayName("Given content that matches criteria for elastic search transformations")
         class SavingContentletWithESTransformations {
 
-            // stName = "Blog" will match criteria for a transformation
-            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(),
+            // contentType = "Blog" will match criteria for a transformation
+            ContentletEntity toSave = new ContentletEntity(null,
                 Map.ofEntries(
                     entry("language", "en"),
-                    entry("stName", "Blog"),
+                    entry("contentType", "Blog"),
                     entry("title", "Blog Title"),
-                    entry("slug", "blog-slug"),
-                    entry("parentDmsId", "parentDmsIdABCDE")));
+                    entry("slug", "blog-slug")));
 
             @NestedPerClass
             @DisplayName("when saving contentlet")
             class WhenSavingContentlet {
 
+                ContentletEntity created;
+
                 @BeforeAll
                 void beforeAll() {
-                    contentletService.save(toSave);
-                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, toSave.getId().toString(), 1);
+                    created = contentletService.create(toSave);
+                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, created.getId().toString(), 1);
                 }
 
                 @Test
                 @DisplayName("the elasticsearch record's _source should contain the transformations")
                 void es_should_contain_transformations() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.getId().toString()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(created.getId().toString()));
                     var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
 
                     var hitSource = Objects.requireNonNull(results).get(0).getContent();
