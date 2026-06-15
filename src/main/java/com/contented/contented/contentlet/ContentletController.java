@@ -34,7 +34,7 @@ public class ContentletController {
     ResponseEntity<ContentletEntity> findById(@PathVariable UUID id) {
         return contentletService.findById(id)
                 .map(contentletEntity -> ResponseEntity.ok(contentletEntity))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ContentletNotFoundException(id));
     }
 
     @PostMapping
@@ -42,7 +42,8 @@ public class ContentletController {
                                                       UriComponentsBuilder uriBuilder) {
         // Ids are server-assigned; a client must not supply one when creating.
         if (contentletDTO.getId() != null) {
-            return ResponseEntity.badRequest().build();
+            throw new InvalidContentletException(
+                    "A contentlet id must not be supplied when creating; ids are server-assigned.");
         }
         ContentletEntity toSave = new ContentletEntity(null, contentletDTO.get());
 
@@ -58,13 +59,14 @@ public class ContentletController {
                                                       @RequestBody ContentletDTO contentletDTO) {
         // The URL is the source of truth for identity; a body id must agree with it.
         if (contentletDTO.getId() != null && !contentletDTO.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
+            throw new InvalidContentletException(
+                    "The body id `" + contentletDTO.getId() + "` does not match the URL id `" + id + "`.");
         }
         ContentletEntity toSave = new ContentletEntity(id, contentletDTO.get());
 
         return contentletService.update(id, toSave)
                 .map(updated -> ResponseEntity.ok(updated))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ContentletNotFoundException(id));
     }
 
     @DeleteMapping("/{id}")
