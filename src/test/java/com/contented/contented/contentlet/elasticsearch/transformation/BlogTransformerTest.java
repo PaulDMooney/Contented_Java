@@ -33,9 +33,8 @@ class BlogTransformerTest {
 
             ContentletEntity toTransform = new StandardDMSContentTransformer(clock)
                     .transform(
-                            new ContentletEntity(UuidV7.generate(),
+                            new ContentletEntity(UuidV7.generate(), "Blog",
                                     Map.ofEntries(
-                                            entry("contentType", "Blog"),
                                             entry("title", "Blog Title"),
                                             entry("body", "Blog Body"),
                                             entry("language", "en")

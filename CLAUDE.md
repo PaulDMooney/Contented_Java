@@ -27,15 +27,17 @@ Ids are **intrinsic** (server-generated UUIDv7, assigned in `ContentletService`)
 - `POST /contentlets` (`ContentletController.createContentlet` → `ContentletService.create`) — create. A client-supplied body id is rejected with `400`; otherwise a UUIDv7 is generated and the response is `201 Created` with a `Location` header.
 - `PUT /contentlets/{id}` (`ContentletController.updateContentlet` → `ContentletService.update`) — update only. The URL id is authoritative; a body id that disagrees with it is rejected with `400`, and an unknown id returns `404` (create-on-missing is deliberately disabled — creation is POST-only).
 
+`contentType` is required on both writes — a create or update with a blank `contentType` is rejected with `400` — and is **immutable**: an update whose `contentType` differs from the stored one is rejected with `400`. All `400`/`404` responses carry an RFC 9457 `application/problem+json` body (`ContentletExceptionHandler` maps `InvalidContentletException`/`ContentletNotFoundException` to `ProblemDetail`).
+
 Both then run the same pipeline:
 
-1. **Inbound transformation** — `TransformationHandler` runs the entity through the *first* `ContentletEntityTransformer` bean whose `test()` predicate matches (e.g. `StandardDMSContentTransformer`, which normalizes fields like `stName`/`contentType`/`identifier` and stamps `modDate`). No match = entity passes through unchanged.
-2. **Postgres save** — `ContentletRepository` (Spring Data JDBC `ListCrudRepository`). `ContentletEntity` implements `Persistable<UUID>` and carries a `@Transient isNew` flag that drives the INSERT-vs-UPDATE choice for assigned ids: `create` sets it `true`, `update` checks `existsById` first (absent → `404`, no save) and sets it `false`.
+1. **Inbound transformation** — `TransformationHandler` runs the entity through the *first* `ContentletEntityTransformer` bean whose `test()` predicate matches (e.g. `StandardDMSContentTransformer`, which normalizes `language` and stamps `modDate`; it gates on `contentType`). No match = entity passes through unchanged.
+2. **Postgres save** — `ContentletRepository` (Spring Data JDBC `ListCrudRepository`). `ContentletEntity` implements `Persistable<UUID>` and carries a `@Transient isNew` flag that drives the INSERT-vs-UPDATE choice for assigned ids: `create` sets it `true`, `update` loads the current row first (absent → `404`, no save; also the source of the immutable-contentType check) and sets it `false`.
 3. **Elasticsearch indexing** — `ContentletIndexer` picks the *first* matching `ESRecordTransformer` bean (e.g. `BlogTransformer`), which maps one contentlet to **one or more** `EntityAsMap` ES documents. No match = warning logged, nothing indexed (the Postgres save still succeeds).
 
 Both transformer families are discovered by Spring `List<T>` injection of `@Component` beans and gated by `Predicate.test()` — to support a new content type, add a new transformer bean of either kind; no registration step exists.
 
-`ContentletEntity` is schemaless: an `@Id` plus a `Map<String, Object>` exposed through Jackson's `@JsonAnySetter`/`@JsonAnyGetter`, so arbitrary JSON fields round-trip through the API and Postgres.
+`ContentletEntity` is mostly schemaless: an `@Id` and a first-class `contentType` (its own `content_type` column), plus a `Map<String, Object>` of everything else exposed through Jackson's `@JsonAnySetter`/`@JsonAnyGetter`, so arbitrary JSON fields round-trip through the API and Postgres. `contentType` is an explicit field only — it's passed to the `(id, contentType, map)` constructor, never read out of the map (on the JSON path a declared property already wins over the any-setter). The no-arg constructor exists for Jackson deserialization; Spring Data uses the `@PersistenceCreator` constructor.
 
 Other entry points:
 - `POST /search/withcontent` (`SearchController`) — accepts a raw Elasticsearch query JSON body, runs it against the index, then hydrates full contentlets from Postgres by the ids found in the hits (`SearchResultsWithContent` carries both; it has custom Jackson serializers in the `elasticsearch` package).

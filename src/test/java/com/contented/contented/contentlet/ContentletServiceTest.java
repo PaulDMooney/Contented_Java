@@ -24,6 +24,7 @@ import static com.contented.contented.contentlet.testutils.StubbingUtils.passthr
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughElasticSearchOperations;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.*;
 
 @DisplayName("ContentletService")
@@ -46,7 +47,8 @@ public class ContentletServiceTest {
         ContentletRepository repository = Mockito.mock(ContentletRepository.class);
         ContentletService contentletService;
 
-        ContentletEntity toCreate = new ContentletEntity(null);
+        // A contentType that matches no transformer keeps this a pass-through save.
+        ContentletEntity toCreate = new ContentletEntity(null, "SomeType", Map.of());
         ContentletEntity created;
 
         @BeforeAll
@@ -83,10 +85,9 @@ public class ContentletServiceTest {
         ContentletRepository repository = Mockito.mock(ContentletRepository.class);
         ContentletService contentletService;
 
-        ContentletEntity toCreate = new ContentletEntity(null,
+        ContentletEntity toCreate = new ContentletEntity(null, "Blog",
             Map.ofEntries(
-                entry("language", "EN"),
-                entry("contentType", "Blog")));
+                entry("language", "EN")));
 
         @BeforeAll
         void beforeAll() {
@@ -125,15 +126,15 @@ public class ContentletServiceTest {
             ContentletService contentletService;
 
             UUID id = UuidV7.generate();
-            ContentletEntity toUpdate = new ContentletEntity(id);
+            ContentletEntity toUpdate = new ContentletEntity(id, "SomeType", Map.of());
             Optional<ContentletEntity> result;
 
             @BeforeAll
             void beforeAll() {
                 contentletService = newServiceWith(repository);
 
-                // Given
-                when(repository.existsById(id)).thenReturn(true);
+                // Given an existing contentlet with the same (immutable) contentType
+                when(repository.findById(id)).thenReturn(Optional.of(new ContentletEntity(id, "SomeType", Map.of())));
 
                 // When
                 result = contentletService.update(id, toUpdate);
@@ -167,11 +168,10 @@ public class ContentletServiceTest {
             void beforeAll() {
                 contentletService = newServiceWith(repository);
 
-                // Given
-                when(repository.existsById(id)).thenReturn(false);
+                // Given the repository has no contentlet for this id (findById returns empty by default)
 
                 // When
-                result = contentletService.update(id, new ContentletEntity(id));
+                result = contentletService.update(id, new ContentletEntity(id, "SomeType", Map.of()));
             }
 
             @Test
@@ -185,6 +185,70 @@ public class ContentletServiceTest {
             void should_not_save_anything() {
                 verify(repository, never()).save(any());
             }
+        }
+
+        @NestedPerClass
+        @DisplayName("when the contentType differs from the stored one")
+        class WhenContentTypeChanges {
+
+            ContentletRepository repository = Mockito.mock(ContentletRepository.class);
+            ContentletService contentletService;
+
+            UUID id = UuidV7.generate();
+            Throwable thrown;
+
+            @BeforeAll
+            void beforeAll() {
+                contentletService = newServiceWith(repository);
+
+                // Given a stored contentlet whose contentType is "Blog"
+                when(repository.findById(id)).thenReturn(Optional.of(new ContentletEntity(id, "Blog", Map.of())));
+
+                // When an update supplies a different contentType
+                thrown = catchThrowable(() -> contentletService.update(id, new ContentletEntity(id, "News", Map.of())));
+            }
+
+            @Test
+            @DisplayName("it should reject the change as invalid")
+            void should_reject_the_change() {
+                assertThat(thrown).isInstanceOf(InvalidContentletException.class);
+            }
+
+            @Test
+            @DisplayName("it should not save anything")
+            void should_not_save_anything() {
+                verify(repository, never()).save(any());
+            }
+        }
+    }
+
+    @NestedPerClass
+    @DisplayName("when the contentType is missing")
+    class WhenContentTypeMissing {
+
+        ContentletRepository repository = Mockito.mock(ContentletRepository.class);
+        ContentletService contentletService;
+
+        Throwable thrown;
+
+        @BeforeAll
+        void beforeAll() {
+            contentletService = newServiceWith(repository);
+
+            // When creating without a contentType
+            thrown = catchThrowable(() -> contentletService.create(new ContentletEntity(null, null, Map.of())));
+        }
+
+        @Test
+        @DisplayName("it should reject the create as invalid")
+        void should_reject_the_create() {
+            assertThat(thrown).isInstanceOf(InvalidContentletException.class);
+        }
+
+        @Test
+        @DisplayName("it should not save anything")
+        void should_not_save_anything() {
+            verify(repository, never()).save(any());
         }
     }
 }

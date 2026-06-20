@@ -22,7 +22,6 @@ import java.util.Map;
 
 import static com.contented.contented.contentlet.elasticsearch.transformation.StandardContentletTransformations.applyStandardTransformations;
 import static com.contented.contented.contentlet.testutils.StubbingUtils.passthroughElasticSearchOperations;
-import static com.contented.contented.contentlet.transformation.StandardDMSContentTransformer.CONTENT_TYPE_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,9 +51,8 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWhoseTransformerSpawnsMultipleEntities {
 
-            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(),
-                Map.of("identifier", "identifier1",
-                    CONTENT_TYPE_FIELD, "TestMultiEntityContentType"));
+            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(), "TestMultiEntityContentType",
+                Map.of("identifier", "identifier1"));
 
             @Test
             @DisplayName("it should pass each entity to the underlying ElasticsearchOperations#save to save them all")
@@ -97,9 +95,8 @@ class ContentletIndexerTest {
         @NestedPerClass
         class GivenContentletWithNoMatchingTransformer {
 
-            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(),
-                Map.of("identifier", "identifier1",
-                    CONTENT_TYPE_FIELD, "TypeWithNoTransformer"));
+            ContentletEntity contentletEntity = new ContentletEntity(UuidV7.generate(), "TypeWithNoTransformer",
+                Map.of("identifier", "identifier1"));
 
             @Test
             @DisplayName("it should return an empty list")
@@ -130,7 +127,7 @@ class ContentletIndexerTest {
 
         @Override
         public boolean test(ContentletEntity contentletEntity) {
-            return "TestMultiEntityContentType".equals(contentletEntity.getSchemalessData().get(CONTENT_TYPE_FIELD));
+            return "TestMultiEntityContentType".equals(contentletEntity.getContentType());
         }
     }
 }

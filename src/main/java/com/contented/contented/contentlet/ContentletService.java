@@ -2,6 +2,7 @@ package com.contented.contented.contentlet;
 
 import com.contented.contented.contentlet.elasticsearch.ContentletIndexer;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,7 @@ public class ContentletService {
     }
 
     public ContentletEntity create(ContentletEntity contentletEntity) {
+        requireContentType(contentletEntity);
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         toSave.setId(UuidV7.generate());
         toSave.setNew(true);
@@ -37,17 +39,33 @@ public class ContentletService {
     }
 
     public Optional<ContentletEntity> update(UUID id, ContentletEntity contentletEntity) {
-        if (!contentletRepository.existsById(id)) {
+        requireContentType(contentletEntity);
+        var existing = contentletRepository.findById(id);
+        if (existing.isEmpty()) {
             log.info("Contentlet `{}` not found; nothing to update", id);
             return Optional.empty();
         }
+        // A contentlet's contentType is fixed at creation.
+        if (!existing.get().getContentType().equalsIgnoreCase(contentletEntity.getContentType())) {
+            throw new InvalidContentletException(
+                "A contentlet's contentType cannot be changed; `" + existing.get().getContentType()
+                    + "` was created, `" + contentletEntity.getContentType() + "` was supplied.");
+        }
         var toSave = transformationHandler.applyTransformation(contentletEntity);
         toSave.setId(id);
+        // Preserve the stored contentType so its casing never drifts on update.
+        toSave.setContentType(existing.get().getContentType());
         toSave.setNew(false);
         var saved = contentletRepository.save(toSave);
         log.info("Updated contentlet: `{}` successfully", saved.getId());
         saveToES(saved);
         return Optional.of(saved);
+    }
+
+    private void requireContentType(ContentletEntity contentletEntity) {
+        if (StringUtils.isBlank(contentletEntity.getContentType())) {
+            throw new InvalidContentletException("A contentlet must have a contentType.");
+        }
     }
 
     private List<EntityAsMap> saveToES(ContentletEntity contentletEntity) {

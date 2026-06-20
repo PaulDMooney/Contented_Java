@@ -13,6 +13,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import java.util.Map;
 import java.util.UUID;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -43,7 +44,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     }
 
     ContentletEntity saveOneContentlet() {
-        return contentletRepository.save(new ContentletEntity(UuidV7.generate()));
+        return contentletRepository.save(new ContentletEntity(UuidV7.generate(), "SomeType", Map.of()));
     }
 
     void mockContentletIndexer() {
@@ -69,6 +70,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             @BeforeAll()
             void beforeAll() {
                 mockContentletIndexer();
+                toCreate.setContentType("SomeType");
                 toCreate.add("field1", "value1");
 
                 // When
@@ -136,6 +138,40 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                         .jsonPath("$.detail").exists();
             }
         }
+
+        @NestedPerClass
+        @DisplayName("when creating a contentlet with no contentType")
+        class CreateWithoutContentType {
+
+            // Given a body with no contentType
+            ContentletDTO toCreate = new ContentletDTO();
+
+            WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+                toCreate.add("field1", "value1");
+
+                // When
+                response = contentletEndpointClient.post().bodyValue(toCreate).exchange();
+            }
+
+            @Test
+            @DisplayName("it should return a 400 BAD REQUEST status code")
+            void should_return_a_400() {
+                response.expectStatus().isBadRequest();
+            }
+
+            @Test
+            @DisplayName("it should return a problem detail body")
+            void should_return_a_problem_detail_body() {
+                response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .expectBody()
+                        .jsonPath("$.status").isEqualTo(400)
+                        .jsonPath("$.detail").exists();
+            }
+        }
     }
 
     @Nested
@@ -147,7 +183,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class UpdateExistingContentlet {
 
             // Given an existing contentlet
-            ContentletEntity existing = new ContentletEntity(UuidV7.generate());
+            ContentletEntity existing = new ContentletEntity(UuidV7.generate(), "SomeType", Map.of());
 
             WebTestClient.ResponseSpec response;
 
@@ -157,6 +193,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 contentletRepository.save(existing);
 
                 ContentletDTO update = new ContentletDTO(existing.getId());
+                update.setContentType("SomeType");
                 update.add("field1", "updatedValue");
 
                 // When
@@ -193,10 +230,14 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 mockContentletIndexer();
                 UUID id = UuidV7.generate();
 
+                // A valid body so this exercises the not-found path, not contentType validation
+                ContentletDTO update = new ContentletDTO(id);
+                update.setContentType("SomeType");
+
                 // When
                 response = contentletEndpointClient.put()
                         .uri("/{id}", id)
-                        .bodyValue(new ContentletDTO(id))
+                        .bodyValue(update)
                         .exchange();
             }
 
@@ -248,6 +289,46 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                         .jsonPath("$.detail").exists();
             }
         }
+
+        @NestedPerClass
+        @DisplayName("when changing the contentType of an existing contentlet")
+        class UpdateChangingContentType {
+
+            // Given an existing contentlet whose contentType is "Blog"
+            ContentletEntity existing = new ContentletEntity(UuidV7.generate(), "Blog", Map.of());
+
+            WebTestClient.ResponseSpec response;
+
+            @BeforeAll()
+            void beforeAll() {
+                mockContentletIndexer();
+                contentletRepository.save(existing);
+
+                ContentletDTO update = new ContentletDTO(existing.getId());
+                update.setContentType("News");
+
+                // When the update supplies a different contentType
+                response = contentletEndpointClient.put()
+                        .uri("/{id}", existing.getId())
+                        .bodyValue(update)
+                        .exchange();
+            }
+
+            @Test
+            @DisplayName("it should return a 400 BAD REQUEST status code")
+            void should_return_a_400() {
+                response.expectStatus().isBadRequest();
+            }
+
+            @Test
+            @DisplayName("it should return a problem detail body")
+            void should_return_a_problem_detail_body() {
+                response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                        .expectBody()
+                        .jsonPath("$.status").isEqualTo(400)
+                        .jsonPath("$.detail").exists();
+            }
+        }
     }
 
     @Nested
@@ -275,7 +356,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
     @DisplayName("GET /{id} endpoint")
     class GetByIdEndpoint {
 
-        ContentletEntity savedContentlet = new ContentletEntity(UuidV7.generate());
+        ContentletEntity savedContentlet = new ContentletEntity(UuidV7.generate(), "SomeType", Map.of());
 
         @BeforeAll
         void beforeAll() {
@@ -353,7 +434,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
         class DeleteAContentlet {
 
             // Given
-            static ContentletEntity toDelete = new ContentletEntity(UuidV7.generate());
+            static ContentletEntity toDelete = new ContentletEntity(UuidV7.generate(), "SomeType", Map.of());
 
             static WebTestClient.ResponseSpec response;
 
