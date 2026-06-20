@@ -74,7 +74,7 @@ public class ContentletServiceIntegrationTests {
         class SavingContentletWithESTransformations {
 
             // contentType = "Blog" will match criteria for a transformation
-            ContentletEntity toSave = new ContentletEntity(null, "Blog",
+            CreateContentletCommand toSave = new CreateContentletCommand("Blog",
                 Map.ofEntries(
                     entry("language", "en"),
                     entry("title", "Blog Title"),

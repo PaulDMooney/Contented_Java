@@ -27,9 +27,10 @@ public class ContentletService {
         this.transformationHandler = transformationHandler;
     }
 
-    public ContentletEntity create(ContentletEntity contentletEntity) {
-        requireContentType(contentletEntity);
-        var toSave = transformationHandler.applyTransformation(contentletEntity);
+    public ContentletEntity create(CreateContentletCommand command) {
+        requireContentType(command.contentType());
+        var toSave = transformationHandler.applyTransformation(
+            new ContentletEntity(null, command.contentType(), command.data()));
         toSave.setId(UuidV7.generate());
         toSave.setNew(true);
         var saved = contentletRepository.save(toSave);
@@ -38,21 +39,22 @@ public class ContentletService {
         return saved;
     }
 
-    public Optional<ContentletEntity> update(UUID id, ContentletEntity contentletEntity) {
-        requireContentType(contentletEntity);
-        var existing = contentletRepository.findById(id);
+    public Optional<ContentletEntity> update(UpdateContentletCommand command) {
+        requireContentType(command.contentType());
+        var existing = contentletRepository.findById(command.id());
         if (existing.isEmpty()) {
-            log.info("Contentlet `{}` not found; nothing to update", id);
+            log.info("Contentlet `{}` not found; nothing to update", command.id());
             return Optional.empty();
         }
         // A contentlet's contentType is fixed at creation.
-        if (!existing.get().getContentType().equalsIgnoreCase(contentletEntity.getContentType())) {
+        if (!existing.get().getContentType().equalsIgnoreCase(command.contentType())) {
             throw new InvalidContentletException(
                 "A contentlet's contentType cannot be changed; `" + existing.get().getContentType()
-                    + "` was created, `" + contentletEntity.getContentType() + "` was supplied.");
+                    + "` was created, `" + command.contentType() + "` was supplied.");
         }
-        var toSave = transformationHandler.applyTransformation(contentletEntity);
-        toSave.setId(id);
+        var toSave = transformationHandler.applyTransformation(
+            new ContentletEntity(command.id(), command.contentType(), command.data()));
+        toSave.setId(command.id());
         // Preserve the stored contentType so its casing never drifts on update.
         toSave.setContentType(existing.get().getContentType());
         toSave.setNew(false);
@@ -62,8 +64,8 @@ public class ContentletService {
         return Optional.of(saved);
     }
 
-    private void requireContentType(ContentletEntity contentletEntity) {
-        if (StringUtils.isBlank(contentletEntity.getContentType())) {
+    private void requireContentType(String contentType) {
+        if (StringUtils.isBlank(contentType)) {
             throw new InvalidContentletException("A contentlet must have a contentType.");
         }
     }

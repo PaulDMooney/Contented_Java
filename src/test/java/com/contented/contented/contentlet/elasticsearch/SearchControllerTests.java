@@ -2,7 +2,7 @@ package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentlet.AbstractContentletControllerTests;
-import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.ContentletResponseDTO;
 import com.contented.contented.contentlet.testutils.NestedPerClass;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import org.junit.jupiter.api.*;
@@ -94,7 +94,7 @@ public class SearchControllerTests {
                 // Could use rest endpoint, or could go directly to service
                 createdId = contentletEndpointClient.post().bodyValue(savedContent)
                     .exchange().expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
 
                 waitForESDocumentCount(elasticsearchOperations, indexCoordinates, createdId.toString(), 1);
@@ -121,7 +121,7 @@ public class SearchControllerTests {
 
                 record ExpectedResponseStructure(
                     @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse<?> esResponse,
-                    List<ContentletEntity> contentlets
+                    List<ContentletResponseDTO> contentlets
                 ){}
 
                 @BeforeAll

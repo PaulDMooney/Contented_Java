@@ -14,7 +14,7 @@ fleshed out before implementation.
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
-| 9 | Clarify web/service/persistence boundary (commands + response DTOs) | Idea | — |
+| 9 | Clarify web/service/persistence boundary (commands + response DTOs) | Done | — |
 
 ## 1. Convert from reactive to non-reactive (virtual threads)
 
@@ -212,10 +212,16 @@ catch-up pass + deletion log finalization (Option B); atomic alias swap with rol
 
 ## 9. Clarify the web/service/persistence boundary (commands + response DTOs)
 
+**Status: Done.** `ContentletEntity` is now purely the Spring Data persistence model (no Jackson).
+The controller maps `ContentletDTO` → `CreateContentletCommand`/`UpdateContentletCommand` inbound
+and `ContentletEntity` → `ContentletResponseDTO` outbound; `ContentletService` takes commands and
+owns domain validation. `SearchController` returns `ContentletResponseDTO`s too, so the entity is
+fully off the HTTP boundary. Request and response DTOs share an `AbstractContentletDTO` base.
+
 Keep `ContentletEntity` off the HTTP boundary so the service owns domain validation and entity
-construction and the controller is a thin HTTP adapter. Today `ContentletController` builds a
-persistence-coupled `ContentletEntity` on the way in and returns the raw entity on the way out,
-and write-path validation is split between the two layers.
+construction and the controller is a thin HTTP adapter. Previously `ContentletController` built a
+persistence-coupled `ContentletEntity` on the way in and returned the raw entity on the way out,
+and write-path validation was split between the two layers.
 
 **Problem**:
 
@@ -252,14 +258,17 @@ the Spring Data persistence model.
   body id against the URL id) or a domain rule (centralised in the service alongside contentType
   validation).
 
-**Open questions**:
+**Resolved decisions**:
 
-- Reuse `ContentletDTO` for responses, or introduce a dedicated `ContentletResponseDTO`? (Request
-  and response shapes may diverge — e.g. the response carries server-set fields like `modDate`,
-  and request must reject a client id.)
-- Where does "body id must match URL id" belong — controller (transport) or command validation?
-- Interaction with item 4: tests currently deserialize responses into `ContentletEntity`; revisit
-  when the testing standards / `WebTestClient` → `MockMvc`/`RestClient` migration land.
+- Introduced a dedicated `ContentletResponseDTO` rather than reusing `ContentletDTO`, with a shared
+  `AbstractContentletDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
+  any-setter map). Distinct types keep request/response free to diverge later.
+- The id-reconciliation checks (no id on POST, body-id-vs-URL-id on PUT) stayed in the controller
+  as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
+  required/immutable) stayed in the service.
+- Tests that deserialized responses into `ContentletEntity` now deserialize into
+  `ContentletResponseDTO`; the deeper `WebTestClient` → `MockMvc`/`RestClient` migration remains
+  item 4.
 
 **Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
 (grouping) add operations (publish, save-to-working, create-variant) that each want a clean,

@@ -3,7 +3,7 @@ package com.contented.contented.contentlet.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.ContentletResponseDTO;
 import com.contented.contented.contentlet.ContentletService;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
@@ -48,7 +48,9 @@ public class SearchController {
             .map(UUID::fromString)
             .toList();
 
-        List<ContentletEntity> contentlets = contentletService.findByIds(extractedIds);
+        List<ContentletResponseDTO> contentlets = contentletService.findByIds(extractedIds).stream()
+            .map(ContentletResponseDTO::from)
+            .toList();
 
         return new SearchResultsWithContent<>(response, contentlets);
     }

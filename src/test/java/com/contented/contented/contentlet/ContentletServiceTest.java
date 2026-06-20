@@ -48,7 +48,7 @@ public class ContentletServiceTest {
         ContentletService contentletService;
 
         // A contentType that matches no transformer keeps this a pass-through save.
-        ContentletEntity toCreate = new ContentletEntity(null, "SomeType", Map.of());
+        CreateContentletCommand toCreate = new CreateContentletCommand("SomeType", Map.of());
         ContentletEntity created;
 
         @BeforeAll
@@ -62,7 +62,7 @@ public class ContentletServiceTest {
         @Test
         @DisplayName("it should save the contentlet")
         void should_save_contentlet() {
-            verify(repository, times(1)).save(toCreate);
+            verify(repository, times(1)).save(any(ContentletEntity.class));
         }
 
         @Test
@@ -85,7 +85,7 @@ public class ContentletServiceTest {
         ContentletRepository repository = Mockito.mock(ContentletRepository.class);
         ContentletService contentletService;
 
-        ContentletEntity toCreate = new ContentletEntity(null, "Blog",
+        CreateContentletCommand toCreate = new CreateContentletCommand("Blog",
             Map.ofEntries(
                 entry("language", "EN")));
 
@@ -126,7 +126,7 @@ public class ContentletServiceTest {
             ContentletService contentletService;
 
             UUID id = UuidV7.generate();
-            ContentletEntity toUpdate = new ContentletEntity(id, "SomeType", Map.of());
+            UpdateContentletCommand toUpdate = new UpdateContentletCommand(id, "SomeType", Map.of());
             Optional<ContentletEntity> result;
 
             @BeforeAll
@@ -137,13 +137,13 @@ public class ContentletServiceTest {
                 when(repository.findById(id)).thenReturn(Optional.of(new ContentletEntity(id, "SomeType", Map.of())));
 
                 // When
-                result = contentletService.update(id, toUpdate);
+                result = contentletService.update(toUpdate);
             }
 
             @Test
             @DisplayName("it should save the contentlet")
             void should_save_contentlet() {
-                verify(repository, times(1)).save(toUpdate);
+                verify(repository, times(1)).save(any(ContentletEntity.class));
             }
 
             @Test
@@ -171,7 +171,7 @@ public class ContentletServiceTest {
                 // Given the repository has no contentlet for this id (findById returns empty by default)
 
                 // When
-                result = contentletService.update(id, new ContentletEntity(id, "SomeType", Map.of()));
+                result = contentletService.update(new UpdateContentletCommand(id, "SomeType", Map.of()));
             }
 
             @Test
@@ -205,7 +205,7 @@ public class ContentletServiceTest {
                 when(repository.findById(id)).thenReturn(Optional.of(new ContentletEntity(id, "Blog", Map.of())));
 
                 // When an update supplies a different contentType
-                thrown = catchThrowable(() -> contentletService.update(id, new ContentletEntity(id, "News", Map.of())));
+                thrown = catchThrowable(() -> contentletService.update(new UpdateContentletCommand(id, "News", Map.of())));
             }
 
             @Test
@@ -236,7 +236,7 @@ public class ContentletServiceTest {
             contentletService = newServiceWith(repository);
 
             // When creating without a contentType
-            thrown = catchThrowable(() -> contentletService.create(new ContentletEntity(null, null, Map.of())));
+            thrown = catchThrowable(() -> contentletService.create(new CreateContentletCommand(null, Map.of())));
         }
 
         @Test
