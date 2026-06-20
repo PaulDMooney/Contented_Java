@@ -9,7 +9,6 @@ import java.util.List;
 
 import static com.contented.contented.contentlet.elasticsearch.transformation.StandardContentletTransformations.applyStandardTransformations;
 import static com.contented.contented.contentlet.transformation.StandardDMSContentTransformer.BLOG_VALUE;
-import static com.contented.contented.contentlet.transformation.StandardDMSContentTransformer.CONTENT_TYPE_FIELD;
 
 @Component
 public class BlogTransformer implements ESRecordTransformer {
@@ -25,6 +24,6 @@ public class BlogTransformer implements ESRecordTransformer {
 
     @Override
     public boolean test(ContentletEntity contentletEntity) {
-        return BLOG_VALUE.equals(contentletEntity.getSchemalessData().get(CONTENT_TYPE_FIELD));
+        return BLOG_VALUE.equalsIgnoreCase(contentletEntity.getContentType());
     }
 }

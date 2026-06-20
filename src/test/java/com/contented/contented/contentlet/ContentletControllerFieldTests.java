@@ -50,7 +50,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             // Given a body with no id (ids are server-assigned)
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet(null, "field1Value", 123);
+                new SomethingThatLooksLikeAContentlet(null, "SomeType", "field1Value", 123);
 
             UUID createdId;
 
@@ -89,7 +89,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
         class GivenAContentletWithFieldsWasSaved {
             // Given a body with no id (ids are server-assigned)
             SomethingThatLooksLikeAContentlet toSave =
-                new SomethingThatLooksLikeAContentlet(null, "field1Value", 123);
+                new SomethingThatLooksLikeAContentlet(null, "SomeType", "field1Value", 123);
 
             UUID createdId;
 
@@ -146,7 +146,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
         @DisplayName("given a contentlet with complex fields was saved")
         class GivenAContentletWithComplexFieldsWasSaved {
 
-            record ContentletWithComplexFields(String id, List<String> strings, List<ComplexField> stuff) {
+            record ContentletWithComplexFields(String id, String contentType, List<String> strings, List<ComplexField> stuff) {
             }
 
             record ComplexField(String field1, int field2) {
@@ -154,6 +154,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
             ContentletWithComplexFields toSave = new ContentletWithComplexFields(
                 null,
+                "SomeType",
                 List.of("string1", "string2"),
                 List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
             );
@@ -213,6 +214,6 @@ public class ContentletControllerFieldTests extends AbstractContentletController
 
     }
 
-    record SomethingThatLooksLikeAContentlet(String id, String field1, int field2) {
+    record SomethingThatLooksLikeAContentlet(String id, String contentType, String field1, int field2) {
     }
 }

@@ -16,36 +16,43 @@ import java.util.UUID;
 @Table("contentlet")
 public class ContentletEntity implements Persistable<UUID> {
 
+    public static final String CONTENT_TYPE_FIELD = "contentType";
+
     @Id
     private UUID id;
+
+    private String contentType;
 
     @JsonIgnore
     private SchemalessData data;
 
     // Drives Spring Data JDBC's INSERT-vs-UPDATE choice for our assigned (non-generated) ids;
-    // set from the existsById check in ContentletService.
+    // create sets it true, update sets it false, and a DB-loaded row is constructed as not-new.
     @Transient
     @JsonIgnore
     private boolean isNew = true;
 
-    public ContentletEntity() {
-        this.data = new SchemalessData();
-    }
-
-    public ContentletEntity(UUID id) {
-        this(id, new LinkedHashMap<>());
-    }
-
-    public ContentletEntity(UUID id, Map<String, Object> schemalessData) {
+    private ContentletEntity(UUID id, String contentType, SchemalessData data, boolean isNew) {
         this.id = id;
-        this.data = new SchemalessData(new LinkedHashMap<>(schemalessData));
-    }
-
-    @PersistenceCreator
-    ContentletEntity(UUID id, SchemalessData data) {
-        this.id = id;
+        this.contentType = contentType;
         this.data = data;
-        this.isNew = false;
+        this.isNew = isNew;
+    }
+
+    // Required by Jackson to deserialize a contentlet from JSON: id/contentType land via their
+    // setters, everything else via @JsonAnySetter. (Spring Data uses the @PersistenceCreator factory.)
+    public ContentletEntity() {
+        this(null, null, new SchemalessData(), true);
+    }
+
+    public ContentletEntity(UUID id, String contentType, Map<String, Object> schemalessData) {
+        this(id, contentType, new SchemalessData(new LinkedHashMap<>(schemalessData)), true);
+    }
+
+    // Spring Data instantiates loaded rows here; an existing row is by definition not new.
+    @PersistenceCreator
+    static ContentletEntity fromDatabase(UUID id, String contentType, SchemalessData data) {
+        return new ContentletEntity(id, contentType, data, false);
     }
 
     public UUID getId() {
@@ -54,6 +61,14 @@ public class ContentletEntity implements Persistable<UUID> {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     @Override

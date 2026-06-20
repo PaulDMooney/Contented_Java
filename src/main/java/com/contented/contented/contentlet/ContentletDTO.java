@@ -20,11 +20,13 @@ public class ContentletDTO {
 
     private UUID id;
 
+    private String contentType;
+
     @JsonIgnore
     private Map<String, Object> schemalessData = new LinkedHashMap<>();
 
     public ContentletDTO(UUID id) {
-        this(id, new LinkedHashMap<>());
+        this(id, null, new LinkedHashMap<>());
     }
     @JsonAnySetter
     public void add(String key, Object value) {

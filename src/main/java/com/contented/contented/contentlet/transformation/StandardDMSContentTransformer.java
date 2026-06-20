@@ -13,8 +13,6 @@ import java.util.Map;
 @Component
 public class StandardDMSContentTransformer implements ContentletEntityTransformer {
 
-    public static final String CONTENT_TYPE_FIELD = "contentType";
-
     public static final String LANGUAGE_FIELD = "language";
 
     public static final String MODE_DATE_FIELD = "modDate";
@@ -35,7 +33,8 @@ public class StandardDMSContentTransformer implements ContentletEntityTransforme
         Map<String, Object> mutableSchemalessData = new HashMap<>(toTransform.getSchemalessData());
         normalizeLanguage(mutableSchemalessData);
         setModDate(mutableSchemalessData);
-        return new ContentletEntity(toTransform.getId(), Collections.unmodifiableMap(mutableSchemalessData));
+        return new ContentletEntity(toTransform.getId(), toTransform.getContentType(),
+                Collections.unmodifiableMap(mutableSchemalessData));
     }
 
     private void setModDate(Map<String, Object> mutableSchemalessData) {
@@ -55,7 +54,7 @@ public class StandardDMSContentTransformer implements ContentletEntityTransforme
 
     @Override
     public boolean test(ContentletEntity contentletEntity) {
-        String contentType = (String) contentletEntity.getSchemalessData().get(CONTENT_TYPE_FIELD);
+        String contentType = contentletEntity.getContentType();
         return SUPPORTED_TYPES.stream()
                 .anyMatch(type -> type.equalsIgnoreCase(contentType));
     }

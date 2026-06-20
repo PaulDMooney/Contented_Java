@@ -45,7 +45,7 @@ public class ContentletController {
             throw new InvalidContentletException(
                     "A contentlet id must not be supplied when creating; ids are server-assigned.");
         }
-        ContentletEntity toSave = new ContentletEntity(null, contentletDTO.get());
+        ContentletEntity toSave = new ContentletEntity(null, contentletDTO.getContentType(), contentletDTO.get());
 
         var created = contentletService.create(toSave);
         var location = uriBuilder.path("/{base}/{id}")
@@ -62,7 +62,7 @@ public class ContentletController {
             throw new InvalidContentletException(
                     "The body id `" + contentletDTO.getId() + "` does not match the URL id `" + id + "`.");
         }
-        ContentletEntity toSave = new ContentletEntity(id, contentletDTO.get());
+        ContentletEntity toSave = new ContentletEntity(id, contentletDTO.getContentType(), contentletDTO.get());
 
         return contentletService.update(id, toSave)
                 .map(updated -> ResponseEntity.ok(updated))

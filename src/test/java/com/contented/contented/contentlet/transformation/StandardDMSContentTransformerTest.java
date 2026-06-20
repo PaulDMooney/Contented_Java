@@ -29,10 +29,8 @@ class StandardDMSContentTransformerTest {
         @DisplayName("Given a contentletEntity with no id")
         class GivenContentletWithNoId {
 
-            ContentletEntity contentletEntity = new ContentletEntity(null,
-                Map.ofEntries(entry("language", "EN"),
-                    entry("contentType", "Blog")
-                )
+            ContentletEntity contentletEntity = new ContentletEntity(null, "Blog",
+                Map.ofEntries(entry("language", "EN"))
             );
 
             @Test
@@ -70,9 +68,8 @@ class StandardDMSContentTransformerTest {
         @DisplayName("Given a contentletEntity with an id")
         class GivenContentletWithId {
 
-            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(), Map.ofEntries(
-                entry("language", "en"),
-                entry("contentType", "Blog")
+            ContentletEntity toSave = new ContentletEntity(UuidV7.generate(), "Blog", Map.ofEntries(
+                entry("language", "en")
             ));
 
             @Test
@@ -94,7 +91,7 @@ class StandardDMSContentTransformerTest {
         @Test
         @DisplayName("it should match a contentlet whose contentType is supported")
         void it_should_match_supported_content_type() {
-            var contentletEntity = new ContentletEntity(null, Map.of("contentType", "Blog"));
+            var contentletEntity = new ContentletEntity(null, "Blog", Map.of());
 
             assertThat(transformer.test(contentletEntity)).isTrue();
         }
@@ -102,7 +99,7 @@ class StandardDMSContentTransformerTest {
         @Test
         @DisplayName("it should not match a contentlet whose contentType is unsupported")
         void it_should_not_match_unsupported_content_type() {
-            var contentletEntity = new ContentletEntity(null, Map.of("contentType", "SomethingElse"));
+            var contentletEntity = new ContentletEntity(null, "SomethingElse", Map.of());
 
             assertThat(transformer.test(contentletEntity)).isFalse();
         }
