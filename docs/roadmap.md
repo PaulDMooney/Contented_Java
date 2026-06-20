@@ -14,6 +14,7 @@ fleshed out before implementation.
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
+| 9 | Clarify web/service/persistence boundary (commands + response DTOs) | Idea | — |
 
 ## 1. Convert from reactive to non-reactive (virtual threads)
 
@@ -209,6 +210,62 @@ stable alias; a cancellable/resumable checkpointed batch job (keyset pagination,
 in the DB, heartbeat takeover, progress %); naive dual-write during the rebuild with a
 catch-up pass + deletion log finalization (Option B); atomic alias swap with rollback window.
 
+## 9. Clarify the web/service/persistence boundary (commands + response DTOs)
+
+Keep `ContentletEntity` off the HTTP boundary so the service owns domain validation and entity
+construction and the controller is a thin HTTP adapter. Today `ContentletController` builds a
+persistence-coupled `ContentletEntity` on the way in and returns the raw entity on the way out,
+and write-path validation is split between the two layers.
+
+**Problem**:
+
+- `ContentletEntity` is doing the job of four models at once — JSON request target, JSON response
+  body, domain model, and persistence row — carrying both Jackson (`@JsonAnySetter`/`@JsonAnyGetter`)
+  and Spring Data (`@Table`, `@Id`, `@PersistenceCreator`, `Persistable`, `isNew`) annotations. So
+  the web layer instantiates a persistence-framework object and reasons about persistence lifecycle
+  (null id ⇒ "please generate"; the `isNew` flag).
+- Write-path validation is split: request-shape rules (no id on POST, body-id vs URL-id on PUT)
+  sit in the controller; domain rules (contentType required/immutable) sit in the service only
+  because they need a DB read. The intrinsic-id rule is half in each layer.
+
+**Approach (decided)**: keep `ContentletEntity` off the HTTP boundary in both directions.
+
+- *Inbound*: explicit **command objects** — `CreateContentletCommand` / `UpdateContentletCommand`
+  — as plain domain records (no Jackson, no Spring Data). The controller maps `ContentletDTO` →
+  command; the service takes the command, owns all write-path validation, and constructs the
+  `ContentletEntity`. Deliberately **not** "service takes the DTO" — that would drag the wire
+  format into the domain.
+- *Outbound*: the controller returns a **response DTO** instead of the raw `ContentletEntity`.
+
+With both in place, `ContentletEntity` no longer needs its Jackson annotations and becomes purely
+the Spring Data persistence model.
+
+**Scope**:
+
+- New command types; `ContentletService.create`/`update` accept commands instead of pre-built
+  entities, and the service (or a small mapper it owns) constructs `ContentletEntity`.
+- Controller maps the saved entity → response DTO; endpoints stop exposing `ContentletEntity`.
+- Strip Jackson annotations from `ContentletEntity` once it is neither accepted nor returned over
+  HTTP.
+- Move entity construction and the intrinsic-id "no client id" rule out of the controller.
+- Decide per-check whether it is a transport concern (stays in the controller — e.g. reconciling a
+  body id against the URL id) or a domain rule (centralised in the service alongside contentType
+  validation).
+
+**Open questions**:
+
+- Reuse `ContentletDTO` for responses, or introduce a dedicated `ContentletResponseDTO`? (Request
+  and response shapes may diverge — e.g. the response carries server-set fields like `modDate`,
+  and request must reject a client id.)
+- Where does "body id must match URL id" belong — controller (transport) or command validation?
+- Interaction with item 4: tests currently deserialize responses into `ContentletEntity`; revisit
+  when the testing standards / `WebTestClient` → `MockMvc`/`RestClient` migration land.
+
+**Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
+(grouping) add operations (publish, save-to-working, create-variant) that each want a clean,
+intent-revealing service input — establishing the command boundary first avoids retrofitting it
+across many new operations.
+
 ## Sequencing
 
 ```mermaid
@@ -221,6 +278,7 @@ flowchart LR
     I5 <--> I6["6 - Grouping /<br/>language variants"]
     I5 --> IR["(revisit rebuild queries<br/>+ transformers)"]
     I8 --> IR
+    I9["9 - Web/service boundary<br/>(commands + response DTOs)"]
 ```
 
 Suggested order and reasoning:
@@ -241,3 +299,6 @@ Suggested order and reasoning:
 6. **Items 5 and 6 designed together** (shared identity model: `identifier` / `language` /
    `inode`), then implemented in either order. Afterwards, revisit the rebuild job's batch
    query and ES transformers for version/variant awareness.
+7. **Item 9 is independent and near-term** — it can land before the domain features and has no
+   hard dependency on them, but doing it first gives items 5/6/7 a clean service-input boundary
+   to build their new operations on.
