@@ -212,11 +212,12 @@ catch-up pass + deletion log finalization (Option B); atomic alias swap with rol
 
 ## 9. Clarify the web/service/persistence boundary (commands + response DTOs)
 
-**Status: Done.** `ContentletEntity` is now purely the Spring Data persistence model (no Jackson).
-The controller maps `ContentletDTO` → `CreateContentletCommand`/`UpdateContentletCommand` inbound
-and `ContentletEntity` → `ContentletResponseDTO` outbound; `ContentletService` takes commands and
-owns domain validation. `SearchController` returns `ContentletResponseDTO`s too, so the entity is
-fully off the HTTP boundary. Request and response DTOs share an `AbstractContentletDTO` base.
+**Status: Done.** `ContentletEntity` is now purely the Spring Data persistence model (no Jackson)
+and never leaves the service. `ContentletService` accepts a `ContentletDTO` and returns a
+`ContentletResponseDTO` (reads included), mapping entity ↔ DTO internally via `ContentletMapper`;
+the service owns domain validation. The controller only does the transport-level id checks and
+forwards the DTO — it no longer touches an entity or a repository. `SearchController` gets response
+DTOs straight from the service. Request and response DTOs share an `AbstractContentletDTO` base.
 
 Keep `ContentletEntity` off the HTTP boundary so the service owns domain validation and entity
 construction and the controller is a thin HTTP adapter. Previously `ContentletController` built a
@@ -234,23 +235,24 @@ and write-path validation was split between the two layers.
   sit in the controller; domain rules (contentType required/immutable) sit in the service only
   because they need a DB read. The intrinsic-id rule is half in each layer.
 
-**Approach (decided)**: keep `ContentletEntity` off the HTTP boundary in both directions.
+**Approach**: keep `ContentletEntity` off the HTTP boundary, and out of the service's public API,
+in both directions.
 
-- *Inbound*: explicit **command objects** — `CreateContentletCommand` / `UpdateContentletCommand`
-  — as plain domain records (no Jackson, no Spring Data). The controller maps `ContentletDTO` →
-  command; the service takes the command, owns all write-path validation, and constructs the
-  `ContentletEntity`. Deliberately **not** "service takes the DTO" — that would drag the wire
-  format into the domain.
-- *Outbound*: the controller returns a **response DTO** instead of the raw `ContentletEntity`.
+- *Inbound*: the service accepts a `ContentletDTO` and constructs the `ContentletEntity` internally
+  (via `ContentletMapper`), owning all write-path validation. (An earlier iteration routed an
+  explicit command object between controller and service; see Resolved decisions for why it was
+  dropped.)
+- *Outbound*: the service returns a `ContentletResponseDTO`, never the raw `ContentletEntity`.
 
 With both in place, `ContentletEntity` no longer needs its Jackson annotations and becomes purely
 the Spring Data persistence model.
 
 **Scope**:
 
-- New command types; `ContentletService.create`/`update` accept commands instead of pre-built
-  entities, and the service (or a small mapper it owns) constructs `ContentletEntity`.
-- Controller maps the saved entity → response DTO; endpoints stop exposing `ContentletEntity`.
+- `ContentletService.create`/`update` accept a `ContentletDTO` and return a `ContentletResponseDTO`;
+  a `ContentletMapper` constructs and reads back the `ContentletEntity`.
+- Controller stops exposing `ContentletEntity` (and stops touching the repository); read endpoints
+  return response DTOs too.
 - Strip Jackson annotations from `ContentletEntity` once it is neither accepted nor returned over
   HTTP.
 - Move entity construction and the intrinsic-id "no client id" rule out of the controller.
@@ -260,9 +262,17 @@ the Spring Data persistence model.
 
 **Resolved decisions**:
 
-- Introduced a dedicated `ContentletResponseDTO` rather than reusing `ContentletDTO`, with a shared
+- The service speaks DTOs in and out rather than taking explicit primitive parameters or dedicated
+  command objects. Command records were prototyped but dropped — they were anemic (no behaviour
+  beyond decomposing the DTO), so they added a type without earning its keep. The (mild,
+  widely-accepted) cost is that the service references a Jackson-annotated type; not worth a third
+  type to avoid.
+- A dedicated `ContentletResponseDTO` rather than reusing `ContentletDTO`, with a shared
   `AbstractContentletDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
   any-setter map). Distinct types keep request/response free to diverge later.
+- Entity ↔ DTO mapping lives in a hand-written `ContentletMapper` `@Component` (not MapStruct or a
+  Spring `Converter`): the schemaless map defeats MapStruct's codegen advantage, and there is only
+  one entity. Revisit if the type/mapping count grows (items 5/6).
 - The id-reconciliation checks (no id on POST, body-id-vs-URL-id on PUT) stayed in the controller
   as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
   required/immutable) stayed in the service.

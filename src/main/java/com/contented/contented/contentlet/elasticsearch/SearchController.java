@@ -48,9 +48,7 @@ public class SearchController {
             .map(UUID::fromString)
             .toList();
 
-        List<ContentletResponseDTO> contentlets = contentletService.findByIds(extractedIds).stream()
-            .map(ContentletResponseDTO::from)
-            .toList();
+        List<ContentletResponseDTO> contentlets = contentletService.findByIds(extractedIds);
 
         return new SearchResultsWithContent<>(response, contentlets);
     }

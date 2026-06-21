@@ -74,17 +74,22 @@ public class ContentletServiceIntegrationTests {
         class SavingContentletWithESTransformations {
 
             // contentType = "Blog" will match criteria for a transformation
-            CreateContentletCommand toSave = new CreateContentletCommand("Blog",
-                Map.ofEntries(
-                    entry("language", "en"),
-                    entry("title", "Blog Title"),
-                    entry("slug", "blog-slug")));
+            ContentletDTO toSave = newBlogDTO();
+
+            static ContentletDTO newBlogDTO() {
+                var dto = new ContentletDTO();
+                dto.setContentType("Blog");
+                dto.add("language", "en");
+                dto.add("title", "Blog Title");
+                dto.add("slug", "blog-slug");
+                return dto;
+            }
 
             @NestedPerClass
             @DisplayName("when saving contentlet")
             class WhenSavingContentlet {
 
-                ContentletEntity created;
+                ContentletResponseDTO created;
 
                 @BeforeAll
                 void beforeAll() {

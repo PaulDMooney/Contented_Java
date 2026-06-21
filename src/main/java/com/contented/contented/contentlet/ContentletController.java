@@ -14,28 +14,22 @@ public class ContentletController {
 
     public static final String CONTENTLETS_PATH = "contentlets";
 
-    final ContentletRepository contentletRepository;
-
     final ContentletService contentletService;
 
     @Autowired
-    public ContentletController(ContentletRepository contentletRepository, ContentletService contentletService) {
-        this.contentletRepository = contentletRepository;
+    public ContentletController(ContentletService contentletService) {
         this.contentletService = contentletService;
     }
 
     @GetMapping("/all")
     List<ContentletResponseDTO> getAll() {
         // TODO: Replace this with a paginated version in the future
-        return contentletRepository.findAll().stream()
-                .map(ContentletResponseDTO::from)
-                .toList();
+        return contentletService.findAll();
     }
 
     @GetMapping("/{id}")
     ResponseEntity<ContentletResponseDTO> findById(@PathVariable UUID id) {
         return contentletService.findById(id)
-                .map(ContentletResponseDTO::from)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentletNotFoundException(id));
     }
@@ -48,13 +42,11 @@ public class ContentletController {
             throw new InvalidContentletException(
                     "A contentlet id must not be supplied when creating; ids are server-assigned.");
         }
-        var command = new CreateContentletCommand(contentletDTO.getContentType(), contentletDTO.get());
-
-        var created = contentletService.create(command);
+        var created = contentletService.create(contentletDTO);
         var location = uriBuilder.path("/{base}/{id}")
                 .buildAndExpand(CONTENTLETS_PATH, created.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(ContentletResponseDTO.from(created));
+        return ResponseEntity.created(location).body(created);
     }
 
     @PutMapping("/{id}")
@@ -65,10 +57,7 @@ public class ContentletController {
             throw new InvalidContentletException(
                     "The body id `" + contentletDTO.getId() + "` does not match the URL id `" + id + "`.");
         }
-        var command = new UpdateContentletCommand(id, contentletDTO.getContentType(), contentletDTO.get());
-
-        return contentletService.update(command)
-                .map(ContentletResponseDTO::from)
+        return contentletService.update(id, contentletDTO)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentletNotFoundException(id));
     }
