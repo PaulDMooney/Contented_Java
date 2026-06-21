@@ -166,6 +166,29 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- Surefire runs solitary unit tests (*Test) in the test phase; Failsafe runs
+			     Testcontainers integration tests (*IT) in the integration-test/verify phases.
+			     So `mvn test` is fast and Docker-free; `mvn verify` runs the full suite. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Pinned so the CI report goals (surefire-report:report-only / failsafe-report-only)
+			     resolve a deterministic version matching the <reporting> config below; the *-only
+			     goals write HTML into target/reports, which CI uploads. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-report-plugin</artifactId>
+				<version>3.5.6</version>
+			</plugin>
 		</plugins>
 	</build>
 
