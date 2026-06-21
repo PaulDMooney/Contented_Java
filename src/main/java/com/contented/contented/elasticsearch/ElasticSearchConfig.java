@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem.elasticsearch;
+package com.contented.contented.elasticsearch;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

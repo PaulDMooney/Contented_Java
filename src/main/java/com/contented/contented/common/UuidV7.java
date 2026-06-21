@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.common;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;

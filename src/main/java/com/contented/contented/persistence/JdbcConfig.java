@@ -1,6 +1,5 @@
-package com.contented.contented.contentitem.persistence;
+package com.contented.contented.persistence;
 
-import com.contented.contented.contentitem.SchemalessData;
 import org.postgresql.util.PGobject;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;

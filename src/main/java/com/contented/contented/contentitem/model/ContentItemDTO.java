@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.model;
 
 import java.util.UUID;
 

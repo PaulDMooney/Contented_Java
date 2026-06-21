@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.testutils;
 
-import com.contented.contented.contentitem.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.ContentItemRepository;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import org.mockito.stubbing.OngoingStubbing;

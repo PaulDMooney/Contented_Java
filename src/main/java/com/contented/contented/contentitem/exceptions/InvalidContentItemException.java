@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.exceptions;
 
 public class InvalidContentItemException extends RuntimeException {
 

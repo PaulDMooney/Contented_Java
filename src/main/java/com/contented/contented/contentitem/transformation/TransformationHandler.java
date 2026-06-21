@@ -1,7 +1,6 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.transformation.ContentItemEntityTransformer;
-import com.contented.contented.contentitem.transformation.Transformer;
+import com.contented.contented.contentitem.model.ContentItemEntity;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

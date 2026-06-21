@@ -1,5 +1,10 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.rest;
 
+import com.contented.contented.contentitem.ContentItemService;
+import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
+import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
+import com.contented.contented.contentitem.model.ContentItemDTO;
+import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

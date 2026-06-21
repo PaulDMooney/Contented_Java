@@ -1,5 +1,7 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.rest;
 
+import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
+import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;

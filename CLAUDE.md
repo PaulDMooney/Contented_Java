@@ -22,6 +22,8 @@ Most tests are integration tests (tagged `IntegrationTest`, see `TestTypeTags`) 
 
 ## Architecture
 
+**Package layout.** Content-item-agnostic infrastructure lives in top-level packages — `common` (`UuidV7`), `persistence` (`JdbcConfig`, `SchemalessData`), and `elasticsearch` (generic ES infra: `ElasticSearchConfig`, `ElasticSearchIndexCreator`, `IndexController`, the `SearchResponse` (de)serializers). The domain lives under `contentitem`: `ContentItemService`/`ContentItemRepository` at its root, with sub-packages `rest` (controller + exception handler), `exceptions` (the domain exception types), `model` (entity, DTOs, mapper), `transformation` (inbound `ContentItemEntityTransformer`s + `TransformationHandler`), and `elasticsearch` (the content-aware indexer, search controller, and `ESRecordTransformer`s — distinct from the generic top-level `elasticsearch`).
+
 Ids are **intrinsic** (server-generated UUIDv7, assigned in `ContentItemService`); clients never supply them. The core flow is a dual-write pipeline with two write entry points:
 
 - `POST /contentitems` (`ContentItemController.createContentItem` → `ContentItemService.create`) — create. A client-supplied body id is rejected with `400`; otherwise a UUIDv7 is generated and the response is `201 Created` with a `Location` header.

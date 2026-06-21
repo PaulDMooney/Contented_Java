@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.persistence;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

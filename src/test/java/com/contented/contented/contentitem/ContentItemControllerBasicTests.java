@@ -1,6 +1,10 @@
 package com.contented.contented.contentitem;
 
+import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
+import com.contented.contented.contentitem.model.ContentItemDTO;
+import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.contentitem.testutils.NestedPerClass;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;

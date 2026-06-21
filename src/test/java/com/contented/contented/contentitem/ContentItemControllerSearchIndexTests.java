@@ -1,6 +1,7 @@
 package com.contented.contented.contentitem;
 
-import com.contented.contented.contentitem.elasticsearch.ElasticSearchIndexCreator;
+import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
+import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
@@ -24,8 +25,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 import java.util.UUID;
 
-import static com.contented.contented.contentitem.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
-import static com.contented.contented.contentitem.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
+import static com.contented.contented.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
+import static com.contented.contented.elasticsearch.ElasticSearchIndexCreator.MAPPINGS_FILE_PROPERTY_KEY;
 import static com.contented.contented.contentitem.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
 import static com.contented.contented.contentitem.testutils.ElasticSearchContainerUtils.startAndRegisterElasticsearchContainer;
 import static com.contented.contented.contentitem.testutils.ElasticSearchUtils.waitForESDocumentCount;

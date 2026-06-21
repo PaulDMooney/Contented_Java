@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemEntity;
 import io.micrometer.common.util.StringUtils;
 import org.springframework.stereotype.Component;
 

@@ -1,6 +1,8 @@
 package com.contented.contented.contentitem;
 
-import com.contented.contented.contentitem.elasticsearch.ElasticSearchIndexCreator;
+import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
+import com.contented.contented.contentitem.model.ContentItemDTO;
+import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;

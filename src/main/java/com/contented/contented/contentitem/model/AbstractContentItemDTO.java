@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.model;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

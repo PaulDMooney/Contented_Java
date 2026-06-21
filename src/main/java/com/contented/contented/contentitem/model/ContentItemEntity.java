@@ -1,5 +1,6 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.model;
 
+import com.contented.contented.persistence.SchemalessData;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.annotation.Transient;

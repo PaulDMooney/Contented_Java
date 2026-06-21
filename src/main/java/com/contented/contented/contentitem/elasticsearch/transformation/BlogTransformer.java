@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.elasticsearch.transformation;
 
-import com.contented.contented.contentitem.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemEntity;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Component;
 

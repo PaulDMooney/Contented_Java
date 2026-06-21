@@ -1,6 +1,7 @@
 package com.contented.contented.contentitem.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.contented.contented.elasticsearch.SearchResponseSerializer;
 import tools.jackson.databind.annotation.JsonSerialize;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;

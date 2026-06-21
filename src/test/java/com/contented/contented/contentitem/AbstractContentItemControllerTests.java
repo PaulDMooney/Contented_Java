@@ -1,5 +1,6 @@
 package com.contented.contented.contentitem;
 
+import com.contented.contented.contentitem.rest.ContentItemController;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
