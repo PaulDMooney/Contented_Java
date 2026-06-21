@@ -15,7 +15,7 @@ import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -85,7 +85,7 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
 
             @BeforeAll
             void given() {
-                createdId = contentItemEndpointClient.post().bodyValue(toSave).exchange()
+                createdId = contentItemEndpointClient.post().body(toSave).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -148,11 +148,11 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
 
             static UUID createdId;
 
-            static WebTestClient.ResponseSpec response;
+            static RestTestClient.ResponseSpec response;
 
             @BeforeAll
             void given() {
-                createdId = contentItemEndpointClient.post().bodyValue(toDelete).exchange()
+                createdId = contentItemEndpointClient.post().body(toDelete).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();

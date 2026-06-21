@@ -104,18 +104,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- WebTestClient needs spring-webflux + a client connector; replace with RestClient/MockMvc under roadmap item 4 -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!-- @LocalServerPort moved to its own module in Boot 4 and is no longer part of starter-test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -60,7 +60,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
                 // When
-                createdId = contentItemEndpointClient.post().bodyValue(toSave).exchange()
+                createdId = contentItemEndpointClient.post().body(toSave).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -98,7 +98,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
                 // When
-                createdId = contentItemEndpointClient.post().bodyValue(toSave).exchange()
+                createdId = contentItemEndpointClient.post().body(toSave).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -108,7 +108,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
             @DisplayName("When getting that `contentItem` with fields")
             class GetAContentItem {
 
-                WebTestClient.ResponseSpec response;
+                RestTestClient.ResponseSpec response;
 
                 @BeforeAll
                 void beforeAll() {
@@ -164,7 +164,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
                 // Given a body with no id (ids are server-assigned)
-                createdId = contentItemEndpointClient.post().bodyValue(toSave).exchange()
+                createdId = contentItemEndpointClient.post().body(toSave).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -175,7 +175,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
             @DisplayName("When getting that `contentItem` with complex fields")
             class GetContentItemWithComplexFields {
 
-                WebTestClient.ResponseSpec response;
+                RestTestClient.ResponseSpec response;
 
                 @BeforeAll
                 void when() {

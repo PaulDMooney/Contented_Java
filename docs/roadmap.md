@@ -34,8 +34,9 @@ becomes a plain loop).
 - ~~Reactive repositories → blocking ones (`ReactiveCrudRepository` → `CrudRepository`,
   `ReactiveElasticsearchOperations`/`ReactiveElasticsearchClient` → blocking equivalents).~~ ✅ Done.
 - ~~Remove `Hooks.enableAutomaticContextPropagation()` (Reactor-specific; see item 2).~~ ✅ Done.
-- `StepVerifier` is gone; `WebTestClient` test plumbing → `MockMvc`/`RestClient`
-  remains (spring-webflux is now a test-only dependency; coordinate with item 4).
+- ~~`StepVerifier` is gone; `WebTestClient` test plumbing → blocking equivalent.~~ ✅ Done
+  (with item 4): controller integration tests use `RestTestClient` (Spring Framework 7) bound to
+  the running server, so the test-only `spring-boot-starter-webflux` dependency is gone.
 - ~~Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)~~
   ✅ Done (`feat/java-25`): Boot 3.5.14 / Java 25, Elasticsearch server 8.18 to match the
   client the Boot parent manages. Boot 4.x (Spring Framework 7) deliberately deferred.
@@ -133,11 +134,14 @@ test; the `@NoDatabase` annotation (introduced with item 3) that excludes the JD
 auto-config so DB-free tests start no Postgres container — generalise this (e.g. a
 `@NoElasticsearch` counterpart) as part of this work.
 
+The `WebTestClient` → `RestTestClient` migration (dropping the test-only spring-webflux dependency,
+shared with item 1) is **done** — controller integration tests now go over the real network stack
+via `RestTestClient.bindToServer()`.
+
 **Still open**: integration tests share DB/container state across siblings with no `@AfterAll`
 cleanup (sibling-bleed risk); the exploratory `ElasticSearchDiscoveryIT` tests ES itself rather than
 the app (keep as labelled exploratory, or prune?); Instancio is unused; unit vs integration coverage
-targets and whether to enforce a JaCoCo floor. The `WebTestClient` → `MockMvc`/`RestClient` migration
-(dropping the test-only spring-webflux dependency) tracks under item 1 and is deliberately deferred.
+targets and whether to enforce a JaCoCo floor.
 
 ## 5. Content versioning: live / working / history
 
@@ -298,8 +302,7 @@ the Spring Data persistence model.
   as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
   required/immutable) stayed in the service.
 - Tests that deserialized responses into `ContentItemEntity` now deserialize into
-  `ContentItemResponseDTO`; the deeper `WebTestClient` → `MockMvc`/`RestClient` migration remains
-  item 4.
+  `ContentItemResponseDTO`; the deeper `WebTestClient` → `RestTestClient` migration landed with item 4.
 
 **Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
 (grouping) add operations (publish, save-to-working, create-variant) that each want a clean,

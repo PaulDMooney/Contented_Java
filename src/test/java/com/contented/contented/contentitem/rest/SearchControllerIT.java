@@ -15,7 +15,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -60,14 +60,14 @@ public class SearchControllerIT {
 
     @Autowired IndexCoordinates indexCoordinates;
 
-    WebTestClient searchEndpointClient;
+    RestTestClient searchEndpointClient;
 
-    WebTestClient contentItemEndpointClient;
+    RestTestClient contentItemEndpointClient;
 
     @BeforeAll
     void beforeAll() {
         var baseURL = String.format("http://localhost:%s/%s", port, SearchController.SEARCH_PATH);
-        searchEndpointClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
+        searchEndpointClient = RestTestClient.bindToServer().baseUrl(baseURL).build();
 
         contentItemEndpointClient = AbstractContentItemControllerIT.createContentItemsEndpointClient(port);
 
@@ -93,7 +93,7 @@ public class SearchControllerIT {
             void given() {
 
                 // Could use rest endpoint, or could go directly to service
-                createdId = contentItemEndpointClient.post().bodyValue(savedContent)
+                createdId = contentItemEndpointClient.post().body(savedContent)
                     .exchange().expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -116,7 +116,7 @@ public class SearchControllerIT {
                 }
                 """;
 
-                WebTestClient.ResponseSpec response;
+                RestTestClient.ResponseSpec response;
 
                 ExpectedResponseStructure result;
 
@@ -128,7 +128,7 @@ public class SearchControllerIT {
                 @BeforeAll
                 void when() {
                     var queryString = String.format(queryForContentTemplate, createdId.toString());
-                    response = searchEndpointClient.post().uri("/withcontent").bodyValue(queryString).exchange();
+                    response = searchEndpointClient.post().uri("/withcontent").body(queryString).exchange();
 
                     // Deserialize the body ourselves with the SearchResponseDeserializer registered as a
                     // module (built with a real JsonpMapper) rather than relying on a field-level

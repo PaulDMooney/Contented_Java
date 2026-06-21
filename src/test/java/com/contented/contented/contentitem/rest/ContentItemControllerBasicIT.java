@@ -13,8 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.EntityExchangeResult;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.client.EntityExchangeResult;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.util.Map;
 import java.util.UUID;
@@ -77,7 +77,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
 
                 // When
                 result = contentItemEndpointClient.post()
-                        .bodyValue(toCreate)
+                        .body(toCreate)
                         .exchange()
                         .expectBody(ContentItemResponseDTO.class)
                         .returnResult();
@@ -116,13 +116,13 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
 
             ContentItemDTO toCreate = new ContentItemDTO(UuidV7.generate());
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
                 mockContentItemIndexer();
                 // When
-                response = contentItemEndpointClient.post().bodyValue(toCreate).exchange();
+                response = contentItemEndpointClient.post().body(toCreate).exchange();
             }
 
             @Test
@@ -148,7 +148,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             // Given a body with no contentType
             ContentItemDTO toCreate = new ContentItemDTO();
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -156,7 +156,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 toCreate.add("field1", "value1");
 
                 // When
-                response = contentItemEndpointClient.post().bodyValue(toCreate).exchange();
+                response = contentItemEndpointClient.post().body(toCreate).exchange();
             }
 
             @Test
@@ -187,7 +187,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             // Given an existing contentItem
             ContentItemEntity existing = new ContentItemEntity(UuidV7.generate(), "SomeType", Map.of());
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -201,7 +201,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 // When
                 response = contentItemEndpointClient.put()
                         .uri("/{id}", existing.getId())
-                        .bodyValue(update)
+                        .body(update)
                         .exchange();
             }
 
@@ -225,7 +225,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         @DisplayName("When called with a `contentItem` that does not exist in the database (no match on `id`)")
         class UpdateNonExistentContentItem {
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -239,7 +239,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 // When
                 response = contentItemEndpointClient.put()
                         .uri("/{id}", id)
-                        .bodyValue(update)
+                        .body(update)
                         .exchange();
             }
 
@@ -263,7 +263,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         @DisplayName("When the body `id` does not match the URL `id`")
         class UpdateWithMismatchedBodyId {
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -272,7 +272,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 // When the body carries a different id than the URL
                 response = contentItemEndpointClient.put()
                         .uri("/{id}", UuidV7.generate())
-                        .bodyValue(new ContentItemDTO(UuidV7.generate()))
+                        .body(new ContentItemDTO(UuidV7.generate()))
                         .exchange();
             }
 
@@ -299,7 +299,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             // Given an existing contentItem whose contentType is "Blog"
             ContentItemEntity existing = new ContentItemEntity(UuidV7.generate(), "Blog", Map.of());
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -312,7 +312,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 // When the update supplies a different contentType
                 response = contentItemEndpointClient.put()
                         .uri("/{id}", existing.getId())
-                        .bodyValue(update)
+                        .body(update)
                         .exchange();
             }
 
@@ -370,7 +370,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         @DisplayName("When called with an `id` for an existing `contentItem`")
         class ExistingContent {
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll
             void beforeAll() {
@@ -404,7 +404,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         @DisplayName("When called with an `id` not belonging to any existing `contentItem`")
         class NonExistentContent {
 
-            WebTestClient.ResponseSpec response;
+            RestTestClient.ResponseSpec response;
 
             @BeforeAll
             void beforeAll() {
@@ -434,7 +434,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             // Given
             static ContentItemEntity toDelete = new ContentItemEntity(UuidV7.generate(), "SomeType", Map.of());
 
-            static WebTestClient.ResponseSpec response;
+            static RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
@@ -472,7 +472,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         class DeleteNonExistentContentItem {
 
             // Given
-            static WebTestClient.ResponseSpec response;
+            static RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
