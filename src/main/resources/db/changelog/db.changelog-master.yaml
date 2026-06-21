@@ -1,7 +1,4 @@
 databaseChangeLog:
   - include:
-      file: changes/001-create-contentlet.sql
-      relativeToChangelogFile: true
-  - include:
-      file: changes/002-add-content-type.sql
+      file: changes/001-create-content-item.sql
       relativeToChangelogFile: true

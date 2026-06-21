@@ -2,7 +2,7 @@
 # applied automatically because micrometer-tracing is on the classpath.
 elasticsearch:
   index:
-    name: "contentletindex"
+    name: "contentitemindex"
     mappingsfile: "elasticsearch/mappings.json"
 
 spring:

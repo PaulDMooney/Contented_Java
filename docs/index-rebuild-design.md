@@ -2,8 +2,8 @@
 
 ## Problem
 
-Contentlets are saved to the database (system of record) and indexed into Elasticsearch
-(see `ContentletService`). Periodically the index must be rebuilt from scratch — e.g. the
+ContentItems are saved to the database (system of record) and indexed into Elasticsearch
+(see `ContentItemService`). Periodically the index must be rebuilt from scratch — e.g. the
 old index has accumulated garbage, or mappings/settings need to change as content evolves.
 A rebuild walks tens of thousands of records, so it is a long-running process that must be:
 
@@ -20,8 +20,8 @@ Assumptions:
 ## High-level approach: alias swap
 
 The application never reads or writes a concrete index name. It uses an **alias**
-(e.g. `contentlets`), and the `IndexCoordinates` bean points at the alias. Rebuilds create a
-new generated-name index (e.g. `contentletindex-2026-06-09-001`), backfill it from the
+(e.g. `contentitems`), and the `IndexCoordinates` bean points at the alias. Rebuilds create a
+new generated-name index (e.g. `contentitemindex-2026-06-09-001`), backfill it from the
 database, then atomically repoint the alias.
 
 Snapshot **while a rebuild is in progress** (solid arrows are always true; the dashed arrow
@@ -30,14 +30,14 @@ exists only while a rebuild is active):
 ```mermaid
 flowchart LR
     subgraph app ["Application — only ever knows the alias"]
-        WS["Write path<br/>(ContentletService)"]
+        WS["Write path<br/>(ContentItemService)"]
         SS["Search path<br/>(SearchController)"]
         RJ["Rebuild job<br/>(virtual thread)"]
     end
     DB[("Database<br/>(system of record)")]
-    ALIAS{{"alias: contentlets"}}
-    OLD["contentletindex-001<br/>(live)"]
-    NEW["contentletindex-002<br/>(being built — nothing<br/>live points at it yet)"]
+    ALIAS{{"alias: contentitems"}}
+    OLD["contentitemindex-001<br/>(live)"]
+    NEW["contentitemindex-002<br/>(being built — nothing<br/>live points at it yet)"]
 
     WS -->|"1 - save / delete"| DB
     WS -->|"2 - index / delete via alias"| ALIAS
@@ -63,8 +63,8 @@ from the application's point of view) repoints the alias:
 
 ```mermaid
 flowchart LR
-    ALIAS{{"alias: contentlets"}} ==>|"now resolves to"| NEW["contentletindex-002"]
-    OLD["contentletindex-001<br/>(kept briefly for rollback,<br/>then deleted)"]
+    ALIAS{{"alias: contentitems"}} ==>|"now resolves to"| NEW["contentitemindex-002"]
+    OLD["contentitemindex-001<br/>(kept briefly for rollback,<br/>then deleted)"]
 ```
 
 The application changes nothing at swap time — it only ever knew the alias.
@@ -85,7 +85,7 @@ reindex_job {
   id:               string        // job id
   targetIndex:      string        // the generated index name being built
   status:           RUNNING | CANCEL_REQUESTED | CANCELLED | COMPLETED | FAILED
-  lastProcessedId:  string        // keyset checkpoint — last contentlet id written
+  lastProcessedId:  string        // keyset checkpoint — last content item id written
   startedAt:        timestamp
   heartbeatAt:      timestamp     // refreshed every batch; stale => job is orphaned
   processedCount:   long          // progress reporting, advanced with each checkpoint
@@ -105,7 +105,7 @@ while (true) {
         return;
     }
 
-    var batch = contentletRepository
+    var batch = contentItemRepository
         .findByIdGreaterThanOrderByIdAsc(job.lastProcessedId(), BATCH_SIZE);
     if (batch.isEmpty()) break;                       // backfill done
 
@@ -127,7 +127,7 @@ Key properties:
   the loop with the stored `lastProcessedId`.
 - The backfill must reuse the **stored** entity (including its existing `modDate`) and only
   run the `ESRecordTransformer` step. Re-running the inbound
-  `ContentletEntityTransformer` would re-stamp `modDate` to "now", writing wrong timestamps
+  `ContentItemEntityTransformer` would re-stamp `modDate` to "now", writing wrong timestamps
   into the new index (and, under Option A below, forging versions).
 
 ### Lifecycle
@@ -177,12 +177,12 @@ Estimated percentage = `processedCount / totalCount`, computed on the status end
 The backfill takes minutes; meanwhile the application keeps serving creates, updates, and
 deletes. Whatever happens during that window must be in the new index before the alias swap.
 Both options below start from the same base behavior — **dual-write**: once a rebuild starts,
-`ContentletService.save` and `deleteById` apply the operation to the live alias *and* to the
+`ContentItemService.save` and `deleteById` apply the operation to the live alias *and* to the
 new index. They differ in how they resolve races between the backfill and live writes.
 
 ### The two races
 
-1. **Stale-update race**: the backfill reads contentlet X, a live update writes a newer X to
+1. **Stale-update race**: the backfill reads content item X, a live update writes a newer X to
    the new index, then the backfill's older copy lands last and clobbers it.
 2. **Delete-resurrection race**: the backfill reads X, a live delete removes X from the DB and
    both indices (a no-op on the new index if the backfill hasn't written X yet), then the
@@ -266,7 +266,7 @@ and repair the damage in a finalization phase before the swap:
   backfill write is rewritten with its current state. Repeat with a narrowing window if the
   first pass is large; the final pass is small.
 - **Deletes are invisible to `modDate` queries**, so deletions are recorded in a small
-  **deletion log** (`deleted_contentlets`: id + timestamp, written in the same path as the DB
+  **deletion log** (`deleted_content_items`: id + timestamp, written in the same path as the DB
   delete while a rebuild is active). After the catch-up pass, replay the log against the new
   index. Guard against delete-then-recreate during the rebuild: skip the replay for any id
   that exists again in the database (or whose live `modDate` is newer than the log entry).

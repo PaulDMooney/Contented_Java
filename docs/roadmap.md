@@ -54,7 +54,7 @@ virtual threads is the point of this conversion.
 Ensure every log line carries trace/span ids via Micrometer Tracing.
 
 **Current state** (`feat/log4j2-trace-ids`): HTTP-request-scoped logs carry trace/span ids,
-verified against the integration tests (all log lines of one `PUT /contentlets` save flow —
+verified against the integration tests (all log lines of one `PUT /contentitems` save flow —
 Mongo save + ES indexing — share a trace id). The logging backend is now **Log4j2**
 (`spring-boot-starter-log4j2`; `spring-boot-starter-logging`/Logback excluded everywhere,
 including test scope), which matches the Lombok `@Log4j2` loggers the code already used.
@@ -74,9 +74,9 @@ Replace MongoDB with Postgres as the system of record.
 
 **Scope**:
 
-- **Schema**: the schemaless contentlet maps naturally to a thin relational shell around a
+- **Schema**: the schemaless content item maps naturally to a thin relational shell around a
   JSON document — `id uuid PRIMARY KEY, data jsonb` (plus promoted columns later as items 5/6
-  give fields real meaning). `ContentletEntity`'s `@JsonAnySetter` shape can stay.
+  give fields real meaning). `ContentItemEntity`'s `@JsonAnySetter` shape can stay.
 - **Access technology**: **Spring Data JDBC** (decided) — the repository surface is simple
   CRUD + the keyset query, so it is sufficient and the least magic. The schemaless map maps to
   a single `jsonb` column via a `JdbcCustomConversions` converter on a `SchemalessData` wrapper
@@ -143,19 +143,19 @@ version's content never changes under its `inode` — only which version *is* li
   these real meaning: one `identifier` ↔ many `inode`s, of which one is live and one is working.
 - **Operations**: save-to-working, publish (working → live, old live → history), unpublish,
   discard working, restore from history (copies the historical version into a new working
-  version — history itself is never modified). What does today's `PUT /contentlets` map to —
+  version — history itself is never modified). What does today's `PUT /contentitems` map to —
   save-and-publish in one step?
 - **Indexing**: presumably only the **live** version is indexed for delivery search; decide
   whether working versions get indexed separately (e.g. a `live` flag on ES docs — the
   `LIVE_FIELD` already exists — or a separate working index) for editorial search.
 - **History retention**: unbounded vs capped (N versions / age-based).
-- **Interaction with item 8**: the rebuild walks "all contentlets" — under versioning this
+- **Interaction with item 8**: the rebuild walks "all content items" — under versioning this
   becomes "all live versions (+ working, if indexed)". The keyset/checkpoint design is
   unaffected, but the batch query and the ES transformers gain version-awareness.
 
 ## 6. Content grouping (language variants)
 
-A **group** of contentlets shares a common identifier; each member represents a variant of
+A **group** of content items shares a common identifier; each member represents a variant of
 the same logical content — primarily language variants (e.g. the same blog post in `en`,
 `fr`, `de`).
 
@@ -165,8 +165,8 @@ the same logical content — primarily language variants (e.g. the same blog pos
   logical content, many language variants, each variant having its own working/live/history
   chain. Decide deliberately whether group id and version-agnostic id are one concept or two
   (the legacy DMS model they echo treats `identifier` + `language` as the variant key).
-- **API shape**: fetching by group identifier **returns all contentlets in that group**
-  (e.g. `GET /contentlets/group/{identifier}` → every language variant). Beyond that:
+- **API shape**: fetching by group identifier **returns all content items in that group**
+  (e.g. `GET /contentitems/group/{identifier}` → every language variant). Beyond that:
   possibly a convenience fetch for a single best-match variant by language with fallback
   rules (requested language → default language?), and creating a variant of an existing
   group.
@@ -195,10 +195,10 @@ types can be added without touching core.
   shipped independently later.
 
 **Notes**: the existing extension seams already point the right way — content types plug in
-via `ContentletEntityTransformer` / `ESRecordTransformer` beans discovered by `List<T>`
+via `ContentItemEntityTransformer` / `ESRecordTransformer` beans discovered by `List<T>`
 injection, so the Blog-specific code (`BlogTransformer`, the Blog parts of
 `StandardDMSContentTransformer.SUPPORTED_TYPES`) should extract cleanly. The current
-package-by-feature layout (`contentlet`, `contentlet.elasticsearch`, …) maps naturally onto
+package-by-feature layout (`contentitem`, `contentitem.elasticsearch`, …) maps naturally onto
 modules. Start with Spring Modulith; promote to multi-module Maven only if independent
 shipping becomes a real need.
 
@@ -212,21 +212,21 @@ catch-up pass + deletion log finalization (Option B); atomic alias swap with rol
 
 ## 9. Clarify the web/service/persistence boundary (commands + response DTOs)
 
-**Status: Done.** `ContentletEntity` is now purely the Spring Data persistence model (no Jackson)
-and never leaves the service. `ContentletService` accepts a `ContentletDTO` and returns a
-`ContentletResponseDTO` (reads included), mapping entity ↔ DTO internally via `ContentletMapper`;
+**Status: Done.** `ContentItemEntity` is now purely the Spring Data persistence model (no Jackson)
+and never leaves the service. `ContentItemService` accepts a `ContentItemDTO` and returns a
+`ContentItemResponseDTO` (reads included), mapping entity ↔ DTO internally via `ContentItemMapper`;
 the service owns domain validation. The controller only does the transport-level id checks and
 forwards the DTO — it no longer touches an entity or a repository. `SearchController` gets response
-DTOs straight from the service. Request and response DTOs share an `AbstractContentletDTO` base.
+DTOs straight from the service. Request and response DTOs share an `AbstractContentItemDTO` base.
 
-Keep `ContentletEntity` off the HTTP boundary so the service owns domain validation and entity
-construction and the controller is a thin HTTP adapter. Previously `ContentletController` built a
-persistence-coupled `ContentletEntity` on the way in and returned the raw entity on the way out,
+Keep `ContentItemEntity` off the HTTP boundary so the service owns domain validation and entity
+construction and the controller is a thin HTTP adapter. Previously `ContentItemController` built a
+persistence-coupled `ContentItemEntity` on the way in and returned the raw entity on the way out,
 and write-path validation was split between the two layers.
 
 **Problem**:
 
-- `ContentletEntity` is doing the job of four models at once — JSON request target, JSON response
+- `ContentItemEntity` is doing the job of four models at once — JSON request target, JSON response
   body, domain model, and persistence row — carrying both Jackson (`@JsonAnySetter`/`@JsonAnyGetter`)
   and Spring Data (`@Table`, `@Id`, `@PersistenceCreator`, `Persistable`, `isNew`) annotations. So
   the web layer instantiates a persistence-framework object and reasons about persistence lifecycle
@@ -235,25 +235,25 @@ and write-path validation was split between the two layers.
   sit in the controller; domain rules (contentType required/immutable) sit in the service only
   because they need a DB read. The intrinsic-id rule is half in each layer.
 
-**Approach**: keep `ContentletEntity` off the HTTP boundary, and out of the service's public API,
+**Approach**: keep `ContentItemEntity` off the HTTP boundary, and out of the service's public API,
 in both directions.
 
-- *Inbound*: the service accepts a `ContentletDTO` and constructs the `ContentletEntity` internally
-  (via `ContentletMapper`), owning all write-path validation. (An earlier iteration routed an
+- *Inbound*: the service accepts a `ContentItemDTO` and constructs the `ContentItemEntity` internally
+  (via `ContentItemMapper`), owning all write-path validation. (An earlier iteration routed an
   explicit command object between controller and service; see Resolved decisions for why it was
   dropped.)
-- *Outbound*: the service returns a `ContentletResponseDTO`, never the raw `ContentletEntity`.
+- *Outbound*: the service returns a `ContentItemResponseDTO`, never the raw `ContentItemEntity`.
 
-With both in place, `ContentletEntity` no longer needs its Jackson annotations and becomes purely
+With both in place, `ContentItemEntity` no longer needs its Jackson annotations and becomes purely
 the Spring Data persistence model.
 
 **Scope**:
 
-- `ContentletService.create`/`update` accept a `ContentletDTO` and return a `ContentletResponseDTO`;
-  a `ContentletMapper` constructs and reads back the `ContentletEntity`.
-- Controller stops exposing `ContentletEntity` (and stops touching the repository); read endpoints
+- `ContentItemService.create`/`update` accept a `ContentItemDTO` and return a `ContentItemResponseDTO`;
+  a `ContentItemMapper` constructs and reads back the `ContentItemEntity`.
+- Controller stops exposing `ContentItemEntity` (and stops touching the repository); read endpoints
   return response DTOs too.
-- Strip Jackson annotations from `ContentletEntity` once it is neither accepted nor returned over
+- Strip Jackson annotations from `ContentItemEntity` once it is neither accepted nor returned over
   HTTP.
 - Move entity construction and the intrinsic-id "no client id" rule out of the controller.
 - Decide per-check whether it is a transport concern (stays in the controller — e.g. reconciling a
@@ -267,17 +267,17 @@ the Spring Data persistence model.
   beyond decomposing the DTO), so they added a type without earning its keep. The (mild,
   widely-accepted) cost is that the service references a Jackson-annotated type; not worth a third
   type to avoid.
-- A dedicated `ContentletResponseDTO` rather than reusing `ContentletDTO`, with a shared
-  `AbstractContentletDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
+- A dedicated `ContentItemResponseDTO` rather than reusing `ContentItemDTO`, with a shared
+  `AbstractContentItemDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
   any-setter map). Distinct types keep request/response free to diverge later.
-- Entity ↔ DTO mapping lives in a hand-written `ContentletMapper` `@Component` (not MapStruct or a
+- Entity ↔ DTO mapping lives in a hand-written `ContentItemMapper` `@Component` (not MapStruct or a
   Spring `Converter`): the schemaless map defeats MapStruct's codegen advantage, and there is only
   one entity. Revisit if the type/mapping count grows (items 5/6).
 - The id-reconciliation checks (no id on POST, body-id-vs-URL-id on PUT) stayed in the controller
   as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
   required/immutable) stayed in the service.
-- Tests that deserialized responses into `ContentletEntity` now deserialize into
-  `ContentletResponseDTO`; the deeper `WebTestClient` → `MockMvc`/`RestClient` migration remains
+- Tests that deserialized responses into `ContentItemEntity` now deserialize into
+  `ContentItemResponseDTO`; the deeper `WebTestClient` → `MockMvc`/`RestClient` migration remains
   item 4.
 
 **Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
