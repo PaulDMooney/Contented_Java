@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @RestControllerAdvice
-public class ContentItemExceptionHandler extends ResponseEntityExceptionHandler {
+public class    ContentItemExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ContentItemNotFoundException.class)
     ProblemDetail handleNotFound(ContentItemNotFoundException ex) {

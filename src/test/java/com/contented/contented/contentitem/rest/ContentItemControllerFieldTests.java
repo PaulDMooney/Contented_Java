@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem;
+package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import com.contented.contented.contentitem.model.ContentItemEntity;

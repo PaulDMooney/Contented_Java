@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.contentitem.AbstractContentItemControllerTests;
+import com.contented.contented.contentitem.rest.AbstractContentItemControllerTests;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.elasticsearch.SearchResponseDeserializer;

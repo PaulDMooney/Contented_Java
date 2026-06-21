@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem.elasticsearch;
+package com.contented.contented.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.elasticsearch.SearchResponseSerializer;
