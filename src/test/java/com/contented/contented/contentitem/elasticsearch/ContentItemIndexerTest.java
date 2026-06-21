@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem.elasticsearch;
 
-import com.contented.contented.contentitem.ContentItemEntity;
-import com.contented.contented.contentitem.UuidV7;
+import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.elasticsearch.transformation.ESRecordTransformer;
 import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.assertj.core.api.Condition;

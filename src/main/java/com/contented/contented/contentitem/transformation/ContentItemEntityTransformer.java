@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemEntity;
 
 import java.util.function.Predicate;
 
