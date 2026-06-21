@@ -3,6 +3,7 @@
 .*/
 !.mvn/
 !.github/
+!.claude/
 
 HELP.md
 target/
