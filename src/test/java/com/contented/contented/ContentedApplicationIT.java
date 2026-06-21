@@ -1,5 +1,6 @@
 package com.contented.contented;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,7 +19,8 @@ import static com.contented.contented.contentitem.testutils.TestTypeTags.INTEGRA
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest
 @Testcontainers
-class ContentedApplicationTests {
+@DisplayName("ContentedApplication")
+class ContentedApplicationIT {
 
 	@Container
 	static PostgreSQLContainer postgres = postgresContainer();
@@ -29,6 +31,7 @@ class ContentedApplicationTests {
 	}
 
 	@Test
+	@DisplayName("It should load the application context")
 	void contextLoads() {
 	}
 

@@ -5,9 +5,9 @@ import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemMapper;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -20,8 +20,8 @@ class ContentItemMapperTest {
 
     ContentItemMapper mapper = new ContentItemMapper();
 
-    @NestedPerClass
-    @DisplayName("toResponse")
+    @Nested
+    @DisplayName("`toResponse()`")
     class ToResponse {
 
         UUID id = UuidV7.generate();
@@ -34,25 +34,25 @@ class ContentItemMapperTest {
         }
 
         @Test
-        @DisplayName("it should copy the id")
+        @DisplayName("It should copy the `id`")
         void it_should_copy_the_id() {
             assertThat(result.getId()).isEqualTo(id);
         }
 
         @Test
-        @DisplayName("it should copy the contentType")
+        @DisplayName("It should copy the `contentType`")
         void it_should_copy_the_contentType() {
             assertThat(result.getContentType()).isEqualTo("Blog");
         }
 
         @Test
-        @DisplayName("it should copy each schemaless field")
+        @DisplayName("It should copy each schemaless field")
         void it_should_copy_each_schemaless_field() {
             assertThat(result.get()).containsEntry("title", "Hello");
         }
 
         @Test
-        @DisplayName("it should not share the entity's backing map")
+        @DisplayName("It should not share the entity's backing map")
         void it_should_not_share_the_entitys_backing_map() {
             result.add("addedToResponse", "value");
 
@@ -60,8 +60,8 @@ class ContentItemMapperTest {
         }
     }
 
-    @NestedPerClass
-    @DisplayName("toEntity")
+    @Nested
+    @DisplayName("`toEntity()`")
     class ToEntity {
 
         UUID id = UuidV7.generate();
@@ -77,19 +77,19 @@ class ContentItemMapperTest {
         }
 
         @Test
-        @DisplayName("it should copy the id")
+        @DisplayName("It should copy the `id`")
         void it_should_copy_the_id() {
             assertThat(result.getId()).isEqualTo(id);
         }
 
         @Test
-        @DisplayName("it should copy the contentType")
+        @DisplayName("It should copy the `contentType`")
         void it_should_copy_the_contentType() {
             assertThat(result.getContentType()).isEqualTo("Blog");
         }
 
         @Test
-        @DisplayName("it should copy each schemaless field")
+        @DisplayName("It should copy each schemaless field")
         void it_should_copy_each_schemaless_field() {
             assertThat((String) result.get("title")).isEqualTo("Hello");
         }

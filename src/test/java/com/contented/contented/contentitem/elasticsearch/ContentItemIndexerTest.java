@@ -3,12 +3,11 @@ package com.contented.contented.contentitem.elasticsearch;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.elasticsearch.transformation.ESRecordTransformer;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.Nested;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -28,7 +27,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 @DisplayName("ContentItemIndexer")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContentItemIndexerTest {
 
     ContentItemIndexer contentItemIndexer;
@@ -43,19 +41,19 @@ class ContentItemIndexerTest {
             List.of(new MultiEntityContentItemTransformer()));
     }
 
-    @DisplayName("indexContentItem")
-    @NestedPerClass
+    @DisplayName("`indexContentItem()`")
+    @Nested
     class IndexContentItem {
 
-        @DisplayName("Given a contentItem whose transformer spawns multiple ElasticSearch Entities")
-        @NestedPerClass
-        class GivenContentItemWhoseTransformerSpawnsMultipleEntities {
+        @DisplayName("When called with a `contentItem` whose transformer spawns multiple ElasticSearch entities")
+        @Nested
+        class WhenCalledWithMultiEntityContentItem {
 
             ContentItemEntity contentItemEntity = new ContentItemEntity(UuidV7.generate(), "TestMultiEntityContentType",
                 Map.of("identifier", "identifier1"));
 
             @Test
-            @DisplayName("it should pass each entity to the underlying ElasticsearchOperations#save to save them all")
+            @DisplayName("It should pass each entity to the underlying `ElasticsearchOperations#save` to save them all")
             void shouldPassEachEntityToTheUnderlyingElasticsearchOperationsSaveToSaveThemAll() {
 
                 var saveAllArgumentCaptor = ArgumentCaptor.forClass(Iterable.class);
@@ -77,7 +75,7 @@ class ContentItemIndexerTest {
             }
 
             @Test
-            @DisplayName("it should return a list of the entities that were saved")
+            @DisplayName("It should return a list of the entities that were saved")
             void shouldReturnAListOfTheEntitiesThatWereSaved() {
                 // When
                 var result = contentItemIndexer.indexContentItem(contentItemEntity);
@@ -91,15 +89,15 @@ class ContentItemIndexerTest {
 
         }
 
-        @DisplayName("Given a contentItem with no matching transformer")
-        @NestedPerClass
-        class GivenContentItemWithNoMatchingTransformer {
+        @DisplayName("When called with a `contentItem` that matches no transformer")
+        @Nested
+        class WhenCalledWithUnmatchedContentItem {
 
             ContentItemEntity contentItemEntity = new ContentItemEntity(UuidV7.generate(), "TypeWithNoTransformer",
                 Map.of("identifier", "identifier1"));
 
             @Test
-            @DisplayName("it should return an empty list")
+            @DisplayName("It should return an empty list")
             void shouldReturnAnEmptyList() {
                 // When
                 var result = contentItemIndexer.indexContentItem(contentItemEntity);

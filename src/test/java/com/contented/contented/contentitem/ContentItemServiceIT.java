@@ -3,7 +3,6 @@ package com.contented.contented.contentitem;
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,10 +32,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@DisplayName("ContentItemService Integration Tests")
-public class ContentItemServiceIntegrationTests {
+@DisplayName("`ContentItemService` Integration Tests")
+public class ContentItemServiceIT {
 
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
@@ -67,13 +65,13 @@ public class ContentItemServiceIntegrationTests {
         elasticSearchIndexCreator.createIndex();
     }
 
-    @NestedPerClass
-    @DisplayName("save")
-    class Save {
+    @Nested
+    @DisplayName("`create()`")
+    class Create {
 
-        @NestedPerClass
-        @DisplayName("Given content that matches criteria for elastic search transformations")
-        class SavingContentItemWithESTransformations {
+        @Nested
+        @DisplayName("When saving a `contentItem` that matches Elasticsearch transformation criteria")
+        class WhenSavingContentItemMatchingESCriteria {
 
             // contentType = "Blog" will match criteria for a transformation
             ContentItemDTO toSave = newBlogDTO();
@@ -87,29 +85,24 @@ public class ContentItemServiceIntegrationTests {
                 return dto;
             }
 
-            @NestedPerClass
-            @DisplayName("when saving contentItem")
-            class WhenSavingContentItem {
+            ContentItemResponseDTO created;
 
-                ContentItemResponseDTO created;
+            @BeforeAll
+            void when() {
+                created = contentItemService.create(toSave);
+                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, created.getId().toString(), 1);
+            }
 
-                @BeforeAll
-                void beforeAll() {
-                    created = contentItemService.create(toSave);
-                    waitForESDocumentCount(elasticsearchOperations, indexCoordinates, created.getId().toString(), 1);
-                }
+            @Test
+            @DisplayName("It should index the transformed fields into the Elasticsearch record")
+            void es_should_contain_transformations() {
+                CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(created.getId().toString()));
+                var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
 
-                @Test
-                @DisplayName("the elasticsearch record's _source should contain the transformations")
-                void es_should_contain_transformations() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(created.getId().toString()));
-                    var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
+                var hitSource = Objects.requireNonNull(results).get(0).getContent();
 
-                    var hitSource = Objects.requireNonNull(results).get(0).getContent();
-
-                    // This is an expected result from the Blog transformer.
-                    assertThat(hitSource.get("blog.title")).isEqualTo("Blog Title");
-                }
+                // This is an expected result from the Blog transformer.
+                assertThat(hitSource.get("blog.title")).isEqualTo("Blog Title");
             }
         }
     }

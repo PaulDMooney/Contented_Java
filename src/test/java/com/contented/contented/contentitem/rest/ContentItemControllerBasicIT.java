@@ -5,7 +5,6 @@ import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,10 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@DisplayName("ContentItemController basic tests")
-public class ContentItemControllerBasicTests extends AbstractContentItemControllerTests {
+@DisplayName("`ContentItemController` basic tests")
+public class ContentItemControllerBasicIT extends AbstractContentItemControllerIT {
 
     // ContentItemRepository needs a database to communicate with
     @Container
@@ -59,11 +57,11 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
     }
 
     @Nested
-    @DisplayName("POST endpoint")
+    @DisplayName("`POST` endpoint")
     class PostEndPoint {
 
-        @NestedPerClass
-        @DisplayName("when creating a new contentItem")
+        @Nested
+        @DisplayName("When creating a new `contentItem`")
         class CreateANewContentItem {
 
             // Given a body with no id (ids are server-assigned)
@@ -86,25 +84,25 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 201 CREATED status code")
+            @DisplayName("It should return a `201 CREATED` status code")
             void should_return_a_201_CREATED_status_code() {
                 assertThat(result.getStatus()).isEqualTo(HttpStatus.CREATED);
             }
 
             @Test
-            @DisplayName("it should return a Location header for the new contentItem")
+            @DisplayName("It should return a `Location` header for the new `contentItem`")
             void should_return_a_location_header() {
                 assertThat(result.getResponseHeaders().getLocation()).isNotNull();
             }
 
             @Test
-            @DisplayName("it should return the contentItem with a generated id")
+            @DisplayName("It should return the `contentItem` with a generated `id`")
             void should_return_a_generated_id() {
                 assertThat(result.getResponseBody().getId()).isNotNull();
             }
 
             @Test
-            @DisplayName("it should have saved the contentItem to the database")
+            @DisplayName("It should have saved the `contentItem` to the database")
             void should_have_saved_the_content_item_to_the_database() {
                 var savedContentItem = contentItemRepository.findById(result.getResponseBody().getId());
 
@@ -112,8 +110,8 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
         }
 
-        @NestedPerClass
-        @DisplayName("when creating a contentItem with a client-supplied id")
+        @Nested
+        @DisplayName("When creating a `contentItem` with a client-supplied `id`")
         class CreateWithSuppliedId {
 
             ContentItemDTO toCreate = new ContentItemDTO(UuidV7.generate());
@@ -128,13 +126,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 400 BAD REQUEST status code")
+            @DisplayName("It should return a `400 BAD REQUEST` status code")
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
             }
 
             @Test
-            @DisplayName("it should return a problem detail body")
+            @DisplayName("It should return a problem detail body")
             void should_return_a_problem_detail_body() {
                 response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .expectBody()
@@ -143,8 +141,8 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
         }
 
-        @NestedPerClass
-        @DisplayName("when creating a contentItem with no contentType")
+        @Nested
+        @DisplayName("When creating a `contentItem` with no `contentType`")
         class CreateWithoutContentType {
 
             // Given a body with no contentType
@@ -162,13 +160,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 400 BAD REQUEST status code")
+            @DisplayName("It should return a `400 BAD REQUEST` status code")
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
             }
 
             @Test
-            @DisplayName("it should return a problem detail body")
+            @DisplayName("It should return a problem detail body")
             void should_return_a_problem_detail_body() {
                 response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .expectBody()
@@ -179,11 +177,11 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
     }
 
     @Nested
-    @DisplayName("PUT /{id} endpoint")
+    @DisplayName("`PUT /{id}` endpoint")
     class PutEndPoint {
 
-        @NestedPerClass
-        @DisplayName("when updating a contentItem that exists")
+        @Nested
+        @DisplayName("When called with a `contentItem` that already exists in the database (same `id`)")
         class UpdateExistingContentItem {
 
             // Given an existing contentItem
@@ -208,13 +206,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 200 OK status code")
+            @DisplayName("It should return a `200 OK` status code")
             void should_return_a_200_OK_status_code() {
                 response.expectStatus().isOk();
             }
 
             @Test
-            @DisplayName("it should have updated the contentItem in the database")
+            @DisplayName("It should update the `contentItem` in the database")
             void should_have_updated_the_content_item() {
                 var savedContentItem = contentItemRepository.findById(existing.getId());
 
@@ -223,8 +221,8 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
         }
 
-        @NestedPerClass
-        @DisplayName("when updating a contentItem that does not exist")
+        @Nested
+        @DisplayName("When called with a `contentItem` that does not exist in the database (no match on `id`)")
         class UpdateNonExistentContentItem {
 
             WebTestClient.ResponseSpec response;
@@ -246,13 +244,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 404 NOT FOUND status code")
+            @DisplayName("It should return a `404 NOT FOUND` status code")
             void should_return_a_404() {
                 response.expectStatus().isNotFound();
             }
 
             @Test
-            @DisplayName("it should return a problem detail body")
+            @DisplayName("It should return a problem detail body")
             void should_return_a_problem_detail_body() {
                 response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .expectBody()
@@ -261,8 +259,8 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
         }
 
-        @NestedPerClass
-        @DisplayName("when the body id does not match the URL id")
+        @Nested
+        @DisplayName("When the body `id` does not match the URL `id`")
         class UpdateWithMismatchedBodyId {
 
             WebTestClient.ResponseSpec response;
@@ -279,13 +277,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 400 BAD REQUEST status code")
+            @DisplayName("It should return a `400 BAD REQUEST` status code")
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
             }
 
             @Test
-            @DisplayName("it should return a problem detail body")
+            @DisplayName("It should return a problem detail body")
             void should_return_a_problem_detail_body() {
                 response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .expectBody()
@@ -294,8 +292,8 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
         }
 
-        @NestedPerClass
-        @DisplayName("when changing the contentType of an existing contentItem")
+        @Nested
+        @DisplayName("When `contentType` supplied does not match the `contentType` of the existing `contentItem`")
         class UpdateChangingContentType {
 
             // Given an existing contentItem whose contentType is "Blog"
@@ -319,13 +317,13 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 400 BAD REQUEST status code")
+            @DisplayName("It should return a `400 BAD REQUEST` status code")
             void should_return_a_400() {
                 response.expectStatus().isBadRequest();
             }
 
             @Test
-            @DisplayName("it should return a problem detail body")
+            @DisplayName("It should return a problem detail body")
             void should_return_a_problem_detail_body() {
                 response.expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .expectBody()
@@ -336,11 +334,11 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
     }
 
     @Nested
-    @DisplayName("GET /all endpoint")
+    @DisplayName("`GET /all` endpoint")
     class GetALLEndpoint {
 
         @Test
-        @DisplayName("should return all saved contentItems")
+        @DisplayName("It should return all saved `contentItems`")
         void should_return_all_saved_content_items() {
 
             // Given
@@ -356,8 +354,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
     }
 
     @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    @DisplayName("GET /{id} endpoint")
+    @DisplayName("`GET /{id}` endpoint")
     class GetByIdEndpoint {
 
         ContentItemEntity savedContentItem = new ContentItemEntity(UuidV7.generate(), "SomeType", Map.of());
@@ -370,8 +367,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
         }
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("when querying existing content by id")
+        @DisplayName("When called with an `id` for an existing `contentItem`")
         class ExistingContent {
 
             WebTestClient.ResponseSpec response;
@@ -384,7 +380,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 200 OK status code")
+            @DisplayName("It should return a `200 OK` status code")
             void it_should_return_a_200_OK_status_code() {
 
                 // Then
@@ -393,7 +389,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return the contentItem for that id")
+            @DisplayName("It should return the `contentItem` for that `id`")
             void it_should_return_the_content_item_for_that_id() {
                 // Then
                 response.expectBody(ContentItemResponseDTO.class)
@@ -405,8 +401,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
         }
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("when querying non-existent content by id")
+        @DisplayName("When called with an `id` not belonging to any existing `contentItem`")
         class NonExistentContent {
 
             WebTestClient.ResponseSpec response;
@@ -419,7 +414,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 404")
+            @DisplayName("It should return a `404`")
             void it_should_return_a_404() {
 
                 // Then
@@ -429,12 +424,11 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
     }
 
     @Nested
-    @DisplayName("DELETE endpoint")
+    @DisplayName("`DELETE /{id}` endpoint")
     class DeleteEndPoint {
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("Given content which already exists in the database")
+        @DisplayName("When called with an `id` for existing `contentItem` in the database")
         class DeleteAContentItem {
 
             // Given
@@ -456,7 +450,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should return a 200 OK status code")
+            @DisplayName("It should return a `200 OK` status code")
             void should_return_a_200_OK_status_code() {
 
                 // Then
@@ -465,7 +459,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should have deleted the contentItem from the database")
+            @DisplayName("It should delete the `contentItem` from the database")
             void should_have_deleted_the_content_item_from_the_database() {
 
                 // Then contentItemRepository should not return the deleted contentItem
@@ -474,8 +468,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
         }
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("Given content which does not exist in the database")
+        @DisplayName("When called with an `id` that does not belong to any `contentItem` in the database")
         class DeleteNonExistentContentItem {
 
             // Given
@@ -493,7 +486,7 @@ public class ContentItemControllerBasicTests extends AbstractContentItemControll
 
             // TODO: Should update to return a 204
             @Test
-            @DisplayName("it should return a 200 status code")
+            @DisplayName("It should return a `200` status code")
             void should_return_a_200_status_code() {
 
                 // Then

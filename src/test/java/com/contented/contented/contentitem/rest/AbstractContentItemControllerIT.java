@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-public abstract class AbstractContentItemControllerTests {
+public abstract class AbstractContentItemControllerIT {
 
     @LocalServerPort
     protected int port;

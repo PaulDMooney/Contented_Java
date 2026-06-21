@@ -2,7 +2,6 @@ package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +35,9 @@ import static com.contented.contented.contentitem.testutils.TestTypeTags.INTEGRA
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@DisplayName("ContentItemController search indexing tests")
-public class ContentItemControllerSearchIndexTests extends AbstractContentItemControllerTests {
+@DisplayName("`ContentItemController` search indexing tests")
+public class ContentItemControllerSearchIndexIT extends AbstractContentItemControllerIT {
 
     public static final String INDEX_NAME = "controller-test-index1";
 
@@ -73,11 +71,11 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
     record SomeContentItem(String id, String contentType, String title, String body) {
     }
 
-    @NestedPerClass
-    @DisplayName("POST endpoint")
+    @Nested
+    @DisplayName("`POST` endpoint")
     class PostEndpoint {
-        @NestedPerClass
-        @DisplayName("Given content that is indexed by its identifier was saved")
+        @Nested
+        @DisplayName("Given content that is indexed by its `identifier` was saved")
         class GivenContentIndexedByIdentifier {
 
             // Given a body with no id (ids are server-assigned)
@@ -94,7 +92,7 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
                 waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
 
-            @NestedPerClass
+            @Nested
             @DisplayName("When a search for any content is performed")
             class WhenSearchForAnyContent {
 
@@ -107,14 +105,14 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
                 }
 
                 @Test
-                @DisplayName("Then at least one hit is returned")
+                @DisplayName("It should return at least one hit")
                 void thenAtLeastOneHitIsReturned() {
                     Assertions.assertThat(results).isNotEmpty();
                 }
             }
 
-            @NestedPerClass
-            @DisplayName("When a search is performed by its identifier")
+            @Nested
+            @DisplayName("When a search is performed by its `identifier`")
             class WhenSearchByIdentifier {
 
                 List<SearchHit<EntityAsMap>> results;
@@ -128,7 +126,7 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
                 }
 
                 @Test
-                @DisplayName("Then a hit with the same identifier is returned")
+                @DisplayName("It should return a hit with the same `identifier`")
                 void thenContentIsReturned() {
                     Assertions.assertThat(results).hasSize(1);
                     Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", createdId.toString());
@@ -137,12 +135,12 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
         }
     }
 
-    @NestedPerClass
-    @DisplayName("DELETE endpoint")
+    @Nested
+    @DisplayName("`DELETE` endpoint")
     class DeleteEndpoint {
 
-        @NestedPerClass
-        @DisplayName("Given content that is indexed by its identifier was saved")
+        @Nested
+        @DisplayName("Given content that is indexed by its `identifier` was saved")
         class GivenContentIndexedByIdentifier {
 
             // Given a body with no id (ids are server-assigned)
@@ -161,8 +159,8 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
                 waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
 
-            @NestedPerClass
-            @DisplayName("when the content is deleted")
+            @Nested
+            @DisplayName("When the content is deleted")
             class AndThenContentIsDeleted {
 
                 @BeforeAll
@@ -172,9 +170,8 @@ public class ContentItemControllerSearchIndexTests extends AbstractContentItemCo
                     waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 0);
                 }
 
-//                @Disabled
                 @Test
-                @DisplayName("then the content should not longer be found when searching by its identifier")
+                @DisplayName("It should no longer be found when searching by its `identifier`")
                 void then_the_content_should_not_longer_be_found() {
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(createdId.toString()));
                     List<SearchHit<EntityAsMap>> results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))

@@ -23,10 +23,9 @@ import static com.contented.contented.contentitem.testutils.PostgresContainerUti
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@DisplayName("ContentItemController field tests")
-public class ContentItemControllerFieldTests extends AbstractContentItemControllerTests {
+@DisplayName("`ContentItemController` field tests")
+public class ContentItemControllerFieldIT extends AbstractContentItemControllerIT {
 
     // ContentItemRepository needs a database to communicate with
     @Container
@@ -41,13 +40,11 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
     }
 
     @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    @DisplayName("POST endpoint")
+    @DisplayName("`POST` endpoint")
     class PostEndPoint {
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("when creating a contentItem with fields")
+        @DisplayName("When creating a `contentItem` with fields")
         class CreateANewContentItem {
 
             // Given a body with no id (ids are server-assigned)
@@ -70,7 +67,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
             }
 
             @Test
-            @DisplayName("it should save the contentItem with its given fields")
+            @DisplayName("It should save the `contentItem` with its given fields")
             void it_should_save_the_content_item_with_its_given_fields() {
 
                 ContentItemEntity savedEntity = contentItemRepository.findById(createdId).orElseThrow();
@@ -82,12 +79,11 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
     }
 
     @Nested
-    @DisplayName("GET /{id} endpoint")
+    @DisplayName("`GET /{id}` endpoint")
     class GetByIdEndPoint {
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("given a contentItem with fields was saved")
+        @DisplayName("Given a `contentItem` with fields was saved")
         class GivenAContentItemWithFieldsWasSaved {
             // Given a body with no id (ids are server-assigned)
             SomethingThatLooksLikeAContentItem toSave =
@@ -109,8 +105,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
             }
 
             @Nested
-            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-            @DisplayName("when getting that contentItem with fields")
+            @DisplayName("When getting that `contentItem` with fields")
             class GetAContentItem {
 
                 WebTestClient.ResponseSpec response;
@@ -128,7 +123,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
                 }
 
                 @Test
-                @DisplayName("it should return the contentItem with its fields")
+                @DisplayName("It should return the `contentItem` with its fields")
                 void it_should_return_the_content_item_with_its_fields() {
 
                     // Then
@@ -144,8 +139,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
         }
 
         @Nested
-        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-        @DisplayName("given a contentItem with complex fields was saved")
+        @DisplayName("Given a `contentItem` with complex fields was saved")
         class GivenAContentItemWithComplexFieldsWasSaved {
 
             record ContentItemWithComplexFields(String id, String contentType, List<String> strings, List<ComplexField> stuff) {
@@ -178,8 +172,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
             }
 
             @Nested
-            @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-            @DisplayName("when getting that contentItem with complex fields")
+            @DisplayName("When getting that `contentItem` with complex fields")
             class GetContentItemWithComplexFields {
 
                 WebTestClient.ResponseSpec response;
@@ -198,7 +191,7 @@ public class ContentItemControllerFieldTests extends AbstractContentItemControll
                 }
 
                 @Test
-                @DisplayName("it should return the contentItem with its complex fields")
+                @DisplayName("It should return the `contentItem` with its complex fields")
                 void it_should_return_the_content_item_with_its_complex_fields() {
 
                     // Then
