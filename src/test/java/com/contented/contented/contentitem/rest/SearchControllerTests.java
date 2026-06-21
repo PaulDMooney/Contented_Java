@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem.elasticsearch;
+package com.contented.contented.contentitem.rest;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.contented.contented.contentitem.rest.AbstractContentItemControllerTests;

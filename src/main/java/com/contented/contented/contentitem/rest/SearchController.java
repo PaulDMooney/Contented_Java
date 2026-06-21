@@ -1,4 +1,4 @@
-package com.contented.contented.contentitem.elasticsearch;
+package com.contented.contented.contentitem.rest;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
