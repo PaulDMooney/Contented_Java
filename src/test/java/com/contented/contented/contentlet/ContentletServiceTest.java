@@ -37,7 +37,14 @@ public class ContentletServiceTest {
         var contentletIndexer = new ContentletIndexer(elasticsearchOperations, mock(IndexCoordinates.class), List.of(new BlogTransformer()));
         Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
-        return new ContentletService(repository, contentletIndexer, transformationHandler);
+        return new ContentletService(repository, contentletIndexer, transformationHandler, new ContentletMapper());
+    }
+
+    static ContentletDTO dto(UUID id, String contentType, Map<String, Object> fields) {
+        var dto = new ContentletDTO(id);
+        dto.setContentType(contentType);
+        fields.forEach(dto::add);
+        return dto;
     }
 
     @NestedPerClass
@@ -48,8 +55,8 @@ public class ContentletServiceTest {
         ContentletService contentletService;
 
         // A contentType that matches no transformer keeps this a pass-through save.
-        ContentletEntity toCreate = new ContentletEntity(null, "SomeType", Map.of());
-        ContentletEntity created;
+        ContentletDTO toCreate = dto(null, "SomeType", Map.of());
+        ContentletResponseDTO created;
 
         @BeforeAll
         void beforeAll() {
@@ -62,7 +69,7 @@ public class ContentletServiceTest {
         @Test
         @DisplayName("it should save the contentlet")
         void should_save_contentlet() {
-            verify(repository, times(1)).save(toCreate);
+            verify(repository, times(1)).save(any(ContentletEntity.class));
         }
 
         @Test
@@ -72,9 +79,12 @@ public class ContentletServiceTest {
         }
 
         @Test
-        @DisplayName("it should mark the contentlet as new")
+        @DisplayName("it should mark the saved contentlet as new")
         void should_mark_the_contentlet_as_new() {
-            assertThat(created.isNew()).isTrue();
+            var argumentCaptor = ArgumentCaptor.forClass(ContentletEntity.class);
+            verify(repository).save(argumentCaptor.capture());
+
+            assertThat(argumentCaptor.getValue().isNew()).isTrue();
         }
     }
 
@@ -85,9 +95,7 @@ public class ContentletServiceTest {
         ContentletRepository repository = Mockito.mock(ContentletRepository.class);
         ContentletService contentletService;
 
-        ContentletEntity toCreate = new ContentletEntity(null, "Blog",
-            Map.ofEntries(
-                entry("language", "EN")));
+        ContentletDTO toCreate = dto(null, "Blog", Map.ofEntries(entry("language", "EN")));
 
         @BeforeAll
         void beforeAll() {
@@ -126,8 +134,8 @@ public class ContentletServiceTest {
             ContentletService contentletService;
 
             UUID id = UuidV7.generate();
-            ContentletEntity toUpdate = new ContentletEntity(id, "SomeType", Map.of());
-            Optional<ContentletEntity> result;
+            ContentletDTO toUpdate = dto(id, "SomeType", Map.of());
+            Optional<ContentletResponseDTO> result;
 
             @BeforeAll
             void beforeAll() {
@@ -143,7 +151,7 @@ public class ContentletServiceTest {
             @Test
             @DisplayName("it should save the contentlet")
             void should_save_contentlet() {
-                verify(repository, times(1)).save(toUpdate);
+                verify(repository, times(1)).save(any(ContentletEntity.class));
             }
 
             @Test
@@ -162,7 +170,7 @@ public class ContentletServiceTest {
             ContentletService contentletService;
 
             UUID id = UuidV7.generate();
-            Optional<ContentletEntity> result;
+            Optional<ContentletResponseDTO> result;
 
             @BeforeAll
             void beforeAll() {
@@ -171,7 +179,7 @@ public class ContentletServiceTest {
                 // Given the repository has no contentlet for this id (findById returns empty by default)
 
                 // When
-                result = contentletService.update(id, new ContentletEntity(id, "SomeType", Map.of()));
+                result = contentletService.update(id, dto(id, "SomeType", Map.of()));
             }
 
             @Test
@@ -205,7 +213,7 @@ public class ContentletServiceTest {
                 when(repository.findById(id)).thenReturn(Optional.of(new ContentletEntity(id, "Blog", Map.of())));
 
                 // When an update supplies a different contentType
-                thrown = catchThrowable(() -> contentletService.update(id, new ContentletEntity(id, "News", Map.of())));
+                thrown = catchThrowable(() -> contentletService.update(id, dto(id, "News", Map.of())));
             }
 
             @Test
@@ -236,7 +244,7 @@ public class ContentletServiceTest {
             contentletService = newServiceWith(repository);
 
             // When creating without a contentType
-            thrown = catchThrowable(() -> contentletService.create(new ContentletEntity(null, null, Map.of())));
+            thrown = catchThrowable(() -> contentletService.create(dto(null, null, Map.of())));
         }
 
         @Test

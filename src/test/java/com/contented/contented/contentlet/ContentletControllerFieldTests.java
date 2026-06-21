@@ -63,7 +63,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 // When
                 createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
             }
 
@@ -102,7 +102,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 // When
                 createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
             }
 
@@ -170,7 +170,7 @@ public class ContentletControllerFieldTests extends AbstractContentletController
                 // Given a body with no id (ids are server-assigned)
                 createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
 
             }

@@ -65,7 +65,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             // Given a body with no id (ids are server-assigned)
             ContentletDTO toCreate = new ContentletDTO();
 
-            EntityExchangeResult<ContentletEntity> result;
+            EntityExchangeResult<ContentletResponseDTO> result;
 
             @BeforeAll()
             void beforeAll() {
@@ -77,7 +77,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
                 result = contentletEndpointClient.post()
                         .bodyValue(toCreate)
                         .exchange()
-                        .expectBody(ContentletEntity.class)
+                        .expectBody(ContentletResponseDTO.class)
                         .returnResult();
             }
 
@@ -392,7 +392,7 @@ public class ContentletControllerBasicTests extends AbstractContentletController
             @DisplayName("it should return the contentlet for that id")
             void it_should_return_the_contentlet_for_that_id() {
                 // Then
-                response.expectBody(ContentletDTO.class)
+                response.expectBody(ContentletResponseDTO.class)
                         .value(contentletDTO -> {
                             // TODO: More detailed assert that includes checks of more fields.
                             assertThat(contentletDTO.getId()).isEqualTo(savedContentlet.getId());

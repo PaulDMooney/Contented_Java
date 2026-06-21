@@ -21,37 +21,40 @@ public class ContentletService {
 
     private final TransformationHandler transformationHandler;
 
-    public ContentletService(ContentletRepository contentletRepository, ContentletIndexer contentletIndexer, TransformationHandler transformationHandler) {
+    private final ContentletMapper contentletMapper;
+
+    public ContentletService(ContentletRepository contentletRepository, ContentletIndexer contentletIndexer, TransformationHandler transformationHandler, ContentletMapper contentletMapper) {
         this.contentletRepository = contentletRepository;
         this.contentletIndexer = contentletIndexer;
         this.transformationHandler = transformationHandler;
+        this.contentletMapper = contentletMapper;
     }
 
-    public ContentletEntity create(ContentletEntity contentletEntity) {
-        requireContentType(contentletEntity);
-        var toSave = transformationHandler.applyTransformation(contentletEntity);
+    public ContentletResponseDTO create(ContentletDTO dto) {
+        requireContentType(dto.getContentType());
+        var toSave = transformationHandler.applyTransformation(contentletMapper.toEntity(dto));
         toSave.setId(UuidV7.generate());
         toSave.setNew(true);
         var saved = contentletRepository.save(toSave);
         log.info("Created contentlet: `{}` successfully", saved.getId());
         saveToES(saved);
-        return saved;
+        return contentletMapper.toResponse(saved);
     }
 
-    public Optional<ContentletEntity> update(UUID id, ContentletEntity contentletEntity) {
-        requireContentType(contentletEntity);
+    public Optional<ContentletResponseDTO> update(UUID id, ContentletDTO dto) {
+        requireContentType(dto.getContentType());
         var existing = contentletRepository.findById(id);
         if (existing.isEmpty()) {
             log.info("Contentlet `{}` not found; nothing to update", id);
             return Optional.empty();
         }
         // A contentlet's contentType is fixed at creation.
-        if (!existing.get().getContentType().equalsIgnoreCase(contentletEntity.getContentType())) {
+        if (!existing.get().getContentType().equalsIgnoreCase(dto.getContentType())) {
             throw new InvalidContentletException(
                 "A contentlet's contentType cannot be changed; `" + existing.get().getContentType()
-                    + "` was created, `" + contentletEntity.getContentType() + "` was supplied.");
+                    + "` was created, `" + dto.getContentType() + "` was supplied.");
         }
-        var toSave = transformationHandler.applyTransformation(contentletEntity);
+        var toSave = transformationHandler.applyTransformation(contentletMapper.toEntity(dto));
         toSave.setId(id);
         // Preserve the stored contentType so its casing never drifts on update.
         toSave.setContentType(existing.get().getContentType());
@@ -59,11 +62,11 @@ public class ContentletService {
         var saved = contentletRepository.save(toSave);
         log.info("Updated contentlet: `{}` successfully", saved.getId());
         saveToES(saved);
-        return Optional.of(saved);
+        return Optional.of(contentletMapper.toResponse(saved));
     }
 
-    private void requireContentType(ContentletEntity contentletEntity) {
-        if (StringUtils.isBlank(contentletEntity.getContentType())) {
+    private void requireContentType(String contentType) {
+        if (StringUtils.isBlank(contentType)) {
             throw new InvalidContentletException("A contentlet must have a contentType.");
         }
     }
@@ -96,7 +99,13 @@ public class ContentletService {
         log.info("Deleted contentlet: `{}` successfully", id);
     }
 
-    public Optional<ContentletEntity> findById(UUID id) {
+    public List<ContentletResponseDTO> findAll() {
+        return contentletRepository.findAll().stream()
+            .map(contentletMapper::toResponse)
+            .toList();
+    }
+
+    public Optional<ContentletResponseDTO> findById(UUID id) {
         log.debug("Finding contentlet: {}", id);
         var result = contentletRepository.findById(id);
         if (result.isPresent()) {
@@ -104,11 +113,13 @@ public class ContentletService {
         } else {
             log.debug("contentlet: `{}` not found", id);
         }
-        return result;
+        return result.map(contentletMapper::toResponse);
     }
 
-    public List<ContentletEntity> findByIds(List<UUID> ids) {
+    public List<ContentletResponseDTO> findByIds(List<UUID> ids) {
         log.debug("Finding {} contentlets", ids.size());
-        return contentletRepository.findAllById(ids);
+        return contentletRepository.findAllById(ids).stream()
+            .map(contentletMapper::toResponse)
+            .toList();
     }
 }

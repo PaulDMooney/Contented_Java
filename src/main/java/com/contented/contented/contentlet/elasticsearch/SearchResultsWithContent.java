@@ -1,8 +1,7 @@
 package com.contented.contented.contentlet.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.ResponseBody;
-import com.contented.contented.contentlet.ContentletEntity;
+import com.contented.contented.contentlet.ContentletResponseDTO;
 
 import java.util.List;
 
@@ -11,5 +10,5 @@ import java.util.List;
 // that registration with a reflectively-created instance, bypassing the injected JsonpMapper.
 public record SearchResultsWithContent<T>(
     SearchResponse<T> esResponse,
-    List<ContentletEntity> contentlets) {
+    List<ContentletResponseDTO> contentlets) {
 }

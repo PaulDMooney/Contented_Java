@@ -14,40 +14,35 @@ public class ContentletController {
 
     public static final String CONTENTLETS_PATH = "contentlets";
 
-    final ContentletRepository contentletRepository;
-
     final ContentletService contentletService;
 
     @Autowired
-    public ContentletController(ContentletRepository contentletRepository, ContentletService contentletService) {
-        this.contentletRepository = contentletRepository;
+    public ContentletController(ContentletService contentletService) {
         this.contentletService = contentletService;
     }
 
     @GetMapping("/all")
-    List<ContentletEntity> getAll() {
+    List<ContentletResponseDTO> getAll() {
         // TODO: Replace this with a paginated version in the future
-        return contentletRepository.findAll();
+        return contentletService.findAll();
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<ContentletEntity> findById(@PathVariable UUID id) {
+    ResponseEntity<ContentletResponseDTO> findById(@PathVariable UUID id) {
         return contentletService.findById(id)
-                .map(contentletEntity -> ResponseEntity.ok(contentletEntity))
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentletNotFoundException(id));
     }
 
     @PostMapping
-    ResponseEntity<ContentletEntity> createContentlet(@RequestBody ContentletDTO contentletDTO,
-                                                      UriComponentsBuilder uriBuilder) {
+    ResponseEntity<ContentletResponseDTO> createContentlet(@RequestBody ContentletDTO contentletDTO,
+                                                           UriComponentsBuilder uriBuilder) {
         // Ids are server-assigned; a client must not supply one when creating.
         if (contentletDTO.getId() != null) {
             throw new InvalidContentletException(
                     "A contentlet id must not be supplied when creating; ids are server-assigned.");
         }
-        ContentletEntity toSave = new ContentletEntity(null, contentletDTO.getContentType(), contentletDTO.get());
-
-        var created = contentletService.create(toSave);
+        var created = contentletService.create(contentletDTO);
         var location = uriBuilder.path("/{base}/{id}")
                 .buildAndExpand(CONTENTLETS_PATH, created.getId())
                 .toUri();
@@ -55,17 +50,15 @@ public class ContentletController {
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<ContentletEntity> updateContentlet(@PathVariable UUID id,
-                                                      @RequestBody ContentletDTO contentletDTO) {
+    ResponseEntity<ContentletResponseDTO> updateContentlet(@PathVariable UUID id,
+                                                           @RequestBody ContentletDTO contentletDTO) {
         // The URL is the source of truth for identity; a body id must agree with it.
         if (contentletDTO.getId() != null && !contentletDTO.getId().equals(id)) {
             throw new InvalidContentletException(
                     "The body id `" + contentletDTO.getId() + "` does not match the URL id `" + id + "`.");
         }
-        ContentletEntity toSave = new ContentletEntity(id, contentletDTO.getContentType(), contentletDTO.get());
-
-        return contentletService.update(id, toSave)
-                .map(updated -> ResponseEntity.ok(updated))
+        return contentletService.update(id, contentletDTO)
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentletNotFoundException(id));
     }
 

@@ -1,8 +1,5 @@
 package com.contented.contented.contentlet;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.annotation.Transient;
@@ -23,13 +20,11 @@ public class ContentletEntity implements Persistable<UUID> {
 
     private String contentType;
 
-    @JsonIgnore
     private SchemalessData data;
 
     // Drives Spring Data JDBC's INSERT-vs-UPDATE choice for our assigned (non-generated) ids;
     // create sets it true, update sets it false, and a DB-loaded row is constructed as not-new.
     @Transient
-    @JsonIgnore
     private boolean isNew = true;
 
     private ContentletEntity(UUID id, String contentType, SchemalessData data, boolean isNew) {
@@ -37,12 +32,6 @@ public class ContentletEntity implements Persistable<UUID> {
         this.contentType = contentType;
         this.data = data;
         this.isNew = isNew;
-    }
-
-    // Required by Jackson to deserialize a contentlet from JSON: id/contentType land via their
-    // setters, everything else via @JsonAnySetter. (Spring Data uses the @PersistenceCreator factory.)
-    public ContentletEntity() {
-        this(null, null, new SchemalessData(), true);
     }
 
     public ContentletEntity(UUID id, String contentType, Map<String, Object> schemalessData) {
@@ -72,7 +61,6 @@ public class ContentletEntity implements Persistable<UUID> {
     }
 
     @Override
-    @JsonIgnore
     public boolean isNew() {
         return isNew;
     }
@@ -81,12 +69,6 @@ public class ContentletEntity implements Persistable<UUID> {
         this.isNew = isNew;
     }
 
-    @JsonAnySetter
-    public void add(String key, Object value) {
-        data.put(key, value);
-    }
-
-    @JsonAnyGetter
     public Map<String, Object> getSchemalessData() {
         return data.values();
     }

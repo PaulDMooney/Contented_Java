@@ -88,7 +88,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             void given() {
                 createdId = contentletEndpointClient.post().bodyValue(toSave).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
                 waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
@@ -155,7 +155,7 @@ public class ContentletControllerSearchIndexTests extends AbstractContentletCont
             void given() {
                 createdId = contentletEndpointClient.post().bodyValue(toDelete).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentletEntity.class)
+                    .expectBody(ContentletResponseDTO.class)
                     .returnResult().getResponseBody().getId();
                 waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
             }
