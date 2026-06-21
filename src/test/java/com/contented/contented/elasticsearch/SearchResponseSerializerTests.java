@@ -1,8 +1,7 @@
 package com.contented.contented.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.elasticsearch.SearchResponseSerializer;
-import tools.jackson.databind.annotation.JsonSerialize;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.DisplayName;
@@ -80,7 +79,7 @@ public class SearchResponseSerializerTests {
         @DisplayName("it should serialize a SearchResponse to JSON")
         public void it_should_serialize_a_SearchResponse_to_JSON() {
             var module = new SimpleModule();
-            module.addSerializer(SearchResponse.class, new SearchResponseSerializer());
+            module.addSerializer(SearchResponse.class, new SearchResponseSerializer(new Jackson3JsonpMapper()));
             var objectMapper = JsonMapper.builder().addModule(module).build();
 
             String serialized = objectMapper.writeValueAsString(exampleSearchResponseObj);
@@ -89,25 +88,6 @@ public class SearchResponseSerializerTests {
             assertThat(serialized).contains("\"hits\""); // an expected property inside of SearchResponse
         }
 
-    }
-
-    @Nested
-    @DisplayName("When serializing an Object with a SearchResponseSerializer annotated field")
-    class SerializingViaAnnotation {
-
-        record ToSerialize(@JsonSerialize(using = SearchResponseSerializer.class) SearchResponse myResponse) {}
-
-        @Test
-        @DisplayName("it should serialize the SearchResponse field")
-        public void it_should_serialize_the_SearchResponse_field() {
-            var objectMapper = JsonMapper.builder().build();
-
-            var toSerialize = new ToSerialize(exampleSearchResponseObj);
-            String serialized = objectMapper.writeValueAsString(toSerialize);
-            assertThat(serialized).isNotBlank();
-            assertThat(serialized).isNotEqualTo("{}");
-            assertThat(serialized).contains("\"hits\""); // an expected property inside of SearchResponse
-        }
     }
 
     @Nested
@@ -126,7 +106,7 @@ public class SearchResponseSerializerTests {
         @DisplayName("it should serialize a SearchResponse to JSON")
         public void it_should_serialize_a_SearchResponse_to_JSON() {
             var module = new SimpleModule();
-            module.addSerializer(SearchResponse.class, new SearchResponseSerializer());
+            module.addSerializer(SearchResponse.class, new SearchResponseSerializer(new Jackson3JsonpMapper()));
             var objectMapper = JsonMapper.builder().addModule(module).build();
 
             String serialized = objectMapper.writeValueAsString(exampleSearchResponseObj);

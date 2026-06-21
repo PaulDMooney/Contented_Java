@@ -14,11 +14,6 @@ public class SearchResponseSerializer<T> extends StdSerializer<SearchResponse<T>
 
     private final Jackson3JsonpMapper jsonpMapper;
 
-    // For instantiation by Jackson via @JsonSerialize(using = ...), where injection isn't possible
-    public SearchResponseSerializer() {
-        this(new Jackson3JsonpMapper());
-    }
-
     @Autowired
     public SearchResponseSerializer(Jackson3JsonpMapper jsonpMapper) {
         super(SearchResponse.class);

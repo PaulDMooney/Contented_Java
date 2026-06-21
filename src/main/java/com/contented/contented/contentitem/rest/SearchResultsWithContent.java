@@ -6,8 +6,9 @@ import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import java.util.List;
 
 // esResponse is serialized by the SearchResponseSerializer @JacksonComponent, registered with
-// the application's central JsonMapper. A field-level @JsonSerialize(using = ...) would override
-// that registration with a reflectively-created instance, bypassing the injected JsonpMapper.
+// the application's central JsonMapper. The serializer has no no-arg constructor, so it can only
+// be built with the injected JsonpMapper — a field-level @JsonSerialize(using = ...) won't compile
+// a working path here, which keeps the injected mapper as the only one ever used.
 public record SearchResultsWithContent<T>(
     SearchResponse<T> esResponse,
     List<ContentItemResponseDTO> contentItems) {

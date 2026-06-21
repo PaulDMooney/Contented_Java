@@ -1,9 +1,8 @@
 package com.contented.contented.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.elasticsearch.SearchResponseDeserializer;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import tools.jackson.databind.DatabindException;
-import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.DisplayName;
@@ -74,7 +73,7 @@ public class SearchResponseDeserializerTests {
         @DisplayName("it should deserialize a SearchResponse from JSON")
         public void it_should_deserialize_a_SearchResponse_from_JSON() {
             var module = new SimpleModule();
-            module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer());
+            module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer(new Jackson3JsonpMapper()));
             var objectMapper = JsonMapper.builder().addModule(module).build();
 
             var searchResponse = objectMapper.readValue(exampleSearchResponse, SearchResponse.class);
@@ -86,31 +85,4 @@ public class SearchResponseDeserializerTests {
         }
     }
 
-    @Nested
-    @DisplayName("When deserializing an Object with a SearchResponseDeserializer annotated field")
-    class DeserializingViaAnnotation {
-
-        final String wrapperJSON = """
-        {
-            "searchResponse": %s
-        }
-""";
-        record SearchResponseAnnotated(
-            @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse<?> searchResponse) {}
-
-        @Test
-        @DisplayName("it should deserialize a SearchResponse from JSON")
-        public void it_should_deserialize_a_SearchResponse_from_JSON() {
-            var searchResponseAnnotatedJSON = String.format(wrapperJSON, exampleSearchResponse);
-            var objectMapper = JsonMapper.builder().build();
-
-            var annotatedObject = objectMapper.readValue(searchResponseAnnotatedJSON, SearchResponseAnnotated.class);
-
-            Assertions.assertThat(annotatedObject).isNotNull();
-            Assertions.assertThat(annotatedObject.searchResponse).isNotNull();
-            Assertions.assertThat(annotatedObject.searchResponse.hits()).isNotNull();
-            Assertions.assertThat(annotatedObject.searchResponse.hits().hits()).isNotNull();
-            Assertions.assertThat(annotatedObject.searchResponse.hits().hits()).hasSize(2);
-        }
-    }
 }

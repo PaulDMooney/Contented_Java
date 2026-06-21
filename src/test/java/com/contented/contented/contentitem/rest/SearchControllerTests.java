@@ -1,12 +1,13 @@
 package com.contented.contented.contentitem.rest;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.contentitem.rest.AbstractContentItemControllerTests;
+import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.elasticsearch.SearchResponseDeserializer;
 import com.contented.contented.contentitem.testutils.NestedPerClass;
-import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -119,10 +120,10 @@ public class SearchControllerTests {
 
                 WebTestClient.ResponseSpec response;
 
-                WebTestClient.BodySpec<ExpectedResponseStructure, ?> bodySpec;
+                ExpectedResponseStructure result;
 
                 record ExpectedResponseStructure(
-                    @JsonDeserialize(using = SearchResponseDeserializer.class) SearchResponse<?> esResponse,
+                    SearchResponse<?> esResponse,
                     List<ContentItemResponseDTO> contentItems
                 ){}
 
@@ -131,8 +132,14 @@ public class SearchControllerTests {
                     var queryString = String.format(queryForContentTemplate, createdId.toString());
                     response = searchEndpointClient.post().uri("/withcontent").bodyValue(queryString).exchange();
 
-                    // Calling `expectBody` multiple times has inconsistent results so just do it once.
-                    bodySpec = response.expectBody(ExpectedResponseStructure.class);
+                    // Deserialize the body ourselves with the SearchResponseDeserializer registered as a
+                    // module (built with a real JsonpMapper) rather than relying on a field-level
+                    // @JsonDeserialize, which would reflectively instantiate it with a default mapper.
+                    var body = response.expectBody(String.class).returnResult().getResponseBody();
+                    var module = new SimpleModule();
+                    module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer<>(new Jackson3JsonpMapper()));
+                    var mapper = JsonMapper.builder().addModule(module).build();
+                    result = mapper.readValue(body, ExpectedResponseStructure.class);
                 }
 
                 @Test
@@ -144,31 +151,21 @@ public class SearchControllerTests {
                 @Test
                 @DisplayName("it should return a response with ElasticSearch 'esResponse' field and 'contentItems' field")
                 void it_should_return_the_content_item() {
-                    bodySpec.value(value -> {
-                        assertThat(value.esResponse()).isNotNull();
-                        assertThat(value.contentItems()).isNotNull();
-                    });
+                    assertThat(result.esResponse()).isNotNull();
+                    assertThat(result.contentItems()).isNotNull();
                 }
 
                 @Test
                 @DisplayName("the 'esResponse' should contain a hit with the id of the saved content")
                 void the_esResponse_should_contain_a_hit_with_the_id_of_the_saved_content() {
-                    bodySpec
-                            .value(value -> {
-                                var esResponse = value.esResponse();
-                                assertThat(esResponse.hits().hits()).hasSize(1);
-                            });
+                    assertThat(result.esResponse().hits().hits()).hasSize(1);
                 }
 
                 @Test
                 @DisplayName("the 'contentItems' should contain a contentItem with the id of the saved content")
                 void the_content_items_should_contain_a_content_item_with_the_id_of_the_saved_content() {
-                    bodySpec
-                            .value(value -> {
-                                var contentItems = value.contentItems();
-                                assertThat(contentItems).hasSize(1);
-                                assertThat(contentItems.get(0).getId().toString()).isEqualTo(createdId.toString());
-                            });
+                    assertThat(result.contentItems()).hasSize(1);
+                    assertThat(result.contentItems().get(0).getId().toString()).isEqualTo(createdId.toString());
                 }
 
             }

@@ -14,11 +14,6 @@ public class SearchResponseDeserializer<T> extends StdDeserializer<SearchRespons
 
     private final Jackson3JsonpMapper jsonpMapper;
 
-    // For instantiation by Jackson via @JsonDeserialize(using = ...), where injection isn't possible
-    public SearchResponseDeserializer() {
-        this(new Jackson3JsonpMapper());
-    }
-
     @Autowired
     public SearchResponseDeserializer(Jackson3JsonpMapper jsonpMapper) {
         super(SearchResponse.class);
