@@ -9,9 +9,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.postgresContainer;
-import static com.contented.contented.contentlet.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
-import static com.contented.contented.contentlet.testutils.TestTypeTags.INTEGRATION_TESTS;
+import static com.contented.contented.contentitem.testutils.PostgresContainerUtils.postgresContainer;
+import static com.contented.contented.contentitem.testutils.PostgresContainerUtils.startAndRegisterPostgresContainer;
+import static com.contented.contented.contentitem.testutils.TestTypeTags.INTEGRATION_TESTS;
 
 // Needs a database at startup: Spring Data JDBC resolves its dialect over a connection and
 // Liquibase runs the changelog, so the context can no longer load without one.
