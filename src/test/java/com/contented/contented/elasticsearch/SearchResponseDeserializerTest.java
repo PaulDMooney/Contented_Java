@@ -2,16 +2,17 @@ package com.contented.contented.elasticsearch;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
-import tools.jackson.databind.DatabindException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.assertj.core.api.Assertions;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SearchResponseDeserializer")
-public class SearchResponseDeserializerTests {
+public class SearchResponseDeserializerTest {
 
     String exampleSearchResponse  = """
         {
@@ -51,38 +52,27 @@ public class SearchResponseDeserializerTests {
         }""";
 
     @Nested
-    @DisplayName("Given there is no SearchResponseDeSerializer registered with the objectMapper")
-    public class NoDeSerializerRegisteredTests {
+    @DisplayName("`deserialize()`")
+    class Deserialize {
 
-        @Test
-        @DisplayName("it should not deserialize a SearchResponse from JSON")
-        public void it_should_not_deserialize_a_SearchResponse_from_JSON() {
-            var objectMapper = JsonMapper.builder().build();
+        SearchResponse<?> result;
 
-            Assertions.assertThatThrownBy(() -> objectMapper.readValue(exampleSearchResponse, SearchResponse.class))
-                .isInstanceOf(DatabindException.class);
-
-        }
-    }
-
-    @Nested
-    @DisplayName("Given there is a SearchResponseDeserializer registered with the objectMapper")
-    public class DeSerializerRegisteredTests {
-
-        @Test
-        @DisplayName("it should deserialize a SearchResponse from JSON")
-        public void it_should_deserialize_a_SearchResponse_from_JSON() {
+        @BeforeAll
+        void when() {
+            // The deserializer is only reachable through a Jackson ObjectMapper it is registered on.
             var module = new SimpleModule();
-            module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer(new Jackson3JsonpMapper()));
+            module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer<>(new Jackson3JsonpMapper()));
             var objectMapper = JsonMapper.builder().addModule(module).build();
 
-            var searchResponse = objectMapper.readValue(exampleSearchResponse, SearchResponse.class);
+            result = objectMapper.readValue(exampleSearchResponse, SearchResponse.class);
+        }
 
-            Assertions.assertThat(searchResponse).isNotNull();
-            Assertions.assertThat(searchResponse.hits()).isNotNull();
-            Assertions.assertThat(searchResponse.hits().hits()).isNotNull();
-            Assertions.assertThat(searchResponse.hits().hits()).hasSize(2);
+        @Test
+        @DisplayName("It should deserialize each hit from the JSON into the `SearchResponse`")
+        void it_should_deserialize_each_hit() {
+            var hitIds = result.hits().hits().stream().map(hit -> hit.id()).toList();
+
+            assertThat(hitIds).containsExactly("my_id_124", "my_id_123");
         }
     }
-
 }

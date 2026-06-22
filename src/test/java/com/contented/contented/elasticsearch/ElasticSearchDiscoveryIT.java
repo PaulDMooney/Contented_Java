@@ -10,7 +10,6 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import com.contented.contented.contentitem.ContentItemRepository;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import com.contented.contented.contentitem.testutils.NoDatabase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,10 +44,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @NoDatabase
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers()
 @DisplayName("ElasticSearch discovery tests")
-public class ElasticSearchDiscoveryTests {
+public class ElasticSearchDiscoveryIT {
 
     @Container
     static ElasticsearchContainer elasticsearchContainer = elasticsearchContainer();
@@ -71,7 +69,7 @@ public class ElasticSearchDiscoveryTests {
     }
 
     // New instance is initialized in parent container above. May cause issues later due to test execution order??
-    @NestedPerClass
+    @Nested
     @DisplayName("Given a new instance of elastic search")
     class GivenANewInstance {
 
@@ -91,7 +89,7 @@ public class ElasticSearchDiscoveryTests {
                 .satisfies(response -> assertThat(response.value()).isFalse());
         }
 
-        @NestedPerClass
+        @Nested
         @DisplayName("When an index is created")
         class WhenAnIndexIsCreated {
 
@@ -129,7 +127,7 @@ public class ElasticSearchDiscoveryTests {
             }
         }
 
-        @NestedPerClass
+        @Nested
         @DisplayName("When an index with mappings is created")
         class WhenAnIndexWithSettingsIsCreated {
 
@@ -175,7 +173,7 @@ public class ElasticSearchDiscoveryTests {
         }
     }
 
-    @NestedPerClass
+    @Nested
     @DisplayName("Given an index with mappings is created")
     class GivenAnIndexWithSettingsIsCreated {
 
@@ -195,7 +193,7 @@ public class ElasticSearchDiscoveryTests {
             elasticsearchClient.indices().create(createIndexRequest);
         }
 
-        @NestedPerClass
+        @Nested
         @DisplayName("When a document with a mapped keyword field and mapped text field is saved to the index")
         class WhenADocumentWithAMappedFieldIsIndexed {
 
@@ -214,21 +212,21 @@ public class ElasticSearchDiscoveryTests {
 
 
             @Test
-            @DisplayName("the returned document should have the same values as the saved document")
+            @DisplayName("It should return a document with the same values as the saved document")
             void the_returned_entity_should_have_the_same_values_as_the_saved_entity() {
 
                 assertThat(savedEntity).isEqualTo(toSave);
             }
 
             @Test
-            @DisplayName("the returned document is not just the same object reference as the saved document")
+            @DisplayName("It should return a different object than the saved document")
             void the_returned_entity_is_not_just_the_same_object_as_the_saved_entity() {
 
                 assertThat(savedEntity).isNotSameAs(toSave);
             }
 
             @Test
-            @DisplayName("the document should be searchable by exact match on the keyword field")
+            @DisplayName("It should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
                 var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))
@@ -238,7 +236,7 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
-            @DisplayName("the document should not be searchable by partial match on the keyword field")
+            @DisplayName("It should not be searchable by partial match on the keyword field")
             void the_document_should_not_be_searchable_by_partial_match_on_the_keyword_field() {
 
                 var query = new NativeQueryBuilder()
@@ -251,7 +249,7 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
-            @DisplayName("the document should be searchable by partial match on the text field")
+            @DisplayName("It should be searchable by partial match on the text field")
             void the_document_should_be_searchable_by_partial_match_on_the_text_field() {
 
                 var query = new NativeQueryBuilder()
@@ -265,7 +263,7 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
-            @DisplayName("the document should be searchable by json query on the id field")
+            @DisplayName("It should be searchable by json query on the `id` field")
             void the_document_should_be_searchable_by_json_query_on_the_id_field() {
 
                 // This is what would be inside the "query" object.
@@ -283,7 +281,7 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
-            @DisplayName("the document should be searchable by full JSON query request")
+            @DisplayName("It should be searchable by full JSON query request")
             void the_document_should_be_searchable_by_full_json_query_request() throws IOException {
 
                 // This is the "full" query like we would use if we were going
@@ -307,7 +305,7 @@ public class ElasticSearchDiscoveryTests {
                     .satisfies(hits -> assertThat(hits.total().value()).isGreaterThan(0));
             }
 
-            @NestedPerClass
+            @Nested
             @DisplayName("And an alias is assigned to the index")
             class AliasAssignedToIndex {
 
@@ -324,7 +322,7 @@ public class ElasticSearchDiscoveryTests {
                 }
 
                 @Test
-                @DisplayName("Then the document should be searchable via alias")
+                @DisplayName("It should be searchable via the alias")
                 void then_the_document_should_be_searchable_via_alias() {
 
                     CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
@@ -336,7 +334,7 @@ public class ElasticSearchDiscoveryTests {
             }
         }
 
-        @NestedPerClass
+        @Nested
         @DisplayName("When a document with a mapped keyword field and mapped text field is saved via bulk operations")
         class WhenADocumentWithAMappedFieldIsBulkIndexed {
 
@@ -363,7 +361,7 @@ public class ElasticSearchDiscoveryTests {
             }
 
             @Test
-            @DisplayName("the document should be searchable by exact match on the keyword field")
+            @DisplayName("It should be searchable by exact match on the keyword field")
             void the_document_should_be_searchable_by_exact_match_on_the_keyword_field() {
                 CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(toSave.id()));
                 var results = elasticsearchOperations.search(criteriaQuery, ESDocument.class, IndexCoordinates.of(INDEX_NAME3))

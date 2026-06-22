@@ -21,9 +21,13 @@ jobs:
             cache: 'maven'
             check-latest: true
       - name: Build and Test
-        run: mvn --batch-mode surefire-report:report
+        run: mvn --batch-mode verify
+      - name: Generate test reports
+        if: always()
+        run: mvn --batch-mode surefire-report:report-only surefire-report:failsafe-report-only
       - name: Upload Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: target/site
+          path: target/reports

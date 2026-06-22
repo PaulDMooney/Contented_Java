@@ -2,10 +2,10 @@ package com.contented.contented.contentitem.elasticsearch.transformation;
 
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.common.UuidV7;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import com.contented.contented.contentitem.transformation.StandardDMSContentTransformer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 
@@ -23,13 +23,13 @@ class BlogTransformerTest {
 
     Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-    @NestedPerClass
-    @DisplayName("transform")
+    @Nested
+    @DisplayName("`transform()`")
     class Transform {
 
-        @NestedPerClass
-        @DisplayName("Given a contentItem entity with Blog fields")
-        class GivenBlogContentItem {
+        @Nested
+        @DisplayName("When called with a `contentItem` entity that has `Blog` fields")
+        class WhenCalledWithBlogContentItem {
 
             ContentItemEntity toTransform = new StandardDMSContentTransformer(clock)
                     .transform(
@@ -43,52 +43,46 @@ class BlogTransformerTest {
 
             BlogTransformer blogTransformer = new BlogTransformer();
 
-            @NestedPerClass
-            @DisplayName("When the contentItem entity is transformed")
-            class WhenTransformed {
+            Collection<EntityAsMap> result;
 
-                Collection<EntityAsMap> result;
-                @BeforeAll
-                void when() {
-                    result = blogTransformer.transform(toTransform);
-                }
-
-                @Test
-                @DisplayName("the EntityMap should contain transformed fields")
-                void it_should_return_an_entity_map_with_transformed_fields() {
-
-                    assertThat(result)
-                        .hasSize(1)
-                        .element(0)
-                        .satisfies(entityAsMap ->
-                            assertThat(entityAsMap)
-                                .containsEntry("contentType", "blog")
-                                .containsEntry("blog.title", "Blog Title")
-                                .containsEntry("language", "en")
-                        );
-                }
-
-                @Test
-                @DisplayName("the EntityMap should not contain unintended for indexing")
-                void it_should_return_an_entity_map_without_fields_unintended_for_indexing() {
-                    var result = blogTransformer.transform(toTransform);
-
-                    assertThat(result).element(0)
-                        .satisfies(entityAsMap -> assertThat(entityAsMap)
-                            .doesNotContainKeys("stName", "title", "body"));
-                }
-
-                @Test
-                @DisplayName("the EntityMap should contain an identifier constructed from the id and language")
-                void it_should_return_an_entity_map_with_an_identifier() {
-
-                    assertThat(result).element(0)
-                        .satisfies(entityAsMap -> assertThat(entityAsMap)
-                            .containsEntry("identifier", toTransform.getId() + "_en"));
-                }
+            @BeforeAll
+            void when() {
+                result = blogTransformer.transform(toTransform);
             }
 
+            @Test
+            @DisplayName("It should return an EntityMap containing the transformed fields")
+            void it_should_return_an_entity_map_with_transformed_fields() {
 
+                assertThat(result)
+                    .hasSize(1)
+                    .element(0)
+                    .satisfies(entityAsMap ->
+                        assertThat(entityAsMap)
+                            .containsEntry("contentType", "blog")
+                            .containsEntry("blog.title", "Blog Title")
+                            .containsEntry("language", "en")
+                    );
+            }
+
+            @Test
+            @DisplayName("It should exclude fields not intended for indexing")
+            void it_should_return_an_entity_map_without_fields_unintended_for_indexing() {
+                var result = blogTransformer.transform(toTransform);
+
+                assertThat(result).element(0)
+                    .satisfies(entityAsMap -> assertThat(entityAsMap)
+                        .doesNotContainKeys("stName", "title", "body"));
+            }
+
+            @Test
+            @DisplayName("It should build the `identifier` from the `id` and `language`")
+            void it_should_return_an_entity_map_with_an_identifier() {
+
+                assertThat(result).element(0)
+                    .satisfies(entityAsMap -> assertThat(entityAsMap)
+                        .containsEntry("identifier", toTransform.getId() + "_en"));
+            }
         }
     }
 

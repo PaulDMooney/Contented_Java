@@ -5,7 +5,6 @@ import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.elasticsearch.SearchResponseDeserializer;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.*;
@@ -16,7 +15,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -35,10 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Testcontainers
-@DisplayName("SearchController basic tests")
-public class SearchControllerTests {
+@DisplayName("`SearchController` basic tests")
+public class SearchControllerIT {
 
     @LocalServerPort
     int port;
@@ -62,26 +60,26 @@ public class SearchControllerTests {
 
     @Autowired IndexCoordinates indexCoordinates;
 
-    WebTestClient searchEndpointClient;
+    RestTestClient searchEndpointClient;
 
-    WebTestClient contentItemEndpointClient;
+    RestTestClient contentItemEndpointClient;
 
     @BeforeAll
     void beforeAll() {
         var baseURL = String.format("http://localhost:%s/%s", port, SearchController.SEARCH_PATH);
-        searchEndpointClient = WebTestClient.bindToServer().baseUrl(baseURL).build();
+        searchEndpointClient = RestTestClient.bindToServer().baseUrl(baseURL).build();
 
-        contentItemEndpointClient = AbstractContentItemControllerTests.createContentItemsEndpointClient(port);
+        contentItemEndpointClient = AbstractContentItemControllerIT.createContentItemsEndpointClient(port);
 
         // Create the index! Otherwise queries just return 0 results
         elasticSearchIndexCreator.createIndex();
     }
 
-    @NestedPerClass
-    @DisplayName("POST /withcontent endpoint")
+    @Nested
+    @DisplayName("`POST /withcontent` endpoint")
     class WithContentEndpoint {
-        @NestedPerClass
-        @DisplayName("Given content that is indexed by its identifier was saved")
+        @Nested
+        @DisplayName("Given content that is indexed by its `identifier` was saved")
         class GivenContentIndexedByIdentifier {
 
             record SomeContent(String id, String contentType, String someOtherField){}
@@ -95,7 +93,7 @@ public class SearchControllerTests {
             void given() {
 
                 // Could use rest endpoint, or could go directly to service
-                createdId = contentItemEndpointClient.post().bodyValue(savedContent)
+                createdId = contentItemEndpointClient.post().body(savedContent)
                     .exchange().expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
                     .returnResult().getResponseBody().getId();
@@ -104,8 +102,8 @@ public class SearchControllerTests {
             }
 
 
-            @NestedPerClass
-            @DisplayName("When a query by its identifier is given")
+            @Nested
+            @DisplayName("When a query by its `identifier` is given")
             class WhenSearchByIdentifier {
 
                 String queryForContentTemplate = """
@@ -118,7 +116,7 @@ public class SearchControllerTests {
                 }
                 """;
 
-                WebTestClient.ResponseSpec response;
+                RestTestClient.ResponseSpec response;
 
                 ExpectedResponseStructure result;
 
@@ -130,7 +128,7 @@ public class SearchControllerTests {
                 @BeforeAll
                 void when() {
                     var queryString = String.format(queryForContentTemplate, createdId.toString());
-                    response = searchEndpointClient.post().uri("/withcontent").bodyValue(queryString).exchange();
+                    response = searchEndpointClient.post().uri("/withcontent").body(queryString).exchange();
 
                     // Deserialize the body ourselves with the SearchResponseDeserializer registered as a
                     // module (built with a real JsonpMapper) rather than relying on a field-level
@@ -143,26 +141,26 @@ public class SearchControllerTests {
                 }
 
                 @Test
-                @DisplayName("it should return a 200 OK status code")
+                @DisplayName("It should return a `200 OK` status code")
                 void it_should_return_a_200_OK_status_code() {
                     response.expectStatus().isOk();
                 }
 
                 @Test
-                @DisplayName("it should return a response with ElasticSearch 'esResponse' field and 'contentItems' field")
+                @DisplayName("It should return a response with an `esResponse` field and a `contentItems` field")
                 void it_should_return_the_content_item() {
                     assertThat(result.esResponse()).isNotNull();
                     assertThat(result.contentItems()).isNotNull();
                 }
 
                 @Test
-                @DisplayName("the 'esResponse' should contain a hit with the id of the saved content")
+                @DisplayName("It should return an `esResponse` with a hit for the saved content's `id`")
                 void the_esResponse_should_contain_a_hit_with_the_id_of_the_saved_content() {
                     assertThat(result.esResponse().hits().hits()).hasSize(1);
                 }
 
                 @Test
-                @DisplayName("the 'contentItems' should contain a contentItem with the id of the saved content")
+                @DisplayName("It should return the `contentItems` with the saved content")
                 void the_content_items_should_contain_a_content_item_with_the_id_of_the_saved_content() {
                     assertThat(result.contentItems()).hasSize(1);
                     assertThat(result.contentItems().get(0).getId().toString()).isEqualTo(createdId.toString());

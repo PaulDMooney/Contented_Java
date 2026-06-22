@@ -9,16 +9,18 @@ Spring Boot 4 (MVC, blocking, virtual threads enabled) content management API on
 ## Commands
 
 ```bash
-./mvnw test                          # run all tests (requires Docker — tests use Testcontainers)
-./mvnw test -Dtest=ContentItemServiceTest                  # single test class
-./mvnw test -Dtest=ContentItemServiceTest#someMethod       # single test method
+./mvnw test                          # solitary unit tests only (Surefire, *Test) — fast, no Docker
+./mvnw verify                        # unit + integration tests (Failsafe, *IT) — requires Docker (Testcontainers)
+./mvnw test -Dtest=ContentItemServiceTest                  # single unit test class
+./mvnw test -Dtest=ContentItemServiceTest#someMethod       # single unit test method
+./mvnw verify -Dit.test=ContentItemServiceIT               # single integration test class (Failsafe uses -Dit.test)
 ./mvnw spring-boot:run               # run the app (start docker-compose services first)
 docker-compose up -d                 # local Postgres (5432), pgAdmin UI (8081), Elasticsearch (9200)
 ```
 
-CI runs `mvn --batch-mode surefire-report:report`.
+CI runs `mvn --batch-mode verify` (unit + integration), then generates HTML reports via `surefire-report:report-only` + `surefire-report:failsafe-report-only`.
 
-Most tests are integration tests (tagged `IntegrationTest`, see `TestTypeTags`) that spin up real Postgres/Elasticsearch containers via Testcontainers, so Docker must be running even for `./mvnw test`.
+Tests are split by Maven naming convention: **solitary unit tests (`*Test`)** run under Surefire in the `test` phase with no infrastructure, so `./mvnw test` needs no Docker. **Integration tests (`*IT`** — also tagged `IntegrationTest`, see `TestTypeTags`**)** spin up real Postgres/Elasticsearch containers via Testcontainers and run under Failsafe in the `integration-test`/`verify` phases, so Docker must be running for `./mvnw verify`.
 
 ## Architecture
 
@@ -51,6 +53,6 @@ Swagger UI is available via springdoc at `/swagger-ui/index.html`.
 
 ## Test Conventions
 
-Tests are BDD-style: `@Nested`/`@NestedPerClass` classes named for the scenario ("when saving a new content item"), `@DisplayName` on everything, given/when in `@BeforeAll`, one assertion per `@Test`. `@NestedPerClass` (in `testutils`) is `@Nested` + `@TestInstance(PER_CLASS)`, which is what allows `@BeforeAll` on instance methods.
+The authoritative test standards live in the **`spring-boot-testing` skill** (`.claude/skills/spring-boot-testing/`). In short: BDD-style `@Nested` classes following the **UnitUnderTest > Given > When > Then** `@DisplayName` nesting (Given is world state only, never method inputs; When is inputs/actions), `@DisplayName` on every test and nested class, given/when in `@BeforeAll`, one *logical* assertion per `@Test` (multiple `assertThat` statements are fine when they verify one concept or match a sample). The `per_class` test-instance lifecycle is set globally in `src/test/resources/junit-platform.properties` — this is what allows `@BeforeAll` on instance methods, so no per-class annotation is needed. Solitary unit tests are named `*Test` (Surefire); Testcontainers integration tests are named `*IT` (Failsafe).
 
-Container setup is shared through `testutils.PostgresContainerUtils` / `ElasticSearchContainerUtils`: declare a `@Container static` field and register its URI in a `@DynamicPropertySource` method. Controller tests extend `AbstractContentItemControllerTests` for a `WebTestClient` bound to the content items endpoint (spring-webflux is a test-only dependency for this; replacing it with `RestClient`/`MockMvc` is part of roadmap item 4), and `@MockitoBean` the `ContentItemIndexer` when ES isn't under test (stub helpers in `StubbingUtils`).
+Container setup is shared through `testutils.PostgresContainerUtils` / `ElasticSearchContainerUtils`: declare a `@Container static` field and register its URI in a `@DynamicPropertySource` method. Controller integration tests extend `AbstractContentItemControllerIT` for a `RestTestClient` (`org.springframework.test.web.servlet.client`) bound to the running server (`bindToServer().baseUrl(...)`) so requests go over the real network stack — no spring-webflux on the test classpath — and `@MockitoBean` the `ContentItemIndexer` when ES isn't under test (stub helpers in `StubbingUtils`).

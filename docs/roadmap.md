@@ -9,7 +9,7 @@ fleshed out before implementation.
 | 1 | Convert reactive → non-reactive (virtual threads) | Mostly done | — |
 | 2 | Micrometer trace ids in logs | Mostly done | — |
 | 3 | MongoDB → Postgres migration | Mostly done | — |
-| 4 | Bring tests up to new testing standards | TBD | — |
+| 4 | Bring tests up to new testing standards | In progress | `spring-boot-testing` skill |
 | 5 | Content versioning (live / working / history) | Idea | — |
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
@@ -34,8 +34,9 @@ becomes a plain loop).
 - ~~Reactive repositories → blocking ones (`ReactiveCrudRepository` → `CrudRepository`,
   `ReactiveElasticsearchOperations`/`ReactiveElasticsearchClient` → blocking equivalents).~~ ✅ Done.
 - ~~Remove `Hooks.enableAutomaticContextPropagation()` (Reactor-specific; see item 2).~~ ✅ Done.
-- `StepVerifier` is gone; `WebTestClient` test plumbing → `MockMvc`/`RestClient`
-  remains (spring-webflux is now a test-only dependency; coordinate with item 4).
+- ~~`StepVerifier` is gone; `WebTestClient` test plumbing → blocking equivalent.~~ ✅ Done
+  (with item 4): controller integration tests use `RestTestClient` (Spring Framework 7) bound to
+  the running server, so the test-only `spring-boot-starter-webflux` dependency is gone.
 - ~~Upgrade Spring Boot and Java to latest (Boot 3.2.5 / Java 21 today; move to current LTS)~~
   ✅ Done (`feat/java-25`): Boot 3.5.14 / Java 25, Elasticsearch server 8.18 to match the
   client the Boot parent manages. Boot 4.x (Spring Framework 7) deliberately deferred.
@@ -100,23 +101,47 @@ available if job claiming ever needs it.
 jsonb?); whether the ES "with content" hydration path changes at all (it shouldn't — it is
 id-based).
 
-## 4. Testing standards (TBD)
+## 4. Testing standards
 
-Bring the test suite up to a defined set of standards. The standards themselves are still to
-be written — capture them here (or in a `docs/testing-standards.md`) before auditing the
-suite against them.
+Bring the test suite up to the standards defined in the **`spring-boot-testing` skill**
+(`.claude/skills/spring-boot-testing/`). The standards are owned by that skill — not a doc in
+this repo — so the work here is to audit the existing suite against it and remediate the gaps.
 
-Current conventions worth either ratifying or revisiting when standards are defined:
-BDD-style nested classes (`@NestedPerClass`) with given/when in `@BeforeAll` and one
-assertion per `@Test`; Testcontainers for Postgres/Elasticsearch integration tests tagged
-`IntegrationTest`; `@MockitoBean`-ing the indexer when ES is not under test. A `@NoDatabase`
-test annotation (introduced with item 3) excludes the JDBC/Liquibase auto-config so DB-free
-tests start no Postgres container — generalise this (e.g. a `@NoElasticsearch` counterpart) when
-defining the standards.
+**Standards in force** (see the skill for the authoritative version): the three-test-type model
+(solitary `*Test` / sociable `*SociableTest` / integration `*IT`); UnitUnderTest > Given > When >
+Then `@DisplayName` nesting with Given reserved for world state (never method inputs); one logical
+assertion per `@Test`; AssertJ; `@MockitoBean`/`@MockitoSpyBean`; Testcontainers for real
+infrastructure; Instancio for randomized data; the global `per_class` lifecycle via
+`junit-platform.properties`; spy-verification display names that name the method under test.
 
-**Open questions**: unit vs integration coverage targets; whether `IntegrationTest` tagging
-should gate separate CI phases; test data builders; what replaces `StepVerifier` patterns
-after item 1.
+**Done so far**:
+
+- Global `per_class` lifecycle set in `src/test/resources/junit-platform.properties`; the custom
+  `@NestedPerClass` annotation and all longhand `@TestInstance(PER_CLASS)` removed in favour of
+  plain `@Nested`.
+- `@DisplayName` voice/casing normalised to the skill's `It should …` / `When …` / `Given …` forms;
+  `Then …`- and `the X should …`-style leaf names rewritten.
+- `ContentItemServiceTest` re-nested so create scenarios sit under a `create` context as `When …`
+  cases; spy-verification names now reference `ContentItemRepository#save`.
+- Scratch `NestedDiscoveryTest` deleted; the smoke test got a `@DisplayName`.
+- **Surefire→Failsafe split**: solitary unit tests are `*Test` (Surefire, `test` phase, no Docker);
+  Testcontainers integration tests renamed to `*IT` (Failsafe, `integration-test`/`verify`). The
+  `maven-failsafe-plugin` is wired in `pom.xml`; CI runs `mvn verify` then generates both surefire
+  and failsafe HTML reports. `IntegrationTest` tags are kept as metadata.
+
+**Carried-over conventions** worth keeping: `@MockitoBean`-ing the indexer when ES is not under
+test; the `@NoDatabase` annotation (introduced with item 3) that excludes the JDBC/Liquibase
+auto-config so DB-free tests start no Postgres container — generalise this (e.g. a
+`@NoElasticsearch` counterpart) as part of this work.
+
+The `WebTestClient` → `RestTestClient` migration (dropping the test-only spring-webflux dependency,
+shared with item 1) is **done** — controller integration tests now go over the real network stack
+via `RestTestClient.bindToServer()`.
+
+**Still open**: integration tests share DB/container state across siblings with no `@AfterAll`
+cleanup (sibling-bleed risk); the exploratory `ElasticSearchDiscoveryIT` tests ES itself rather than
+the app (keep as labelled exploratory, or prune?); Instancio is unused; unit vs integration coverage
+targets and whether to enforce a JaCoCo floor.
 
 ## 5. Content versioning: live / working / history
 
@@ -277,8 +302,7 @@ the Spring Data persistence model.
   as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
   required/immutable) stayed in the service.
 - Tests that deserialized responses into `ContentItemEntity` now deserialize into
-  `ContentItemResponseDTO`; the deeper `WebTestClient` → `MockMvc`/`RestClient` migration remains
-  item 4.
+  `ContentItemResponseDTO`; the deeper `WebTestClient` → `RestTestClient` migration landed with item 4.
 
 **Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
 (grouping) add operations (publish, save-to-working, create-variant) that each want a clean,

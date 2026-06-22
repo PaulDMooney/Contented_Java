@@ -2,8 +2,8 @@ package com.contented.contented.contentitem.transformation;
 
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.common.UuidV7;
-import com.contented.contented.contentitem.testutils.NestedPerClass;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -21,20 +21,20 @@ class StandardDMSContentTransformerTest {
 
     StandardDMSContentTransformer transformer = new StandardDMSContentTransformer(clock);
 
-    @NestedPerClass
-    @DisplayName("transform")
+    @Nested
+    @DisplayName("`transform()`")
     class TransformTests {
 
-        @NestedPerClass
-        @DisplayName("Given a contentItemEntity with no id")
-        class GivenContentItemWithNoId {
+        @Nested
+        @DisplayName("When called with a `ContentItemEntity` that has no `id`")
+        class WhenCalledWithNoId {
 
             ContentItemEntity contentItemEntity = new ContentItemEntity(null, "Blog",
                 Map.ofEntries(entry("language", "EN"))
             );
 
             @Test
-            @DisplayName("it should normalize the `language` to lowercase")
+            @DisplayName("It should normalize the `language` to lowercase")
             void it_should_normalize_language_to_lowercase() {
                 // When
                 var result = transformer.transform(contentItemEntity);
@@ -44,7 +44,7 @@ class StandardDMSContentTransformerTest {
             }
 
             @Test
-            @DisplayName("it should leave the id unset for the service to assign")
+            @DisplayName("It should leave the `id` unset for the service to assign")
             void it_should_leave_the_id_unset() {
                 // When
                 var result = transformer.transform(contentItemEntity);
@@ -54,7 +54,7 @@ class StandardDMSContentTransformerTest {
             }
 
             @Test
-            @DisplayName("it should populate the modDate with the current time")
+            @DisplayName("It should populate the `modDate` with the current time")
             void it_should_populate_modDate_with_current_time() {
                 // When
                 var result = transformer.transform(contentItemEntity);
@@ -64,16 +64,16 @@ class StandardDMSContentTransformerTest {
             }
         }
 
-        @NestedPerClass
-        @DisplayName("Given a contentItemEntity with an id")
-        class GivenContentItemWithId {
+        @Nested
+        @DisplayName("When called with a `ContentItemEntity` that has an `id`")
+        class WhenCalledWithId {
 
             ContentItemEntity toSave = new ContentItemEntity(UuidV7.generate(), "Blog", Map.ofEntries(
                 entry("language", "en")
             ));
 
             @Test
-            @DisplayName("it should preserve the id")
+            @DisplayName("It should preserve the `id`")
             void it_should_preserve_the_id() {
                 // When
                 var result = transformer.transform(toSave);
@@ -84,12 +84,12 @@ class StandardDMSContentTransformerTest {
         }
     }
 
-    @NestedPerClass
-    @DisplayName("test")
+    @Nested
+    @DisplayName("`test()`")
     class TestPredicate {
 
         @Test
-        @DisplayName("it should match a contentItem whose contentType is supported")
+        @DisplayName("It should match a `contentItem` whose `contentType` is supported")
         void it_should_match_supported_content_type() {
             var contentItemEntity = new ContentItemEntity(null, "Blog", Map.of());
 
@@ -97,7 +97,7 @@ class StandardDMSContentTransformerTest {
         }
 
         @Test
-        @DisplayName("it should not match a contentItem whose contentType is unsupported")
+        @DisplayName("It should not match a `contentItem` whose `contentType` is unsupported")
         void it_should_not_match_unsupported_content_type() {
             var contentItemEntity = new ContentItemEntity(null, "SomethingElse", Map.of());
 
