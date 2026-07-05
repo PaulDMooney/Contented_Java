@@ -67,21 +67,23 @@ public class ContentItemService {
     @Transactional
     public Optional<ContentItemResponseDTO> editWorking(UUID identifier, ContentItemDTO dto) {
         requireContentType(dto.getContentType());
-        var versions = contentItemRepository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier);
-        if (versions.isEmpty()) {
+        var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
+        // The stored contentType (and the content's existence) can be read from the working version if
+        // present, otherwise the live one; a known content always has one or the other (no operation
+        // leaves only archived versions), so their absence means the identifier is unknown.
+        var reference = existingWorking.or(() ->
+            contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.LIVE));
+        if (reference.isEmpty()) {
             log.info("No content for identifier `{}`; nothing to edit", identifier);
             return Optional.empty();
         }
         // contentType is fixed across all versions of a content.
-        var storedContentType = versions.getFirst().getContentType();
+        var storedContentType = reference.get().getContentType();
         if (!storedContentType.equalsIgnoreCase(dto.getContentType())) {
             throw new InvalidContentItemException(
                 "A contentItem's contentType cannot be changed; `" + storedContentType
                     + "` was created, `" + dto.getContentType() + "` was supplied.");
         }
-        var existingWorking = versions.stream()
-            .filter(version -> version.getState() == ContentItemState.WORKING)
-            .findFirst();
 
         var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
         // Preserve the stored contentType so its casing never drifts on edit.

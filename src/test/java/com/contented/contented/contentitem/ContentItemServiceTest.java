@@ -156,8 +156,8 @@ public class ContentItemServiceTest {
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                Mockito.when(repository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier))
-                    .thenReturn(List.of(version(workingId, identifier, "SomeType", ContentItemState.WORKING)));
+                Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING))
+                    .thenReturn(Optional.of(version(workingId, identifier, "SomeType", ContentItemState.WORKING)));
 
                 result = service.editWorking(identifier, dto("SomeType", Map.of("field1", "updatedValue")));
             }
@@ -185,8 +185,10 @@ public class ContentItemServiceTest {
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                Mockito.when(repository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier))
-                    .thenReturn(List.of(version(liveId, identifier, "SomeType", ContentItemState.LIVE)));
+                Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING))
+                    .thenReturn(Optional.empty());
+                Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.LIVE))
+                    .thenReturn(Optional.of(version(liveId, identifier, "SomeType", ContentItemState.LIVE)));
 
                 result = service.editWorking(identifier, dto("SomeType", Map.of("field1", "draft")));
             }
@@ -240,8 +242,8 @@ public class ContentItemServiceTest {
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                Mockito.when(repository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier))
-                    .thenReturn(List.of(version(UuidV7.generate(), identifier, "Blog", ContentItemState.WORKING)));
+                Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING))
+                    .thenReturn(Optional.of(version(UuidV7.generate(), identifier, "Blog", ContentItemState.WORKING)));
 
                 thrown = catchThrowable(() -> service.editWorking(identifier, dto("News", Map.of())));
             }
