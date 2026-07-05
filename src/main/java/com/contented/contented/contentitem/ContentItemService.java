@@ -109,15 +109,10 @@ public class ContentItemService {
                 "There is no working version to publish for `" + identifier + "`.");
         }
         // Demote the current live version first so the one-LIVE-per-identifier invariant always holds.
-        // These rows were loaded from the database, so they are already not-new and will UPDATE.
+        // These rows were loaded from the database, so their copies are already not-new and will UPDATE.
         contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.LIVE)
-            .ifPresent(live -> {
-                live.setState(ContentItemState.ARCHIVED);
-                contentItemRepository.save(live);
-            });
-        var toPublish = working.get();
-        toPublish.setState(ContentItemState.LIVE);
-        var published = contentItemRepository.save(toPublish);
+            .ifPresent(live -> contentItemRepository.save(live.withState(ContentItemState.ARCHIVED)));
+        var published = contentItemRepository.save(working.get().withState(ContentItemState.LIVE));
         eventPublisher.publishEvent(new ContentItemPublishedEvent(published));
         log.info("Published contentItem version `{}` for identifier `{}`", published.getVersionId(), identifier);
         return Optional.of(contentItemMapper.toResponse(published));
@@ -207,18 +202,13 @@ public class ContentItemService {
             .toList();
     }
 
-    // Builds the working version to persist: reuses the existing working row's id and creation date
-    // (an in-place UPDATE) when one exists, otherwise mints a fresh working version to INSERT.
+    // Builds the working version to persist: overwrites the existing working row's content in place
+    // (an UPDATE) when one exists, otherwise mints a fresh working version to INSERT.
     private ContentItemEntity workingVersionToSave(UUID identifier, String contentType,
                                                    Map<String, Object> schemalessData,
                                                    Optional<ContentItemEntity> existingWorking) {
         return existingWorking
-            .map(working -> {
-                var entity = ContentItemEntity.newVersion(working.getVersionId(), identifier, contentType,
-                    ContentItemState.WORKING, working.getVersionCreatedDatetime(), schemalessData);
-                entity.setNew(false);
-                return entity;
-            })
+            .map(working -> working.withData(schemalessData))
             .orElseGet(() -> ContentItemEntity.newVersion(UuidV7.generate(), identifier, contentType,
                 ContentItemState.WORKING, Instant.now(), schemalessData));
     }
