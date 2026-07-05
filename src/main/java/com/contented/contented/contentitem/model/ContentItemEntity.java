@@ -1,6 +1,8 @@
 package com.contented.contented.contentitem.model;
 
 import com.contented.contented.persistence.SchemalessData;
+import lombok.Builder;
+import lombok.With;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.annotation.Transient;
@@ -26,6 +28,8 @@ public class ContentItemEntity implements Persistable<UUID> {
 
     private String contentType;
 
+    // A copy carrying a different lifecycle state (e.g. promoting WORKING -> LIVE on publish).
+    @With
     private ContentItemState state;
 
     // When this version came into existence; immutable for the life of the version.
@@ -34,11 +38,11 @@ public class ContentItemEntity implements Persistable<UUID> {
     private SchemalessData data;
 
     // Drives Spring Data JDBC's INSERT-vs-UPDATE choice for our assigned (non-generated) ids;
-    // a new version sets it true, an in-place edit/state-flip sets it false, and a DB-loaded row
-    // is constructed as not-new.
+    // a new version is new (INSERT), and a DB-loaded row (or a copy of one) is not (UPDATE).
     @Transient
-    private boolean isNew = true;
+    private boolean isNew;
 
+    @Builder(toBuilder = true)
     private ContentItemEntity(UUID versionId, UUID identifier, String contentType, ContentItemState state,
                               Instant versionCreatedDatetime, SchemalessData data, boolean isNew) {
         this.versionId = versionId;
@@ -62,14 +66,25 @@ public class ContentItemEntity implements Persistable<UUID> {
     }
 
     /**
-     * Builds a fully-populated version, marked new so it is INSERTed. For an in-place update of an
-     * existing version (the working draft), call {@link #setNew(boolean)} with {@code false} afterwards.
+     * Builds a fully-populated new version, marked new so it is INSERTed.
      */
     public static ContentItemEntity newVersion(UUID versionId, UUID identifier, String contentType,
                                                ContentItemState state, Instant versionCreatedDatetime,
                                                Map<String, Object> schemalessData) {
         return new ContentItemEntity(versionId, identifier, contentType, state, versionCreatedDatetime,
             new SchemalessData(new LinkedHashMap<>(schemalessData)), true);
+    }
+
+    /**
+     * A copy of this version carrying replacement schemaless content — an in-place edit of the
+     * working draft. The version id and creation date are kept and the copy is marked not-new, so it
+     * UPDATEs the existing row rather than inserting a new one.
+     */
+    public ContentItemEntity withData(Map<String, Object> schemalessData) {
+        return toBuilder()
+            .data(new SchemalessData(new LinkedHashMap<>(schemalessData)))
+            .isNew(false)
+            .build();
     }
 
     public UUID getVersionId() {
@@ -96,10 +111,6 @@ public class ContentItemEntity implements Persistable<UUID> {
         return state;
     }
 
-    public void setState(ContentItemState state) {
-        this.state = state;
-    }
-
     public Instant getVersionCreatedDatetime() {
         return versionCreatedDatetime;
     }
@@ -107,10 +118,6 @@ public class ContentItemEntity implements Persistable<UUID> {
     @Override
     public boolean isNew() {
         return isNew;
-    }
-
-    public void setNew(boolean isNew) {
-        this.isNew = isNew;
     }
 
     public Map<String, Object> getSchemalessData() {
