@@ -13,14 +13,14 @@ public class ContentItemMapper {
     }
 
     public ContentItemResponseDTO toResponse(ContentItemEntity entity) {
-        var dto = new ContentItemResponseDTO();
-        dto.setVersionId(entity.getVersionId());
-        dto.setIdentifier(entity.getIdentifier());
-        dto.setContentType(entity.getContentType());
-        dto.setState(entity.getState());
-        dto.setVersionCreatedDatetime(entity.getVersionCreatedDatetime());
-        dto.setData(new LinkedHashMap<>(entity.getSchemalessData()));
-        return dto;
+        return ContentItemResponseDTO.builder()
+            .versionId(entity.getVersionId())
+            .identifier(entity.getIdentifier())
+            .contentType(entity.getContentType())
+            .state(entity.getState())
+            .versionCreatedDatetime(entity.getVersionCreatedDatetime())
+            .data(new LinkedHashMap<>(entity.getSchemalessData()))
+            .build();
     }
 
     public ContentItemVersionSummaryDTO toSummary(ContentItemEntity entity) {

@@ -1,22 +1,24 @@
 package com.contented.contented.contentitem.model;
 
 import lombok.Getter;
-import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
+@SuperBuilder
+@Jacksonized
 public class ContentItemResponseDTO extends AbstractContentItemDTO {
 
     // This exact version's id.
-    private UUID versionId;
+    private final UUID versionId;
 
     // The version-agnostic id of the logical content this version belongs to.
-    private UUID identifier;
+    private final UUID identifier;
 
-    private ContentItemState state;
+    private final ContentItemState state;
 
-    private Instant versionCreatedDatetime;
+    private final Instant versionCreatedDatetime;
 }

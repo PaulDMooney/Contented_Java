@@ -77,12 +77,10 @@ public class ContentItemServiceIT {
             ContentItemDTO toSave = newBlogDTO();
 
             static ContentItemDTO newBlogDTO() {
-                var dto = new ContentItemDTO();
-                dto.setContentType("Blog");
-                dto.getData().put("language", "en");
-                dto.getData().put("title", "Blog Title");
-                dto.getData().put("slug", "blog-slug");
-                return dto;
+                return ContentItemDTO.builder()
+                    .contentType("Blog")
+                    .data(Map.of("language", "en", "title", "Blog Title", "slug", "blog-slug"))
+                    .build();
             }
 
             ContentItemResponseDTO created;
