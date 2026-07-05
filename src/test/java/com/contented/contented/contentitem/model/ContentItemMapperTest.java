@@ -99,9 +99,7 @@ class ContentItemMapperTest {
 
         @BeforeAll
         void when() {
-            ContentItemDTO dto = new ContentItemDTO();
-            dto.setContentType("Blog");
-            dto.getData().put("title", "Hello");
+            ContentItemDTO dto = ContentItemDTO.builder().contentType("Blog").data(Map.of("title", "Hello")).build();
 
             result = mapper.toEntity(dto);
         }

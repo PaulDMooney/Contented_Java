@@ -54,9 +54,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
     }
 
     UUID createDraft(String contentType, Map<String, Object> fields) {
-        var dto = new ContentItemDTO();
-        dto.setContentType(contentType);
-        dto.getData().putAll(fields);
+        var dto = ContentItemDTO.builder().contentType(contentType).data(fields).build();
         return contentItemEndpointClient.post().body(dto).exchange()
             .expectStatus().isCreated()
             .expectBody(ContentItemResponseDTO.class)
@@ -69,9 +67,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
     }
 
     void editWorking(UUID identifier, String contentType, Map<String, Object> fields) {
-        var dto = new ContentItemDTO();
-        dto.setContentType(contentType);
-        dto.getData().putAll(fields);
+        var dto = ContentItemDTO.builder().contentType(contentType).data(fields).build();
         contentItemEndpointClient.put().uri("/{identifier}", identifier).body(dto).exchange()
             .expectStatus().isOk();
     }
@@ -85,15 +81,14 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         class CreateANewContentItem {
 
             // Given a body with no id (ids are server-assigned)
-            ContentItemDTO toCreate = new ContentItemDTO();
+            ContentItemDTO toCreate = ContentItemDTO.builder()
+                .contentType("SomeType").data(Map.of("field1", "value1")).build();
 
             EntityExchangeResult<ContentItemResponseDTO> result;
 
             @BeforeAll()
             void beforeAll() {
                 mockContentItemIndexer();
-                toCreate.setContentType("SomeType");
-                toCreate.getData().put("field1", "value1");
 
                 result = contentItemEndpointClient.post()
                         .body(toCreate)
@@ -157,14 +152,14 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         @DisplayName("When creating a `contentItem` with no `contentType`")
         class CreateWithoutContentType {
 
-            ContentItemDTO toCreate = new ContentItemDTO();
+            // Given a body with no contentType
+            ContentItemDTO toCreate = ContentItemDTO.builder().data(Map.of("field1", "value1")).build();
 
             RestTestClient.ResponseSpec response;
 
             @BeforeAll()
             void beforeAll() {
                 mockContentItemIndexer();
-                toCreate.getData().put("field1", "value1");
                 response = contentItemEndpointClient.post().body(toCreate).exchange();
             }
 
@@ -192,9 +187,8 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 identifier = createDraft("SomeType", Map.of("field1", "original"));
 
-                var update = new ContentItemDTO();
-                update.setContentType("SomeType");
-                update.getData().put("field1", "updatedValue");
+                var update = ContentItemDTO.builder()
+                    .contentType("SomeType").data(Map.of("field1", "updatedValue")).build();
 
                 response = contentItemEndpointClient.put()
                         .uri("/{identifier}", identifier)
@@ -227,8 +221,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             @BeforeAll()
             void beforeAll() {
                 mockContentItemIndexer();
-                var update = new ContentItemDTO();
-                update.setContentType("SomeType");
+                var update = ContentItemDTO.builder().contentType("SomeType").build();
 
                 response = contentItemEndpointClient.put()
                         .uri("/{identifier}", UuidV7.generate())
@@ -254,8 +247,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 var identifier = createDraft("Blog", Map.of());
 
-                var update = new ContentItemDTO();
-                update.setContentType("News");
+                var update = ContentItemDTO.builder().contentType("News").build();
 
                 response = contentItemEndpointClient.put()
                         .uri("/{identifier}", identifier)

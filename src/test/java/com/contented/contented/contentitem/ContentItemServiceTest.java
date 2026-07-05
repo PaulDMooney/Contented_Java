@@ -47,10 +47,7 @@ public class ContentItemServiceTest {
     }
 
     static ContentItemDTO dto(String contentType, Map<String, Object> fields) {
-        var dto = new ContentItemDTO();
-        dto.setContentType(contentType);
-        dto.getData().putAll(fields);
-        return dto;
+        return ContentItemDTO.builder().contentType(contentType).data(fields).build();
     }
 
     static ContentItemEntity version(UUID versionId, UUID identifier, String contentType, ContentItemState state) {
