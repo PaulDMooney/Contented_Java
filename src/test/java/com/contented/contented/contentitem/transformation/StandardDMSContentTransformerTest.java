@@ -50,7 +50,7 @@ class StandardDMSContentTransformerTest {
                 var result = transformer.transform(contentItemEntity);
 
                 // Then
-                assertThat(result.getId()).isNull();
+                assertThat(result.getVersionId()).isNull();
             }
 
             @Test
@@ -79,7 +79,7 @@ class StandardDMSContentTransformerTest {
                 var result = transformer.transform(toSave);
 
                 // Then
-                assertThat(result.getId()).isEqualTo(toSave.getId());
+                assertThat(result.getVersionId()).isEqualTo(toSave.getVersionId());
             }
         }
     }
