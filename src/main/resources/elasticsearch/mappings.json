@@ -7,6 +7,14 @@
           "type": "keyword"
         }
       }
+    },
+    {
+      "version_id_as_keyword": {
+        "match": "versionId",
+        "mapping": {
+          "type": "keyword"
+        }
+      }
     }
   ]
 }

@@ -33,7 +33,7 @@ public class StandardDMSContentTransformer implements ContentItemEntityTransform
         Map<String, Object> mutableSchemalessData = new HashMap<>(toTransform.getSchemalessData());
         normalizeLanguage(mutableSchemalessData);
         setModDate(mutableSchemalessData);
-        return new ContentItemEntity(toTransform.getId(), toTransform.getContentType(),
+        return new ContentItemEntity(toTransform.getVersionId(), toTransform.getContentType(),
                 Collections.unmodifiableMap(mutableSchemalessData));
     }
 

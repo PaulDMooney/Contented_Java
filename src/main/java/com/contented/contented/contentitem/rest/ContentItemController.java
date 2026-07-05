@@ -2,10 +2,10 @@ package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.contentitem.ContentItemService;
 import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
-import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.contented.contented.contentitem.model.ContentItemStateDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -21,54 +21,68 @@ public class ContentItemController {
 
     final ContentItemService contentItemService;
 
-    @Autowired
     public ContentItemController(ContentItemService contentItemService) {
         this.contentItemService = contentItemService;
-    }
-
-    @GetMapping("/all")
-    List<ContentItemResponseDTO> getAll() {
-        // TODO: Replace this with a paginated version in the future
-        return contentItemService.findAll();
-    }
-
-    @GetMapping("/{id}")
-    ResponseEntity<ContentItemResponseDTO> findById(@PathVariable UUID id) {
-        return contentItemService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElseThrow(() -> new ContentItemNotFoundException(id));
     }
 
     @PostMapping
     ResponseEntity<ContentItemResponseDTO> createContentItem(@RequestBody ContentItemDTO contentItemDTO,
                                                            UriComponentsBuilder uriBuilder) {
-        // Ids are server-assigned; a client must not supply one when creating.
-        if (contentItemDTO.getId() != null) {
-            throw new InvalidContentItemException(
-                    "A contentItem id must not be supplied when creating; ids are server-assigned.");
-        }
         var created = contentItemService.create(contentItemDTO);
-        var location = uriBuilder.path("/{base}/{id}")
-                .buildAndExpand(CONTENTITEMS_PATH, created.getId())
+        var location = uriBuilder.path("/{base}/{identifier}")
+                .buildAndExpand(CONTENTITEMS_PATH, created.getIdentifier())
                 .toUri();
         return ResponseEntity.created(location).body(created);
     }
 
-    @PutMapping("/{id}")
-    ResponseEntity<ContentItemResponseDTO> updateContentItem(@PathVariable UUID id,
-                                                           @RequestBody ContentItemDTO contentItemDTO) {
-        // The URL is the source of truth for identity; a body id must agree with it.
-        if (contentItemDTO.getId() != null && !contentItemDTO.getId().equals(id)) {
-            throw new InvalidContentItemException(
-                    "The body id `" + contentItemDTO.getId() + "` does not match the URL id `" + id + "`.");
-        }
-        return contentItemService.update(id, contentItemDTO)
+    @PutMapping("/{identifier}")
+    ResponseEntity<ContentItemResponseDTO> editWorking(@PathVariable UUID identifier,
+                                                       @RequestBody ContentItemDTO contentItemDTO) {
+        return contentItemService.editWorking(identifier, contentItemDTO)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new ContentItemNotFoundException(id));
+                .orElseThrow(() -> new ContentItemNotFoundException(identifier));
     }
 
-    @DeleteMapping("/{id}")
-    void deleteContentItem(@PathVariable UUID id) {
-        contentItemService.deleteById(id);
+    @PostMapping("/{identifier}/publish")
+    ResponseEntity<ContentItemResponseDTO> publish(@PathVariable UUID identifier) {
+        return contentItemService.publish(identifier)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ContentItemNotFoundException(identifier));
+    }
+
+    @GetMapping("/{identifier}")
+    ResponseEntity<ContentItemStateDTO> getContentState(@PathVariable UUID identifier) {
+        return contentItemService.getContentState(identifier)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ContentItemNotFoundException(identifier));
+    }
+
+    @GetMapping("/{identifier}/versions")
+    ResponseEntity<List<ContentItemVersionSummaryDTO>> getVersions(@PathVariable UUID identifier) {
+        return contentItemService.getVersions(identifier)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ContentItemNotFoundException(identifier));
+    }
+
+    @GetMapping("/{identifier}/versions/{versionId}")
+    ResponseEntity<ContentItemResponseDTO> getVersion(@PathVariable UUID identifier,
+                                                      @PathVariable UUID versionId) {
+        return contentItemService.getVersion(identifier, versionId)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ContentItemNotFoundException(versionId));
+    }
+
+    @PostMapping("/{identifier}/versions/{versionId}/restore")
+    ResponseEntity<ContentItemResponseDTO> restore(@PathVariable UUID identifier,
+                                                   @PathVariable UUID versionId) {
+        return contentItemService.restore(identifier, versionId)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ContentItemNotFoundException(versionId));
+    }
+
+    @DeleteMapping("/{identifier}")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    void deleteContentItem(@PathVariable UUID identifier) {
+        contentItemService.deleteByIdentifier(identifier);
     }
 }
