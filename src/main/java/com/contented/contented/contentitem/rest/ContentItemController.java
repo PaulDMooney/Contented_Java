@@ -36,9 +36,9 @@ public class ContentItemController {
     }
 
     @PutMapping("/{identifier}")
-    ResponseEntity<ContentItemResponseDTO> editWorking(@PathVariable UUID identifier,
+    ResponseEntity<ContentItemResponseDTO> updateWorking(@PathVariable UUID identifier,
                                                        @RequestBody ContentItemDTO contentItemDTO) {
-        return contentItemService.editWorking(identifier, contentItemDTO)
+        return contentItemService.updateWorking(identifier, contentItemDTO)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(identifier));
     }

@@ -138,8 +138,8 @@ public class ContentItemServiceTest {
     }
 
     @Nested
-    @DisplayName("`editWorking()`")
-    class EditWorking {
+    @DisplayName("`updateWorking()`")
+    class UpdateWorking {
 
         @Nested
         @DisplayName("Given the content already has a WORKING version")
@@ -156,7 +156,7 @@ public class ContentItemServiceTest {
                 Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING))
                     .thenReturn(Optional.of(version(workingId, identifier, "SomeType", ContentItemState.WORKING)));
 
-                result = service.editWorking(identifier, dto("SomeType", Map.of("field1", "updatedValue")));
+                result = service.updateWorking(identifier, dto("SomeType", Map.of("field1", "updatedValue")));
             }
 
             @Test
@@ -187,7 +187,7 @@ public class ContentItemServiceTest {
                 Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.LIVE))
                     .thenReturn(Optional.of(version(liveId, identifier, "SomeType", ContentItemState.LIVE)));
 
-                result = service.editWorking(identifier, dto("SomeType", Map.of("field1", "draft")));
+                result = service.updateWorking(identifier, dto("SomeType", Map.of("field1", "draft")));
             }
 
             @Test
@@ -212,7 +212,7 @@ public class ContentItemServiceTest {
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                result = service.editWorking(UuidV7.generate(), dto("SomeType", Map.of()));
+                result = service.updateWorking(UuidV7.generate(), dto("SomeType", Map.of()));
             }
 
             @Test
@@ -242,7 +242,7 @@ public class ContentItemServiceTest {
                 Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING))
                     .thenReturn(Optional.of(version(UuidV7.generate(), identifier, "Blog", ContentItemState.WORKING)));
 
-                thrown = catchThrowable(() -> service.editWorking(identifier, dto("News", Map.of())));
+                thrown = catchThrowable(() -> service.updateWorking(identifier, dto("News", Map.of())));
             }
 
             @Test

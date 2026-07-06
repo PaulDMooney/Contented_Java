@@ -65,7 +65,7 @@ public class ContentItemService {
      * identifier is unknown (404).
      */
     @Transactional
-    public Optional<ContentItemResponseDTO> editWorking(UUID identifier, ContentItemDTO dto) {
+    public Optional<ContentItemResponseDTO> updateWorking(UUID identifier, ContentItemDTO dto) {
         requireContentType(dto.getContentType());
         var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
         // The stored contentType (and the content's existence) can be read from the working version if

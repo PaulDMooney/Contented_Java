@@ -66,7 +66,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             .expectStatus().isOk();
     }
 
-    void editWorking(UUID identifier, String contentType, Map<String, Object> fields) {
+    void updateWorking(UUID identifier, String contentType, Map<String, Object> fields) {
         var dto = ContentItemDTO.builder().contentType(contentType).data(fields).build();
         contentItemEndpointClient.put().uri("/{identifier}", identifier).body(dto).exchange()
             .expectStatus().isOk();
@@ -395,7 +395,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 identifier = createDraft("SomeType", Map.of("field1", "v1"));
                 publish(identifier);
-                editWorking(identifier, "SomeType", Map.of("field1", "v2"));
+                updateWorking(identifier, "SomeType", Map.of("field1", "v2"));
             }
 
             @Test
@@ -429,7 +429,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 identifier = createDraft("SomeType", Map.of("field1", "original"));
                 publish(identifier);
-                editWorking(identifier, "SomeType", Map.of("field1", "revised"));
+                updateWorking(identifier, "SomeType", Map.of("field1", "revised"));
                 publish(identifier); // original is now archived
 
                 archivedVersionId = contentItemEndpointClient.get().uri("/{identifier}/versions", identifier).exchange()
