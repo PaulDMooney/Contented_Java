@@ -64,18 +64,16 @@ public class ContentItemController {
                 .orElseThrow(() -> new ContentItemNotFoundException(identifier));
     }
 
-    @GetMapping("/{identifier}/versions/{versionId}")
-    ResponseEntity<ContentItemResponseDTO> getVersion(@PathVariable UUID identifier,
-                                                      @PathVariable UUID versionId) {
-        return contentItemService.getVersion(identifier, versionId)
+    @GetMapping("/versions/{versionId}")
+    ResponseEntity<ContentItemResponseDTO> getVersion(@PathVariable UUID versionId) {
+        return contentItemService.getVersion(versionId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(versionId));
     }
 
-    @PostMapping("/{identifier}/versions/{versionId}/restore")
-    ResponseEntity<ContentItemResponseDTO> restore(@PathVariable UUID identifier,
-                                                   @PathVariable UUID versionId) {
-        return contentItemService.restore(identifier, versionId)
+    @PostMapping("/versions/{versionId}/restore")
+    ResponseEntity<ContentItemResponseDTO> restore(@PathVariable UUID versionId) {
+        return contentItemService.restore(versionId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(versionId));
     }

@@ -392,8 +392,8 @@ public class ContentItemServiceTest {
     class Restore {
 
         @Nested
-        @DisplayName("Given a version that belongs to the identifier and no working version exists")
-        class GivenVersionBelongsAndNoWorking {
+        @DisplayName("Given a known version whose content has no working version")
+        class GivenVersionAndNoWorking {
 
             ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
             UUID identifier = UuidV7.generate();
@@ -408,7 +408,7 @@ public class ContentItemServiceTest {
                 Mockito.when(repository.findById(archivedId)).thenReturn(Optional.of(archived));
                 Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING)).thenReturn(Optional.empty());
 
-                result = service.restore(identifier, archivedId);
+                result = service.restore(archivedId);
             }
 
             @Test
@@ -432,7 +432,7 @@ public class ContentItemServiceTest {
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                result = service.restore(UuidV7.generate(), UuidV7.generate());
+                result = service.restore(UuidV7.generate());
             }
 
             @Test

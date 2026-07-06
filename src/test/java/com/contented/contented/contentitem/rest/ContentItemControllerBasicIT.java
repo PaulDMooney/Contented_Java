@@ -414,7 +414,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
     }
 
     @Nested
-    @DisplayName("`POST /{identifier}/versions/{versionId}/restore` endpoint")
+    @DisplayName("`POST /versions/{versionId}/restore` endpoint")
     class RestoreEndpoint {
 
         @Nested
@@ -443,7 +443,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             @DisplayName("It should copy the archived content into a new working draft")
             void should_restore_into_working() {
                 contentItemEndpointClient.post()
-                    .uri("/{identifier}/versions/{versionId}/restore", identifier, archivedVersionId).exchange()
+                    .uri("/versions/{versionId}/restore", archivedVersionId).exchange()
                     .expectStatus().isOk()
                     .expectBody(ContentItemResponseDTO.class)
                     .value(working -> {
