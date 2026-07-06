@@ -4,7 +4,7 @@ import com.contented.contented.contentitem.ContentItemService;
 import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.model.ContentItemStateDTO;
+import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +51,7 @@ public class ContentItemController {
     }
 
     @GetMapping("/{identifier}")
-    ResponseEntity<ContentItemStateDTO> getContentState(@PathVariable UUID identifier) {
+    ResponseEntity<ContentItemWorkAndLiveDTO> getContentState(@PathVariable UUID identifier) {
         return contentItemService.getContentState(identifier)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(identifier));

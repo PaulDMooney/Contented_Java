@@ -5,5 +5,5 @@ package com.contented.contented.contentitem.model;
  * {@code live} version. Either may be {@code null} (e.g. an unpublished draft has no live version;
  * freshly published content has no working version), so a UI can tell what exists in one read.
  */
-public record ContentItemStateDTO(ContentItemResponseDTO working, ContentItemResponseDTO live) {
+public record ContentItemWorkAndLiveDTO(ContentItemResponseDTO working, ContentItemResponseDTO live) {
 }

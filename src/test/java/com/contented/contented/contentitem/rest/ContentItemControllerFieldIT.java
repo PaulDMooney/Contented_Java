@@ -3,7 +3,7 @@ package com.contented.contented.contentitem.rest;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
-import com.contented.contented.contentitem.model.ContentItemStateDTO;
+import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -107,7 +107,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
 
                 contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
                     .expectStatus().is2xxSuccessful()
-                    .expectBody(ContentItemStateDTO.class)
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
                     .value(state -> {
                         assertThat(state.working().getData()).containsEntry("field1", "field1Value");
                         assertThat(state.working().getData()).containsEntry("field2", 123);
@@ -143,7 +143,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
 
                 contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
                     .expectStatus().is2xxSuccessful()
-                    .expectBody(ContentItemStateDTO.class)
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
                     .value(state -> {
                         assertThat(state.working().getData()).containsEntry("strings", strings);
                         assertThat(state.working().getData()).containsKey("stuff");
