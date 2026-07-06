@@ -70,27 +70,24 @@ public class ContentItemService {
         var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
         // The stored contentType (and the content's existence) can be read from the working version if
         // present, otherwise the live one; a known content always has one or the other (no operation
-        // leaves only archived versions), so their absence means the identifier is unknown.
-        var reference = existingWorking.or(() ->
-            contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.LIVE));
-        if (reference.isEmpty()) {
-            log.info("No content for identifier `{}`; nothing to edit", identifier);
-            return Optional.empty();
-        }
-        // contentType is fixed across all versions of a content.
-        var storedContentType = reference.get().getContentType();
-        if (!storedContentType.equalsIgnoreCase(dto.getContentType())) {
-            throw new InvalidContentItemException(
-                "A contentItem's contentType cannot be changed; `" + storedContentType
-                    + "` was created, `" + dto.getContentType() + "` was supplied.");
-        }
-
-        var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
-        // Preserve the stored contentType so its casing never drifts on edit.
-        var toSave = workingVersionToSave(identifier, storedContentType, transformed.getSchemalessData(), existingWorking);
-        var saved = contentItemRepository.save(toSave);
-        log.info("Saved working contentItem version `{}` for identifier `{}`", saved.getVersionId(), identifier);
-        return Optional.of(contentItemMapper.toResponse(saved));
+        // leaves only archived versions), so their absence means the identifier is unknown (empty -> 404).
+        return existingWorking
+            .or(() -> contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.LIVE))
+            .map(reference -> {
+                // contentType is fixed across all versions of a content.
+                var storedContentType = reference.getContentType();
+                if (!storedContentType.equalsIgnoreCase(dto.getContentType())) {
+                    throw new InvalidContentItemException(
+                        "A contentItem's contentType cannot be changed; `" + storedContentType
+                            + "` was created, `" + dto.getContentType() + "` was supplied.");
+                }
+                var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
+                // Preserve the stored contentType so its casing never drifts on edit.
+                var saved = contentItemRepository.save(
+                    workingVersionToSave(identifier, storedContentType, transformed.getSchemalessData(), existingWorking));
+                log.info("Saved working contentItem version `{}` for identifier `{}`", saved.getVersionId(), identifier);
+                return contentItemMapper.toResponse(saved);
+            });
     }
 
     /**
@@ -127,19 +124,18 @@ public class ContentItemService {
      */
     @Transactional
     public Optional<ContentItemResponseDTO> restore(UUID identifier, UUID versionId) {
-        var source = contentItemRepository.findById(versionId)
-            .filter(version -> identifier.equals(version.getIdentifier()));
-        if (source.isEmpty()) {
-            log.info("Version `{}` not found for identifier `{}`; nothing to restore", versionId, identifier);
-            return Optional.empty();
-        }
-        var src = source.get();
-        var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
-
-        var toSave = workingVersionToSave(identifier, src.getContentType(), src.getSchemalessData(), existingWorking);
-        var saved = contentItemRepository.save(toSave);
-        log.info("Restored version `{}` into working version `{}` for identifier `{}`", versionId, saved.getVersionId(), identifier);
-        return Optional.of(contentItemMapper.toResponse(saved));
+        // The identifier guards the version: restoring only succeeds when the version belongs to the
+        // identifier addressed in the URL, so one content's version can't be copied into another's working.
+        return contentItemRepository.findById(versionId)
+            .filter(version -> identifier.equals(version.getIdentifier()))
+            .map(source -> {
+                var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
+                var saved = contentItemRepository.save(
+                    workingVersionToSave(identifier, source.getContentType(), source.getSchemalessData(), existingWorking));
+                log.info("Restored version `{}` into working version `{}` for identifier `{}`",
+                    versionId, saved.getVersionId(), identifier);
+                return contentItemMapper.toResponse(saved);
+            });
     }
 
     /**
