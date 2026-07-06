@@ -118,17 +118,15 @@ public class ContentItemService {
     }
 
     /**
-     * Restores a previous version into the WORKING draft by copying its content (history is never
-     * modified). The restored content can then be published. Returns empty (404) if the version is
-     * unknown or does not belong to the identifier.
+     * Restores a previous version into the WORKING draft of its own content by copying its content
+     * (history is never modified). The restored content can then be published. Returns empty (404)
+     * if the version is unknown.
      */
     @Transactional
-    public Optional<ContentItemResponseDTO> restore(UUID identifier, UUID versionId) {
-        // The identifier guards the version: restoring only succeeds when the version belongs to the
-        // identifier addressed in the URL, so one content's version can't be copied into another's working.
+    public Optional<ContentItemResponseDTO> restore(UUID versionId) {
         return contentItemRepository.findById(versionId)
-            .filter(version -> identifier.equals(version.getIdentifier()))
             .map(source -> {
+                var identifier = source.getIdentifier();
                 var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
                 var saved = contentItemRepository.save(
                     workingVersionToSave(identifier, source.getContentType(), source.getSchemalessData(), existingWorking));
@@ -172,12 +170,10 @@ public class ContentItemService {
     }
 
     /**
-     * Returns a single version's full content, or empty (404) if it is unknown or does not belong to
-     * the identifier.
+     * Returns a single version's full content, or empty (404) if it is unknown.
      */
-    public Optional<ContentItemResponseDTO> getVersion(UUID identifier, UUID versionId) {
+    public Optional<ContentItemResponseDTO> getVersion(UUID versionId) {
         return contentItemRepository.findById(versionId)
-            .filter(version -> identifier.equals(version.getIdentifier()))
             .map(contentItemMapper::toResponse);
     }
 
