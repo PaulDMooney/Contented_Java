@@ -9,8 +9,11 @@ public class StandardContentItemTransformations {
     public static EntityAsMap applyStandardTransformations(ContentItemEntity toTransform, EntityAsMap toApplyTo) {
         toApplyTo.put(ContentItemEntity.CONTENT_TYPE_FIELD, StringUtils.lowerCase(toTransform.getContentType()));
         toApplyTo.put("language", toTransform.get("language"));
-        toApplyTo.put("identifier", toTransform.getId() + "_" + toTransform.get("language"));
-        toApplyTo.put("id", toTransform.getId().toString());
+        // The ES document id is the version-agnostic identifier, so each publish overwrites the
+        // single live document for that content.
+        toApplyTo.put("id", toTransform.getIdentifier().toString());
+        // The exact source row, used to hydrate the precise live version from the database.
+        toApplyTo.put("versionId", toTransform.getVersionId().toString());
         return toApplyTo;
     }
 }

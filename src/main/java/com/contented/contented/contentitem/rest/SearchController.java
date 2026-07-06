@@ -43,12 +43,12 @@ public class SearchController {
 
         SearchResponse<EntityAsMap> response = elasticsearchClient.search(request, EntityAsMap.class);
 
-        List<UUID> extractedIds = response.hits().hits().stream()
-            .map(hit -> (String) hit.source().get("id"))
+        List<UUID> extractedVersionIds = response.hits().hits().stream()
+            .map(hit -> (String) hit.source().get("versionId"))
             .map(UUID::fromString)
             .toList();
 
-        List<ContentItemResponseDTO> contentItems = contentItemService.findByIds(extractedIds);
+        List<ContentItemResponseDTO> contentItems = contentItemService.findByIds(extractedVersionIds);
 
         return new SearchResultsWithContent<>(response, contentItems);
     }

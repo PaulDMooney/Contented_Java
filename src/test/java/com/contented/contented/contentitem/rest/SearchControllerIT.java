@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.contented.contented.contentitem.testutils.ElasticSearchContainerUtils.elasticsearchContainer;
@@ -79,26 +80,28 @@ public class SearchControllerIT {
     @DisplayName("`POST /withcontent` endpoint")
     class WithContentEndpoint {
         @Nested
-        @DisplayName("Given content that is indexed by its `identifier` was saved")
+        @DisplayName("Given published content that is indexed by its `identifier`")
         class GivenContentIndexedByIdentifier {
 
-            record SomeContent(String id, String contentType, String someOtherField){}
+            // A contentType plus schemaless content nested under `data`.
+            final Map<String, Object> savedContent =
+                Map.of("contentType", "Blog", "data", Map.of("someOtherField", "Some field value"));
 
-            // Given a body with no id (ids are server-assigned)
-            final SomeContent savedContent = new SomeContent(null, "Blog", "Some field value");
-
-            UUID createdId;
+            UUID identifier;
 
             @BeforeAll
             void given() {
 
-                // Could use rest endpoint, or could go directly to service
-                createdId = contentItemEndpointClient.post().body(savedContent)
+                identifier = contentItemEndpointClient.post().body(savedContent)
                     .exchange().expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
+                    .returnResult().getResponseBody().getIdentifier();
 
-                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, createdId.toString(), 1);
+                // Drafts are not indexed; publishing makes the live version searchable.
+                contentItemEndpointClient.post().uri("/{identifier}/publish", identifier).exchange()
+                    .expectStatus().isOk();
+
+                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, identifier.toString(), 1);
             }
 
 
@@ -127,7 +130,7 @@ public class SearchControllerIT {
 
                 @BeforeAll
                 void when() {
-                    var queryString = String.format(queryForContentTemplate, createdId.toString());
+                    var queryString = String.format(queryForContentTemplate, identifier.toString());
                     response = searchEndpointClient.post().uri("/withcontent").body(queryString).exchange();
 
                     // Deserialize the body ourselves with the SearchResponseDeserializer registered as a
@@ -154,16 +157,16 @@ public class SearchControllerIT {
                 }
 
                 @Test
-                @DisplayName("It should return an `esResponse` with a hit for the saved content's `id`")
+                @DisplayName("It should return an `esResponse` with a hit for the published content")
                 void the_esResponse_should_contain_a_hit_with_the_id_of_the_saved_content() {
                     assertThat(result.esResponse().hits().hits()).hasSize(1);
                 }
 
                 @Test
-                @DisplayName("It should return the `contentItems` with the saved content")
+                @DisplayName("It should hydrate the `contentItems` with the live version of the saved content")
                 void the_content_items_should_contain_a_content_item_with_the_id_of_the_saved_content() {
                     assertThat(result.contentItems()).hasSize(1);
-                    assertThat(result.contentItems().get(0).getId().toString()).isEqualTo(createdId.toString());
+                    assertThat(result.contentItems().get(0).getIdentifier()).isEqualTo(identifier);
                 }
 
             }

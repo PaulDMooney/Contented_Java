@@ -1,33 +1,19 @@
 package com.contented.contented.contentitem.model;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
-@Setter
+@SuperBuilder
 public abstract class AbstractContentItemDTO {
 
-    private UUID id;
+    private final String contentType;
 
-    private String contentType;
-
-    @JsonIgnore
-    private Map<String, Object> schemalessData = new LinkedHashMap<>();
-
-    @JsonAnySetter
-    public void add(String key, Object value) {
-        schemalessData.put(key, value);
-    }
-
-    @JsonAnyGetter
-    public Map<String, Object> get() {
-        return schemalessData;
-    }
+    // The schemaless content, nested so it cannot collide with or override the fixed/system fields.
+    @Builder.Default
+    private final Map<String, Object> data = new LinkedHashMap<>();
 }
