@@ -9,7 +9,7 @@ import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemMapper;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemState;
-import com.contented.contented.contentitem.model.ContentItemStateDTO;
+import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
 import com.contented.contented.contentitem.transformation.TransformationHandler;
 import lombok.extern.log4j.Log4j2;
@@ -146,14 +146,14 @@ public class ContentItemService {
      * Returns the full editorial state (working + live, either may be null) for a content, or empty
      * (404) if the identifier is unknown.
      */
-    public Optional<ContentItemStateDTO> getContentState(UUID identifier) {
+    public Optional<ContentItemWorkAndLiveDTO> getContentState(UUID identifier) {
         var versions = contentItemRepository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier);
         if (versions.isEmpty()) {
             return Optional.empty();
         }
         var working = firstInState(versions, ContentItemState.WORKING);
         var live = firstInState(versions, ContentItemState.LIVE);
-        return Optional.of(new ContentItemStateDTO(working, live));
+        return Optional.of(new ContentItemWorkAndLiveDTO(working, live));
     }
 
     private ContentItemResponseDTO firstInState(List<ContentItemEntity> versions, ContentItemState state) {

@@ -5,7 +5,7 @@ import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemState;
-import com.contented.contented.contentitem.model.ContentItemStateDTO;
+import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
@@ -207,7 +207,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             void should_have_updated_the_working_version() {
                 contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
                     .expectStatus().isOk()
-                    .expectBody(ContentItemStateDTO.class)
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
                     .value(state -> assertThat(state.working().getData()).containsEntry("field1", "updatedValue"));
             }
         }
@@ -294,7 +294,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             void should_have_live_and_no_working() {
                 contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
                     .expectStatus().isOk()
-                    .expectBody(ContentItemStateDTO.class)
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
                     .value(state -> {
                         assertThat(state.live()).isNotNull();
                         assertThat(state.working()).isNull();
@@ -358,7 +358,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             void should_return_working_only() {
                 contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
                     .expectStatus().isOk()
-                    .expectBody(ContentItemStateDTO.class)
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
                     .value(state -> {
                         assertThat(state.working()).isNotNull();
                         assertThat(state.live()).isNull();
