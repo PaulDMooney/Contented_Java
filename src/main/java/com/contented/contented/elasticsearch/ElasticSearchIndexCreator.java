@@ -1,6 +1,7 @@
 package com.contented.contented.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ public class ElasticSearchIndexCreator {
 
     public static final String MAPPINGS_FILE_PROPERTY_KEY = "elasticsearch.index.mappingsfile";
 
+    private static final String RESOURCE_ALREADY_EXISTS_ERROR_TYPE = "resource_already_exists_exception";
+
     final ElasticsearchClient elasticsearchClient;
 
     final IndexCoordinates indexCoordinates;
@@ -32,7 +35,7 @@ public class ElasticSearchIndexCreator {
         this.mappingsFile = mappingsFile;
     }
 
-    public boolean createIndex() {
+    public IndexCreationResult createIndex() {
         var createIndexRequest = CreateIndexRequest.of(builder ->
             builder.index(indexCoordinates.getIndexName())
                 .mappings(mappingsBuilder -> {
@@ -45,15 +48,19 @@ public class ElasticSearchIndexCreator {
             var response = elasticsearchClient.indices().create(createIndexRequest);
             if (response.acknowledged()) {
                 log.info("Index {} created", indexCoordinates.getIndexName());
-                return true;
+                return IndexCreationResult.CREATED;
             } else {
                 log.error("Index {} not created", indexCoordinates.getIndexName());
-                return false;
+                return IndexCreationResult.FAILED;
             }
+        } catch (ElasticsearchException exception) {
+            if (RESOURCE_ALREADY_EXISTS_ERROR_TYPE.equals(exception.error().type())) {
+                log.info("Index {} already exists", indexCoordinates.getIndexName());
+                return IndexCreationResult.ALREADY_EXISTS;
+            }
+            throw exception;
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }
-
-        // TODO: Throw error if response is not successful
     }
 }
