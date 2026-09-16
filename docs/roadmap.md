@@ -10,7 +10,7 @@ fleshed out before implementation.
 | 2 | Micrometer trace ids in logs | Mostly done | — |
 | 3 | MongoDB → Postgres migration | Mostly done | — |
 | 4 | Bring tests up to new testing standards | In progress | `spring-boot-testing` skill |
-| 5 | Content versioning (live / working / history) | Idea | — |
+| 5 | Content versioning (live / working / history) | Idea | [content-model.md](content-model.md) |
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
