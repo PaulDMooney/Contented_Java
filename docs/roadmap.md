@@ -10,7 +10,7 @@ fleshed out before implementation.
 | 2 | Micrometer trace ids in logs | Mostly done | — |
 | 3 | MongoDB → Postgres migration | Mostly done | — |
 | 4 | Bring tests up to new testing standards | In progress | `spring-boot-testing` skill |
-| 5 | Content versioning (live / working / history) | Idea | — |
+| 5 | Content versioning (live / working / history) | Idea | [content-model.md](content-model.md) |
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
@@ -177,6 +177,23 @@ version's content never changes under its `inode` — only which version *is* li
 - **Interaction with item 8**: the rebuild walks "all content items" — under versioning this
   becomes "all live versions (+ working, if indexed)". The keyset/checkpoint design is
   unaffected, but the batch query and the ES transformers gain version-awareness.
+
+**Deferred follow-ups** (surfaced while implementing the working/live/history model):
+
+- **Optimistic locking on the WORKING draft.** `updateWorking` edits the single WORKING row in
+  place, so two concurrent edits both load and UPDATE it — last write silently wins (lost update).
+  Add a `@Version` column so a stale edit raises `OptimisticLockingFailureException`, mapped to a
+  409. (The exception handler already maps `DataIntegrityViolationException` to 409 — extend it.)
+  This is distinct from the publish / lazy-working-create INSERT race, which the partial unique
+  indexes (`uq_content_item_live` / `uq_content_item_working`) already guard and which already
+  surfaces as a 409.
+- **Skip the `data` blob when listing versions.** `GET /contentitems/{identifier}/versions` returns
+  `ContentItemVersionSummaryDTO` (versionId, state, versionCreatedDatetime) — no content — but
+  `findByIdentifierOrderByVersionCreatedDatetimeDesc` loads full `ContentItemEntity` rows, fetching
+  every version's `data` jsonb only to discard it in the mapper. Add a column-restricted projection
+  query for the summary listing so the content blobs are never read (matters when a content has many
+  or large versions). The `{working, live}` state read still needs full rows, so this is a
+  listing-only optimization.
 
 ## 6. Content grouping (language variants)
 
