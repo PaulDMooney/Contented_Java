@@ -76,28 +76,41 @@ next number needs a `max(version) + 1` read on every write.)
 
 ## 2. Version lifecycle
 
+Three separate diagrams, because they are three different *kinds* of change: the editorial flow
+promotes and demotes rows in place; restore copies content sideways without moving anything; delete
+removes a whole content's rows at once. Squeezing all three into one diagram is what made an earlier
+draft of this doc hard to follow.
+
+### 2.1 Editorial flow: create → publish → supersede
+
+This is the state a single row moves through. Each step is numbered here and expanded in the table
+below.
+
 ```mermaid
 stateDiagram-v2
     direction LR
 
-    [*] --> WORKING : create
-    WORKING --> WORKING : update draft
-    WORKING --> LIVE : publish
-    LIVE --> ARCHIVED : superseded by the next publish
-    ARCHIVED --> WORKING : restore (copy)
-    LIVE --> WORKING : restore (copy)
+    [*] --> WORKING : ① create
+    WORKING --> LIVE : ② publish
+    LIVE --> ARCHIVED : ③ next publish
 
-    LIVE --> [*] : delete content
-    WORKING --> [*] : delete content
-    ARCHIVED --> [*] : delete content
-
-    note right of ARCHIVED
-        Restore does not move this row.
-        It copies the version's content into
-        the WORKING draft; the archived row
-        itself is never modified.
+    note right of WORKING
+        PUT updates this same
+        row in place (④) — no
+        new row, no state change.
     end note
 ```
+
+| Step | Trigger | What happens |
+|---|---|---|
+| ① create | `POST /contentitems` | a new row is inserted, state `WORKING` |
+| ② publish | `POST /{identifier}/publish` | the row is promoted in place — same `version_id`, state flips to `LIVE` |
+| ③ next publish | a later `POST /{identifier}/publish` | *this* row is demoted in place to `ARCHIVED`, and a (different) `WORKING` row is promoted to take its place as `LIVE` |
+| ④ update | `PUT /{identifier}` | the `WORKING` row's `data` is overwritten in place; `version_id` and `version_created_datetime` are unchanged |
+
+Publish is a two-row change inside one transaction, and the order matters: the current `LIVE` row
+is demoted to `ARCHIVED` *before* the `WORKING` row is promoted, so the one-`LIVE`-per-identifier
+invariant (`uq_content_item_live`) is never momentarily violated by having two `LIVE` rows at once.
 
 A content does not always have both a working and a live version, and the API is explicit about it:
 
@@ -110,16 +123,42 @@ A content does not always have both a working and a live version, and the API is
 Publishing consumes the working draft (the row *becomes* live), so a fresh draft is only created
 lazily on the next update or restore.
 
-### Publish, step by step
+### 2.2 Restore: copy, not move
 
-Publishing is a two-row state change inside one transaction, ordered so the one-LIVE invariant is
-never momentarily violated:
+Restore does not transition any row through the states above. It reads one existing version's
+`data` and copies it into the `WORKING` draft — creating one if the content doesn't have one, or
+overwriting the one it does. The source row is untouched.
 
-1. Demote the current `LIVE` row to `ARCHIVED` (if there is one).
-2. Promote the `WORKING` row to `LIVE` — same row, same `version_id`, state flipped.
+```mermaid
+flowchart LR
+    S["Any existing version\n(LIVE or ARCHIVED)\nversionId = V"]
+    W["WORKING draft\nsame identifier\n(created if absent,\noverwritten if present)"]
 
-Doing it in the other order would transiently leave two `LIVE` rows and trip
-`uq_content_item_live`.
+    S -- "⑤ POST /versions/V/restore\ncopies data only" --> W
+```
+
+| Step | Trigger | What happens |
+|---|---|---|
+| ⑤ restore | `POST /versions/{versionId}/restore` | `data` is copied from any version (`LIVE` or `ARCHIVED`) into the `WORKING` draft; the source row's state and content are never modified |
+
+The restored draft can then be published like any other edit (step ②).
+
+### 2.3 Delete: the whole content at once
+
+Delete is not per-row either — it drops every version sharing an `identifier` in one statement,
+regardless of state.
+
+```mermaid
+flowchart LR
+    C["Content: identifier = X\nWORKING? + LIVE? + ARCHIVED × N"]
+    G(("gone"))
+
+    C -- "⑥ DELETE /contentitems/X" --> G
+```
+
+| Step | Trigger | What happens |
+|---|---|---|
+| ⑥ delete | `DELETE /contentitems/{identifier}` | every row for that `identifier` is removed, in every state, and the search document is removed after commit |
 
 ## 3. REST API surface
 
