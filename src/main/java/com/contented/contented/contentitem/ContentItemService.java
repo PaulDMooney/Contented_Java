@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,8 +51,7 @@ public class ContentItemService {
     public ContentItemResponseDTO create(ContentItemDTO dto) {
         requireContentType(dto.getContentType());
         var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
-        var toSave = ContentItemEntity.newVersion(UuidV7.generate(), UuidV7.generate(),
-            transformed.getContentType(), ContentItemState.WORKING, Instant.now(), transformed.getSchemalessData());
+        var toSave = transformed.asNewVersion(UuidV7.generate(), UuidV7.generate(), ContentItemState.WORKING, Instant.now());
         var saved = contentItemRepository.save(toSave);
         log.info("Created working contentItem version `{}` for identifier `{}`", saved.getVersionId(), saved.getIdentifier());
         return contentItemMapper.toResponse(saved);
@@ -84,7 +82,7 @@ public class ContentItemService {
                 var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
                 // Preserve the stored contentType so its casing never drifts on edit.
                 var saved = contentItemRepository.save(
-                    workingVersionToSave(identifier, storedContentType, transformed.getSchemalessData(), existingWorking));
+                    workingVersionToSave(identifier, storedContentType, transformed, existingWorking));
                 log.info("Saved working contentItem version `{}` for identifier `{}`", saved.getVersionId(), identifier);
                 return contentItemMapper.toResponse(saved);
             });
@@ -129,7 +127,7 @@ public class ContentItemService {
                 var identifier = source.getIdentifier();
                 var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
                 var saved = contentItemRepository.save(
-                    workingVersionToSave(identifier, source.getContentType(), source.getSchemalessData(), existingWorking));
+                    workingVersionToSave(identifier, source.getContentType(), source, existingWorking));
                 log.info("Restored version `{}` into working version `{}` for identifier `{}`",
                     versionId, saved.getVersionId(), identifier);
                 return contentItemMapper.toResponse(saved);
@@ -192,14 +190,17 @@ public class ContentItemService {
     }
 
     // Builds the working version to persist: overwrites the existing working row's content in place
-    // (an UPDATE) when one exists, otherwise mints a fresh working version to INSERT.
+    // (an UPDATE) when one exists, otherwise promotes the draft into a fresh working version to
+    // INSERT. `draft` carries the content to use (the transformed entity for an edit, the source
+    // version for a restore); `contentType` is passed explicitly so a lazily-created working version
+    // always matches the content's already-established casing rather than the draft's own.
     private ContentItemEntity workingVersionToSave(UUID identifier, String contentType,
-                                                   Map<String, Object> schemalessData,
+                                                   ContentItemEntity draft,
                                                    Optional<ContentItemEntity> existingWorking) {
         return existingWorking
-            .map(working -> working.withData(schemalessData))
-            .orElseGet(() -> ContentItemEntity.newVersion(UuidV7.generate(), identifier, contentType,
-                ContentItemState.WORKING, Instant.now(), schemalessData));
+            .map(working -> working.withData(draft.getSchemalessData()))
+            .orElseGet(() -> draft.asNewVersion(UuidV7.generate(), identifier, contentType,
+                ContentItemState.WORKING, Instant.now()));
     }
 
     private void requireContentType(String contentType) {

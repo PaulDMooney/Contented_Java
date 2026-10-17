@@ -76,6 +76,34 @@ public class ContentItemEntity implements Persistable<UUID> {
     }
 
     /**
+     * Promotes this entity — typically the output of the inbound transformation pipeline — into a
+     * freshly-identified new version, keeping its own {@code contentType} and content. Marked new so
+     * it is INSERTed.
+     */
+    public ContentItemEntity asNewVersion(UUID versionId, UUID identifier, ContentItemState state,
+                                          Instant versionCreatedDatetime) {
+        return asNewVersion(versionId, identifier, contentType, state, versionCreatedDatetime);
+    }
+
+    /**
+     * As {@link #asNewVersion(UUID, UUID, ContentItemState, Instant)}, but with {@code contentType}
+     * given explicitly rather than taken from this entity — for lazily creating a working version
+     * whose contentType must match an already-established one exactly (e.g. its casing), not
+     * whatever a client happened to submit.
+     */
+    public ContentItemEntity asNewVersion(UUID versionId, UUID identifier, String contentType,
+                                          ContentItemState state, Instant versionCreatedDatetime) {
+        return toBuilder()
+            .versionId(versionId)
+            .identifier(identifier)
+            .contentType(contentType)
+            .state(state)
+            .versionCreatedDatetime(versionCreatedDatetime)
+            .isNew(true)
+            .build();
+    }
+
+    /**
      * A copy of this version carrying replacement schemaless content — an in-place edit of the
      * working draft. The version id and creation date are kept and the copy is marked not-new, so it
      * UPDATEs the existing row rather than inserting a new one.
