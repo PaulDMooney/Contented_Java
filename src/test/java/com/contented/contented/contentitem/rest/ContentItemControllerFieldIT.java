@@ -1,8 +1,8 @@
 package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
-import com.contented.contented.contentitem.model.ContentItemEntity;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
@@ -28,7 +28,7 @@ import static com.contented.contented.contentitem.testutils.PostgresContainerUti
 @DisplayName("`ContentItemController` field tests")
 public class ContentItemControllerFieldIT extends AbstractContentItemControllerIT {
 
-    // ContentItemRepository needs a database to communicate with
+    // ContentItemVersionRepository needs a database to communicate with
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
 
@@ -63,7 +63,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
 
                 createdVersionId = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .returnResult().getResponseBody().getVersionId();
             }
 
@@ -71,7 +71,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
             @DisplayName("It should save the working version with its given fields")
             void it_should_save_the_content_item_with_its_given_fields() {
 
-                ContentItemEntity savedEntity = contentItemRepository.findById(createdVersionId).orElseThrow();
+                ContentItemVersionEntity savedEntity = contentItemRepository.findById(createdVersionId).orElseThrow();
 
                 assertThat((String) savedEntity.get("field1")).isEqualTo("field1Value");
                 assertThat((Integer) savedEntity.get("field2")).isEqualTo(123);
@@ -97,7 +97,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
 
                 identifier = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .returnResult().getResponseBody().getIdentifier();
             }
 
@@ -133,7 +133,7 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
 
                 identifier = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .returnResult().getResponseBody().getIdentifier();
             }
 

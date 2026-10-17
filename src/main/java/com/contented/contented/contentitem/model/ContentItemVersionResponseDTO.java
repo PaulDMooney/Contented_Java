@@ -10,7 +10,7 @@ import java.util.UUID;
 @Getter
 @SuperBuilder
 @Jacksonized
-public class ContentItemResponseDTO extends AbstractContentItemDTO {
+public class ContentItemVersionResponseDTO extends AbstractContentItemVersionDTO {
 
     // This exact version's id.
     private final UUID versionId;

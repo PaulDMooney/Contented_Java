@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.elasticsearch.transformation;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ import static com.contented.contented.contentitem.transformation.StandardDMSCont
 @Component
 public class BlogTransformer implements ESRecordTransformer {
     @Override
-    public Collection<EntityAsMap> transform(ContentItemEntity toTransform) {
+    public Collection<EntityAsMap> transform(ContentItemVersionEntity toTransform) {
 
         EntityAsMap entityAsMap = new EntityAsMap();
         applyStandardTransformations(toTransform, entityAsMap);
@@ -23,7 +23,7 @@ public class BlogTransformer implements ESRecordTransformer {
     }
 
     @Override
-    public boolean test(ContentItemEntity contentItemEntity) {
+    public boolean test(ContentItemVersionEntity contentItemEntity) {
         return BLOG_VALUE.equalsIgnoreCase(contentItemEntity.getContentType());
     }
 }

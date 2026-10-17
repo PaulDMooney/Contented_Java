@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 
 public interface Transformer<T, R> {
 

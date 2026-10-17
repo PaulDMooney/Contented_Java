@@ -11,5 +11,5 @@ import lombok.extern.jackson.Jacksonized;
  */
 @SuperBuilder
 @Jacksonized
-public class ContentItemDTO extends AbstractContentItemDTO {
+public class ContentItemVersionDTO extends AbstractContentItemVersionDTO {
 }

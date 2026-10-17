@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.rest;
 
-import com.contented.contented.contentitem.ContentItemRepository;
+import com.contented.contented.contentitem.ContentItemVersionRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -12,7 +12,7 @@ public abstract class AbstractContentItemControllerIT {
     protected int port;
 
     @Autowired
-    protected ContentItemRepository contentItemRepository;
+    protected ContentItemVersionRepository contentItemRepository;
 
     protected RestTestClient contentItemEndpointClient;
 

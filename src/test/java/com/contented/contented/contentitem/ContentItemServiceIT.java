@@ -1,8 +1,8 @@
 package com.contented.contented.contentitem;
 
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
-import com.contented.contented.contentitem.model.ContentItemDTO;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -74,16 +74,16 @@ public class ContentItemServiceIT {
         class WhenPublishingContentItemMatchingESCriteria {
 
             // contentType = "Blog" will match criteria for a transformation
-            ContentItemDTO toSave = newBlogDTO();
+            ContentItemVersionDTO toSave = newBlogDTO();
 
-            static ContentItemDTO newBlogDTO() {
-                return ContentItemDTO.builder()
+            static ContentItemVersionDTO newBlogDTO() {
+                return ContentItemVersionDTO.builder()
                     .contentType("Blog")
                     .data(Map.of("language", "en", "title", "Blog Title", "slug", "blog-slug"))
                     .build();
             }
 
-            ContentItemResponseDTO created;
+            ContentItemVersionResponseDTO created;
 
             @BeforeAll
             void when() {

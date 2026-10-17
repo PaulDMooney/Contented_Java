@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,7 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
 
     public static final String INDEX_NAME = "controller-test-index1";
 
-    // ContentItemRepository needs a database to communicate with
+    // ContentItemVersionRepository needs a database to communicate with
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
 
@@ -72,7 +72,7 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
         var requestBody = Map.of("contentType", "Blog", "data", Map.of("title", title, "body", body));
         var identifier = contentItemEndpointClient.post().body(requestBody).exchange()
             .expectStatus().isCreated()
-            .expectBody(ContentItemResponseDTO.class)
+            .expectBody(ContentItemVersionResponseDTO.class)
             .returnResult().getResponseBody().getIdentifier();
         contentItemEndpointClient.post().uri("/{identifier}/publish", identifier).exchange()
             .expectStatus().isOk();

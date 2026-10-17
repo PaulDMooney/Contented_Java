@@ -1,6 +1,6 @@
 package com.contented.contented.elasticsearch;
 
-import com.contented.contented.contentitem.ContentItemRepository;
+import com.contented.contented.contentitem.ContentItemVersionRepository;
 import com.contented.contented.contentitem.testutils.NoDatabase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +36,7 @@ class IndexControllerIT {
     // No REST endpoint here touches the database; @NoDatabase keeps it out of the context, so the
     // repository the context still wires is mocked.
     @MockitoBean
-    ContentItemRepository contentItemRepository;
+    ContentItemVersionRepository contentItemRepository;
 
     @Autowired
     ElasticSearchIndexCreator elasticSearchIndexCreator;

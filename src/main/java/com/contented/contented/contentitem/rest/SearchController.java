@@ -4,7 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.ContentItemService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -51,7 +51,7 @@ public class SearchController {
             .filter(Objects::nonNull)
             .toList();
 
-        List<ContentItemResponseDTO> contentItems = contentItemService.findByIds(extractedVersionIds);
+        List<ContentItemVersionResponseDTO> contentItems = contentItemService.findByIds(extractedVersionIds);
 
         return new SearchResultsWithContent<>(response, contentItems);
     }

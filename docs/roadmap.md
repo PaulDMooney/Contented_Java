@@ -77,7 +77,7 @@ Replace MongoDB with Postgres as the system of record.
 
 - **Schema**: the schemaless content item maps naturally to a thin relational shell around a
   JSON document — `id uuid PRIMARY KEY, data jsonb` (plus promoted columns later as items 5/6
-  give fields real meaning). `ContentItemEntity`'s `@JsonAnySetter` shape can stay.
+  give fields real meaning). `ContentItemVersionEntity`'s `@JsonAnySetter` shape can stay.
 - **Access technology**: **Spring Data JDBC** (decided) — the repository surface is simple
   CRUD + the keyset query, so it is sufficient and the least magic. The schemaless map maps to
   a single `jsonb` column via a `JdbcCustomConversions` converter on a `SchemalessData` wrapper
@@ -122,7 +122,7 @@ infrastructure; Instancio for randomized data; the global `per_class` lifecycle 
 - `@DisplayName` voice/casing normalised to the skill's `It should …` / `When …` / `Given …` forms;
   `Then …`- and `the X should …`-style leaf names rewritten.
 - `ContentItemServiceTest` re-nested so create scenarios sit under a `create` context as `When …`
-  cases; spy-verification names now reference `ContentItemRepository#save`.
+  cases; spy-verification names now reference `ContentItemVersionRepository#save`.
 - Scratch `NestedDiscoveryTest` deleted; the smoke test got a `@DisplayName`.
 - **Surefire→Failsafe split**: solitary unit tests are `*Test` (Surefire, `test` phase, no Docker);
   Testcontainers integration tests renamed to `*IT` (Failsafe, `integration-test`/`verify`). The
@@ -197,11 +197,11 @@ version's content never changes under its `inode` — only which version *is* li
     stale write then fails with `OptimisticLockingFailureException`, mappable to 409 (the handler
     already maps `DataIntegrityViolationException` to 409 — extend it). This is distinct from the
     publish / lazy-working-create INSERT race, which the partial unique indexes
-    (`uq_content_item_live` / `uq_content_item_working`) already guard and which already surfaces
+    (`uq_content_item_version_live` / `uq_content_item_version_working`) already guard and which already surfaces
     as a 409.
 - **Skip the `data` blob when listing versions.** `GET /contentitems/{identifier}/versions` returns
   `ContentItemVersionSummaryDTO` (versionId, state, versionCreatedDatetime) — no content — but
-  `findByIdentifierOrderByVersionCreatedDatetimeDesc` loads full `ContentItemEntity` rows, fetching
+  `findByIdentifierOrderByVersionCreatedDatetimeDesc` loads full `ContentItemVersionEntity` rows, fetching
   every version's `data` jsonb only to discard it in the mapper. Add a column-restricted projection
   query for the summary listing so the content blobs are never read (matters when a content has many
   or large versions). The `{working, live}` state read still needs full rows, so this is a
@@ -266,21 +266,21 @@ catch-up pass + deletion log finalization (Option B); atomic alias swap with rol
 
 ## 9. Clarify the web/service/persistence boundary (commands + response DTOs)
 
-**Status: Done.** `ContentItemEntity` is now purely the Spring Data persistence model (no Jackson)
-and never leaves the service. `ContentItemService` accepts a `ContentItemDTO` and returns a
-`ContentItemResponseDTO` (reads included), mapping entity ↔ DTO internally via `ContentItemMapper`;
+**Status: Done.** `ContentItemVersionEntity` is now purely the Spring Data persistence model (no Jackson)
+and never leaves the service. `ContentItemService` accepts a `ContentItemVersionDTO` and returns a
+`ContentItemVersionResponseDTO` (reads included), mapping entity ↔ DTO internally via `ContentItemMapper`;
 the service owns domain validation. The controller only does the transport-level id checks and
 forwards the DTO — it no longer touches an entity or a repository. `SearchController` gets response
-DTOs straight from the service. Request and response DTOs share an `AbstractContentItemDTO` base.
+DTOs straight from the service. Request and response DTOs share an `AbstractContentItemVersionDTO` base.
 
-Keep `ContentItemEntity` off the HTTP boundary so the service owns domain validation and entity
+Keep `ContentItemVersionEntity` off the HTTP boundary so the service owns domain validation and entity
 construction and the controller is a thin HTTP adapter. Previously `ContentItemController` built a
-persistence-coupled `ContentItemEntity` on the way in and returned the raw entity on the way out,
+persistence-coupled `ContentItemVersionEntity` on the way in and returned the raw entity on the way out,
 and write-path validation was split between the two layers.
 
 **Problem**:
 
-- `ContentItemEntity` is doing the job of four models at once — JSON request target, JSON response
+- `ContentItemVersionEntity` is doing the job of four models at once — JSON request target, JSON response
   body, domain model, and persistence row — carrying both Jackson (`@JsonAnySetter`/`@JsonAnyGetter`)
   and Spring Data (`@Table`, `@Id`, `@PersistenceCreator`, `Persistable`, `isNew`) annotations. So
   the web layer instantiates a persistence-framework object and reasons about persistence lifecycle
@@ -289,25 +289,25 @@ and write-path validation was split between the two layers.
   sit in the controller; domain rules (contentType required/immutable) sit in the service only
   because they need a DB read. The intrinsic-id rule is half in each layer.
 
-**Approach**: keep `ContentItemEntity` off the HTTP boundary, and out of the service's public API,
+**Approach**: keep `ContentItemVersionEntity` off the HTTP boundary, and out of the service's public API,
 in both directions.
 
-- *Inbound*: the service accepts a `ContentItemDTO` and constructs the `ContentItemEntity` internally
+- *Inbound*: the service accepts a `ContentItemVersionDTO` and constructs the `ContentItemVersionEntity` internally
   (via `ContentItemMapper`), owning all write-path validation. (An earlier iteration routed an
   explicit command object between controller and service; see Resolved decisions for why it was
   dropped.)
-- *Outbound*: the service returns a `ContentItemResponseDTO`, never the raw `ContentItemEntity`.
+- *Outbound*: the service returns a `ContentItemVersionResponseDTO`, never the raw `ContentItemVersionEntity`.
 
-With both in place, `ContentItemEntity` no longer needs its Jackson annotations and becomes purely
+With both in place, `ContentItemVersionEntity` no longer needs its Jackson annotations and becomes purely
 the Spring Data persistence model.
 
 **Scope**:
 
-- `ContentItemService.create`/`update` accept a `ContentItemDTO` and return a `ContentItemResponseDTO`;
-  a `ContentItemMapper` constructs and reads back the `ContentItemEntity`.
-- Controller stops exposing `ContentItemEntity` (and stops touching the repository); read endpoints
+- `ContentItemService.create`/`update` accept a `ContentItemVersionDTO` and return a `ContentItemVersionResponseDTO`;
+  a `ContentItemMapper` constructs and reads back the `ContentItemVersionEntity`.
+- Controller stops exposing `ContentItemVersionEntity` (and stops touching the repository); read endpoints
   return response DTOs too.
-- Strip Jackson annotations from `ContentItemEntity` once it is neither accepted nor returned over
+- Strip Jackson annotations from `ContentItemVersionEntity` once it is neither accepted nor returned over
   HTTP.
 - Move entity construction and the intrinsic-id "no client id" rule out of the controller.
 - Decide per-check whether it is a transport concern (stays in the controller — e.g. reconciling a
@@ -321,8 +321,8 @@ the Spring Data persistence model.
   beyond decomposing the DTO), so they added a type without earning its keep. The (mild,
   widely-accepted) cost is that the service references a Jackson-annotated type; not worth a third
   type to avoid.
-- A dedicated `ContentItemResponseDTO` rather than reusing `ContentItemDTO`, with a shared
-  `AbstractContentItemDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
+- A dedicated `ContentItemVersionResponseDTO` rather than reusing `ContentItemVersionDTO`, with a shared
+  `AbstractContentItemVersionDTO` base for the common shape (`id`, `contentType`, schemaless any-getter/
   any-setter map). Distinct types keep request/response free to diverge later.
 - Entity ↔ DTO mapping lives in a hand-written `ContentItemMapper` `@Component` (not MapStruct or a
   Spring `Converter`): the schemaless map defeats MapStruct's codegen advantage, and there is only
@@ -330,8 +330,8 @@ the Spring Data persistence model.
 - The id-reconciliation checks (no id on POST, body-id-vs-URL-id on PUT) stayed in the controller
   as transport concerns — the URL only exists at the HTTP layer. The domain rules (contentType
   required/immutable) stayed in the service.
-- Tests that deserialized responses into `ContentItemEntity` now deserialize into
-  `ContentItemResponseDTO`; the deeper `WebTestClient` → `RestTestClient` migration landed with item 4.
+- Tests that deserialized responses into `ContentItemVersionEntity` now deserialize into
+  `ContentItemVersionResponseDTO`; the deeper `WebTestClient` → `RestTestClient` migration landed with item 4.
 
 **Why standalone/now**: independent of the domain features, but items 5 (versioning) and 6
 (grouping) add operations (publish, save-to-working, create-variant) that each want a clean,

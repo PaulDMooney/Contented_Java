@@ -24,11 +24,11 @@ class ContentItemMapperTest {
         UUID versionId = UuidV7.generate();
         UUID identifier = UuidV7.generate();
         Instant created = Instant.now();
-        ContentItemEntity entity = entity();
-        ContentItemResponseDTO result;
+        ContentItemVersionEntity entity = entity();
+        ContentItemVersionResponseDTO result;
 
-        ContentItemEntity entity() {
-            return ContentItemEntity.newVersion(versionId, identifier, "Blog", ContentItemState.LIVE, created,
+        ContentItemVersionEntity entity() {
+            return ContentItemVersionEntity.newVersion(versionId, identifier, "Blog", ContentItemState.LIVE, created,
                 Map.of("title", "Hello"));
         }
 
@@ -77,7 +77,7 @@ class ContentItemMapperTest {
 
         @BeforeAll
         void when() {
-            var entity = ContentItemEntity.newVersion(versionId, UuidV7.generate(), "Blog",
+            var entity = ContentItemVersionEntity.newVersion(versionId, UuidV7.generate(), "Blog",
                 ContentItemState.ARCHIVED, created, Map.of("title", "Hello"));
             result = mapper.toSummary(entity);
         }
@@ -95,11 +95,11 @@ class ContentItemMapperTest {
     @DisplayName("`toEntity()`")
     class ToEntity {
 
-        ContentItemEntity result;
+        ContentItemVersionEntity result;
 
         @BeforeAll
         void when() {
-            ContentItemDTO dto = ContentItemDTO.builder().contentType("Blog").data(Map.of("title", "Hello")).build();
+            ContentItemVersionDTO dto = ContentItemVersionDTO.builder().contentType("Blog").data(Map.of("title", "Hello")).build();
 
             result = mapper.toEntity(dto);
         }

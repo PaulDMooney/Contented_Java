@@ -2,7 +2,7 @@ package com.contented.contented.contentitem.rest;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.jackson.Jackson3JsonpMapper;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.elasticsearch.ElasticSearchIndexCreator;
 import com.contented.contented.elasticsearch.SearchResponseDeserializer;
 import tools.jackson.databind.json.JsonMapper;
@@ -42,7 +42,7 @@ public class SearchControllerIT {
     @LocalServerPort
     int port;
 
-    // ContentItemRepository needs a database to communicate with
+    // ContentItemVersionRepository needs a database to communicate with
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
 
@@ -94,7 +94,7 @@ public class SearchControllerIT {
 
                 identifier = contentItemEndpointClient.post().body(savedContent)
                     .exchange().expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .returnResult().getResponseBody().getIdentifier();
 
                 // Drafts are not indexed; publishing makes the live version searchable.
@@ -125,7 +125,7 @@ public class SearchControllerIT {
 
                 record ExpectedResponseStructure(
                     SearchResponse<?> esResponse,
-                    List<ContentItemResponseDTO> contentItems
+                    List<ContentItemVersionResponseDTO> contentItems
                 ){}
 
                 @BeforeAll
@@ -192,7 +192,7 @@ public class SearchControllerIT {
 
                 record ExpectedResponseStructure(
                     SearchResponse<?> esResponse,
-                    List<ContentItemResponseDTO> contentItems
+                    List<ContentItemVersionResponseDTO> contentItems
                 ){}
 
                 @BeforeAll
