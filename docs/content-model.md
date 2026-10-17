@@ -5,22 +5,23 @@ How a **content item** is stored, how its versions move through the editorial li
 
 ## 1. Persistence model
 
-Everything lives in one table, `content_item`. **Each row is one version** of one logical content.
+Everything lives in one table, `content_item_version`. **Each row is one version** of one logical
+content — a **content item identifier**.
 
-There is deliberately **no `content` table**: a "logical content" is not a row anywhere — it exists
-only as the set of rows sharing an `identifier`. That keeps the write path to a single table, but it
-means the invariants that make the model coherent ("exactly one live version") are enforced by
-indexes rather than by foreign keys.
+There is deliberately **no `content_item_identifier` table**: a "logical content" is not a row
+anywhere — it exists only as the set of rows sharing an `identifier`. That keeps the write path to a
+single table, but it means the invariants that make the model coherent ("exactly one live version")
+are enforced by indexes rather than by foreign keys.
 
 ```mermaid
 erDiagram
-    CONTENT ||--|{ CONTENT_ITEM : "one identifier, many versions"
+    CONTENT_ITEM_IDENTIFIER ||--|{ CONTENT_ITEM_VERSION : "one identifier, many versions"
 
-    CONTENT {
+    CONTENT_ITEM_IDENTIFIER {
         uuid identifier "conceptual only - has no table of its own"
     }
 
-    CONTENT_ITEM {
+    CONTENT_ITEM_VERSION {
         uuid version_id PK "UUIDv7 - identifies THIS version"
         uuid identifier "version-agnostic - the id the API exposes"
         text content_type "fixed across every version"
@@ -68,9 +69,9 @@ one-WORKING rule and nothing more:
 
 | Index | Rule it enforces |
 |---|---|
-| `uq_content_item_live` — `UNIQUE (identifier) WHERE state = 'LIVE'` | at most **one `LIVE`** row per `identifier` |
-| `uq_content_item_working` — `UNIQUE (identifier) WHERE state = 'WORKING'` | at most **one `WORKING`** row per `identifier` |
-| `ix_content_item_identifier` | not an invariant — a plain (non-unique) index supporting every by-`identifier` lookup |
+| `uq_content_item_version_live` — `UNIQUE (identifier) WHERE state = 'LIVE'` | at most **one `LIVE`** row per `identifier` |
+| `uq_content_item_version_working` — `UNIQUE (identifier) WHERE state = 'WORKING'` | at most **one `WORKING`** row per `identifier` |
+| `ix_content_item_version_identifier` | not an invariant — a plain (non-unique) index supporting every by-`identifier` lookup |
 
 `ARCHIVED` is deliberately uncapped by any index: it is the history, and nothing limits how many
 archived versions one content accumulates (retention limits are a possible later addition, not
@@ -128,7 +129,7 @@ stateDiagram-v2
 
 Publish is a two-row change inside one transaction, and the order matters: the current `LIVE` row
 is demoted to `ARCHIVED` *before* the `WORKING` row is promoted, so the one-`LIVE`-per-identifier
-invariant (`uq_content_item_live`) is never momentarily violated by having two `LIVE` rows at once.
+invariant (`uq_content_item_version_live`) is never momentarily violated by having two `LIVE` rows at once.
 
 A content does not always have both a working and a live version, and the API is explicit about it:
 
@@ -221,13 +222,13 @@ flowchart TD
 
 ### Request and response shapes
 
-Only one of these four types is ever sent *by a client* — `ContentItemDTO` is the request body,
+Only one of these four types is ever sent *by a client* — `ContentItemVersionDTO` is the request body,
 and it is never returned. The other three are response-only, each shaped for a different endpoint:
 
 | DTO | Direction | Used by |
 |---|---|---|
-| `ContentItemDTO` | request only | body of `POST /contentitems` and `PUT /contentitems/{identifier}` |
-| `ContentItemResponseDTO` | response only | the single-version response, returned by every operation that acts on exactly one version: `POST /contentitems`, `PUT /contentitems/{identifier}`, `POST /contentitems/{identifier}/publish`, `GET /contentitems/versions/{versionId}`, `POST /contentitems/versions/{versionId}/restore` |
+| `ContentItemVersionDTO` | request only | body of `POST /contentitems` and `PUT /contentitems/{identifier}` |
+| `ContentItemVersionResponseDTO` | response only | the single-version response, returned by every operation that acts on exactly one version: `POST /contentitems`, `PUT /contentitems/{identifier}`, `POST /contentitems/{identifier}/publish`, `GET /contentitems/versions/{versionId}`, `POST /contentitems/versions/{versionId}/restore` |
 | `ContentItemWorkAndLiveDTO` | response only | `GET /contentitems/{identifier}` — the only endpoint that returns two versions at once |
 | `ContentItemVersionSummaryDTO` | response only | `GET /contentitems/{identifier}/versions` — the history list; it omits `data` so listing many versions stays cheap |
 
@@ -237,22 +238,22 @@ take no request body at all — the path alone identifies what to act on. `DELET
 
 ```mermaid
 classDiagram
-    class AbstractContentItemDTO {
+    class AbstractContentItemVersionDTO {
         +String contentType
         +Map~String,Object~ data
     }
-    class ContentItemDTO {
+    class ContentItemVersionDTO {
         <<request body>>
     }
-    class ContentItemResponseDTO {
+    class ContentItemVersionResponseDTO {
         +UUID versionId
         +UUID identifier
         +ContentItemState state
         +Instant versionCreatedDatetime
     }
     class ContentItemWorkAndLiveDTO {
-        +ContentItemResponseDTO working
-        +ContentItemResponseDTO live
+        +ContentItemVersionResponseDTO working
+        +ContentItemVersionResponseDTO live
     }
     class ContentItemVersionSummaryDTO {
         +UUID versionId
@@ -260,9 +261,9 @@ classDiagram
         +Instant versionCreatedDatetime
     }
 
-    AbstractContentItemDTO <|-- ContentItemDTO
-    AbstractContentItemDTO <|-- ContentItemResponseDTO
-    ContentItemWorkAndLiveDTO o-- ContentItemResponseDTO
+    AbstractContentItemVersionDTO <|-- ContentItemVersionDTO
+    AbstractContentItemVersionDTO <|-- ContentItemVersionResponseDTO
+    ContentItemWorkAndLiveDTO o-- ContentItemVersionResponseDTO
 ```
 
 The schemaless content is **nested under `data`**, so the fixed/system fields stay flat at the top

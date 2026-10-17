@@ -9,7 +9,7 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
-import com.contented.contented.contentitem.ContentItemRepository;
+import com.contented.contented.contentitem.ContentItemVersionRepository;
 import com.contented.contented.contentitem.testutils.NoDatabase;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +54,7 @@ public class ElasticSearchDiscoveryIT {
     // This test exercises only Elasticsearch; @NoDatabase keeps the DB out of the context, so the
     // repository the context still wires is mocked.
     @MockitoBean
-    ContentItemRepository contentItemRepository;
+    ContentItemVersionRepository contentItemRepository;
 
     @Autowired
     ElasticsearchClient elasticsearchClient;

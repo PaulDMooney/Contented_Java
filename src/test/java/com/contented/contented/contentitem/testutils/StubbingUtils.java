@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem.testutils;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
-import com.contented.contented.contentitem.ContentItemRepository;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
+import com.contented.contented.contentitem.ContentItemVersionRepository;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import org.mockito.stubbing.OngoingStubbing;
 import org.springframework.data.elasticsearch.client.elc.EntityAsMap;
@@ -36,8 +36,8 @@ public class StubbingUtils {
             .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    public static OngoingStubbing<ContentItemEntity> passthroughContentItemRepository(ContentItemRepository toMock) {
-        return when(toMock.save(any(ContentItemEntity.class)))
+    public static OngoingStubbing<ContentItemVersionEntity> passthroughContentItemVersionRepository(ContentItemVersionRepository toMock) {
+        return when(toMock.save(any(ContentItemVersionEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 }

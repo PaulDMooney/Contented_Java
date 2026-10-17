@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem.rest;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 
 import java.util.List;
 
@@ -11,5 +11,5 @@ import java.util.List;
 // a working path here, which keeps the injected mapper as the only one ever used.
 public record SearchResultsWithContent<T>(
     SearchResponse<T> esResponse,
-    List<ContentItemResponseDTO> contentItems) {
+    List<ContentItemVersionResponseDTO> contentItems) {
 }

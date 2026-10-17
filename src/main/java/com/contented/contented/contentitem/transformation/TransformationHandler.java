@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,7 @@ public class TransformationHandler {
         this.transformers = transformers;
     }
 
-    public ContentItemEntity applyTransformation(ContentItemEntity entity) {
+    public ContentItemVersionEntity applyTransformation(ContentItemVersionEntity entity) {
         return transformers.stream()
             .filter(transformer -> transformer.test(entity))
             .findFirst()

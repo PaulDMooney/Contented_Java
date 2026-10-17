@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  * repositories) is conditional on a {@code DataSource}, so it backs off on its own.
  *
  * The full application context still loads, so mock any DB-backed bean it wires in — typically
- * {@code @MockitoBean ContentItemRepository}.
+ * {@code @MockitoBean ContentItemVersionRepository}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

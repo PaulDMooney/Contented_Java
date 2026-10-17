@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.elasticsearch;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.contentitem.elasticsearch.transformation.ESRecordTransformer;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class ContentItemIndexer {
         this.esTransformers = esTransformers;
     }
 
-    public List<EntityAsMap> indexContentItem(ContentItemEntity contentItemEntity) {
+    public List<EntityAsMap> indexContentItem(ContentItemVersionEntity contentItemEntity) {
         return esTransformers.stream()
                 .filter(esRecordTransformer -> esRecordTransformer.test(contentItemEntity))
                 .findFirst()

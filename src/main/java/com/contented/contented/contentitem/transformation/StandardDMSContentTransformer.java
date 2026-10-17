@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.transformation;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import io.micrometer.common.util.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -28,12 +28,12 @@ public class StandardDMSContentTransformer implements ContentItemEntityTransform
     }
 
     @Override
-    public ContentItemEntity transform(ContentItemEntity toTransform) {
+    public ContentItemVersionEntity transform(ContentItemVersionEntity toTransform) {
 
         Map<String, Object> mutableSchemalessData = new HashMap<>(toTransform.getData());
         normalizeLanguage(mutableSchemalessData);
         setModDate(mutableSchemalessData);
-        return new ContentItemEntity(toTransform.getVersionId(), toTransform.getContentType(),
+        return new ContentItemVersionEntity(toTransform.getVersionId(), toTransform.getContentType(),
                 Collections.unmodifiableMap(mutableSchemalessData));
     }
 
@@ -53,7 +53,7 @@ public class StandardDMSContentTransformer implements ContentItemEntityTransform
     }
 
     @Override
-    public boolean test(ContentItemEntity contentItemEntity) {
+    public boolean test(ContentItemVersionEntity contentItemEntity) {
         String contentType = contentItemEntity.getContentType();
         return SUPPORTED_TYPES.stream()
                 .anyMatch(type -> type.equalsIgnoreCase(contentType));

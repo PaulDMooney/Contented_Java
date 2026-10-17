@@ -1,7 +1,7 @@
 package com.contented.contented.contentitem;
 
 import com.contented.contented.common.UuidV7;
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.contentitem.model.ContentItemState;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +28,8 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 @Tag(INTEGRATION_TESTS)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers
-@DisplayName("`ContentItemRepository` invariant enforcement")
-public class ContentItemRepositoryIT {
+@DisplayName("`ContentItemVersionRepository` invariant enforcement")
+public class ContentItemVersionRepositoryIT {
 
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
@@ -40,7 +40,7 @@ public class ContentItemRepositoryIT {
     }
 
     @Autowired
-    ContentItemRepository contentItemRepository;
+    ContentItemVersionRepository contentItemRepository;
 
     @Nested
     @DisplayName("`save()`")
@@ -54,7 +54,7 @@ public class ContentItemRepositoryIT {
 
             @BeforeAll
             void given() {
-                contentItemRepository.save(ContentItemEntity.newVersion(UuidV7.generate(), identifier,
+                contentItemRepository.save(ContentItemVersionEntity.newVersion(UuidV7.generate(), identifier,
                     "SomeType", ContentItemState.WORKING, Instant.now(), Map.of()));
             }
 
@@ -66,7 +66,7 @@ public class ContentItemRepositoryIT {
 
                 @BeforeAll
                 void when() {
-                    var secondWorking = ContentItemEntity.newVersion(UuidV7.generate(), identifier,
+                    var secondWorking = ContentItemVersionEntity.newVersion(UuidV7.generate(), identifier,
                         "SomeType", ContentItemState.WORKING, Instant.now(), Map.of());
                     thrown = catchThrowable(() -> contentItemRepository.save(secondWorking));
                 }
@@ -87,7 +87,7 @@ public class ContentItemRepositoryIT {
 
             @BeforeAll
             void given() {
-                contentItemRepository.save(ContentItemEntity.newVersion(UuidV7.generate(), identifier,
+                contentItemRepository.save(ContentItemVersionEntity.newVersion(UuidV7.generate(), identifier,
                     "SomeType", ContentItemState.LIVE, Instant.now(), Map.of()));
             }
 
@@ -99,7 +99,7 @@ public class ContentItemRepositoryIT {
 
                 @BeforeAll
                 void when() {
-                    var secondLive = ContentItemEntity.newVersion(UuidV7.generate(), identifier,
+                    var secondLive = ContentItemVersionEntity.newVersion(UuidV7.generate(), identifier,
                         "SomeType", ContentItemState.LIVE, Instant.now(), Map.of());
                     thrown = catchThrowable(() -> contentItemRepository.save(secondLive));
                 }

@@ -14,8 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@Table("content_item")
-public class ContentItemEntity implements Persistable<UUID> {
+@Table("content_item_version")
+public class ContentItemVersionEntity implements Persistable<UUID> {
 
     public static final String CONTENT_TYPE_FIELD = "contentType";
 
@@ -43,7 +43,7 @@ public class ContentItemEntity implements Persistable<UUID> {
     private boolean isNew;
 
     @Builder(toBuilder = true)
-    private ContentItemEntity(UUID versionId, UUID identifier, String contentType, ContentItemState state,
+    private ContentItemVersionEntity(UUID versionId, UUID identifier, String contentType, ContentItemState state,
                               Instant versionCreatedDatetime, SchemalessData data, boolean isNew) {
         this.versionId = versionId;
         this.identifier = identifier;
@@ -54,24 +54,24 @@ public class ContentItemEntity implements Persistable<UUID> {
         this.isNew = isNew;
     }
 
-    public ContentItemEntity(UUID versionId, String contentType, Map<String, Object> data) {
+    public ContentItemVersionEntity(UUID versionId, String contentType, Map<String, Object> data) {
         this(versionId, null, contentType, null, null, new SchemalessData(new LinkedHashMap<>(data)), true);
     }
 
     // Spring Data instantiates loaded rows here; an existing row is by definition not new.
     @PersistenceCreator
-    static ContentItemEntity fromDatabase(UUID versionId, UUID identifier, String contentType, ContentItemState state,
+    static ContentItemVersionEntity fromDatabase(UUID versionId, UUID identifier, String contentType, ContentItemState state,
                                           Instant versionCreatedDatetime, SchemalessData data) {
-        return new ContentItemEntity(versionId, identifier, contentType, state, versionCreatedDatetime, data, false);
+        return new ContentItemVersionEntity(versionId, identifier, contentType, state, versionCreatedDatetime, data, false);
     }
 
     /**
      * Builds a fully-populated new version, marked new so it is INSERTed.
      */
-    public static ContentItemEntity newVersion(UUID versionId, UUID identifier, String contentType,
+    public static ContentItemVersionEntity newVersion(UUID versionId, UUID identifier, String contentType,
                                                ContentItemState state, Instant versionCreatedDatetime,
                                                Map<String, Object> data) {
-        return new ContentItemEntity(versionId, identifier, contentType, state, versionCreatedDatetime,
+        return new ContentItemVersionEntity(versionId, identifier, contentType, state, versionCreatedDatetime,
             new SchemalessData(new LinkedHashMap<>(data)), true);
     }
 
@@ -80,7 +80,7 @@ public class ContentItemEntity implements Persistable<UUID> {
      * freshly-identified new version, keeping its own {@code contentType} and content. Marked new so
      * it is INSERTed.
      */
-    public ContentItemEntity asNewVersion(UUID versionId, UUID identifier, ContentItemState state,
+    public ContentItemVersionEntity asNewVersion(UUID versionId, UUID identifier, ContentItemState state,
                                           Instant versionCreatedDatetime) {
         return asNewVersion(versionId, identifier, contentType, state, versionCreatedDatetime);
     }
@@ -91,7 +91,7 @@ public class ContentItemEntity implements Persistable<UUID> {
      * whose contentType must match an already-established one exactly (e.g. its casing), not
      * whatever a client happened to submit.
      */
-    public ContentItemEntity asNewVersion(UUID versionId, UUID identifier, String contentType,
+    public ContentItemVersionEntity asNewVersion(UUID versionId, UUID identifier, String contentType,
                                           ContentItemState state, Instant versionCreatedDatetime) {
         return toBuilder()
             .versionId(versionId)
@@ -108,7 +108,7 @@ public class ContentItemEntity implements Persistable<UUID> {
      * working draft. The version id and creation date are kept and the copy is marked not-new, so it
      * UPDATEs the existing row rather than inserting a new one.
      */
-    public ContentItemEntity withData(Map<String, Object> data) {
+    public ContentItemVersionEntity withData(Map<String, Object> data) {
         return toBuilder()
             .data(new SchemalessData(new LinkedHashMap<>(data)))
             .isNew(false)

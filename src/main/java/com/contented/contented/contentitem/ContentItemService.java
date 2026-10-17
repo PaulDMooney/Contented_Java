@@ -5,10 +5,10 @@ import com.contented.contented.contentitem.events.ContentItemDeletedEvent;
 import com.contented.contented.contentitem.events.ContentItemPublishedEvent;
 import com.contented.contented.contentitem.exceptions.ContentItemConflictException;
 import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
-import com.contented.contented.contentitem.model.ContentItemDTO;
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.contentitem.model.ContentItemMapper;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemState;
 import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
@@ -28,7 +28,7 @@ import java.util.UUID;
 @Service
 public class ContentItemService {
 
-    private final ContentItemRepository contentItemRepository;
+    private final ContentItemVersionRepository contentItemRepository;
 
     private final TransformationHandler transformationHandler;
 
@@ -36,7 +36,7 @@ public class ContentItemService {
 
     private final ApplicationEventPublisher eventPublisher;
 
-    public ContentItemService(ContentItemRepository contentItemRepository, TransformationHandler transformationHandler,
+    public ContentItemService(ContentItemVersionRepository contentItemRepository, TransformationHandler transformationHandler,
                               ContentItemMapper contentItemMapper, ApplicationEventPublisher eventPublisher) {
         this.contentItemRepository = contentItemRepository;
         this.transformationHandler = transformationHandler;
@@ -49,7 +49,7 @@ public class ContentItemService {
      * is called, so drafts are not indexed.
      */
     @Transactional
-    public ContentItemResponseDTO create(ContentItemDTO dto) {
+    public ContentItemVersionResponseDTO create(ContentItemVersionDTO dto) {
         requireContentType(dto.getContentType());
         var transformed = transformationHandler.applyTransformation(contentItemMapper.toEntity(dto));
         var toSave = transformed.asNewVersion(UuidV7.generate(), UuidV7.generate(), ContentItemState.WORKING, Instant.now());
@@ -64,7 +64,7 @@ public class ContentItemService {
      * identifier is unknown (404).
      */
     @Transactional
-    public Optional<ContentItemResponseDTO> updateWorking(UUID identifier, ContentItemDTO dto) {
+    public Optional<ContentItemVersionResponseDTO> updateWorking(UUID identifier, ContentItemVersionDTO dto) {
         requireContentType(dto.getContentType());
         var existingWorking = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
         // The stored contentType (and the content's existence) can be read from the working version if
@@ -97,7 +97,7 @@ public class ContentItemService {
      * {@code ContentItemIndexingListener}).
      */
     @Transactional
-    public Optional<ContentItemResponseDTO> publish(UUID identifier) {
+    public Optional<ContentItemVersionResponseDTO> publish(UUID identifier) {
         var working = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
         if (working.isEmpty()) {
             if (!contentItemRepository.existsByIdentifier(identifier)) {
@@ -123,7 +123,7 @@ public class ContentItemService {
      * if the version is unknown.
      */
     @Transactional
-    public Optional<ContentItemResponseDTO> restore(UUID versionId) {
+    public Optional<ContentItemVersionResponseDTO> restore(UUID versionId) {
         return contentItemRepository.findById(versionId)
             .map(source -> {
                 var identifier = source.getIdentifier();
@@ -167,7 +167,7 @@ public class ContentItemService {
     /**
      * Returns a single version's full content, or empty (404) if it is unknown.
      */
-    public Optional<ContentItemResponseDTO> getVersion(UUID versionId) {
+    public Optional<ContentItemVersionResponseDTO> getVersion(UUID versionId) {
         return contentItemRepository.findById(versionId)
             .map(contentItemMapper::toResponse);
     }
@@ -184,7 +184,7 @@ public class ContentItemService {
         log.info("Deleted contentItem identifier `{}`", identifier);
     }
 
-    public List<ContentItemResponseDTO> findByIds(List<UUID> versionIds) {
+    public List<ContentItemVersionResponseDTO> findByIds(List<UUID> versionIds) {
         log.debug("Finding {} contentItem versions", versionIds.size());
         return contentItemRepository.findAllById(versionIds).stream()
             .map(contentItemMapper::toResponse)
@@ -196,9 +196,9 @@ public class ContentItemService {
     // INSERT. `draft` carries the content to use (the transformed entity for an edit, the source
     // version for a restore); `contentType` is passed explicitly so a lazily-created working version
     // always matches the content's already-established casing rather than the draft's own.
-    private ContentItemEntity workingVersionToSave(UUID identifier, String contentType,
-                                                   ContentItemEntity draft,
-                                                   Optional<ContentItemEntity> existingWorking) {
+    private ContentItemVersionEntity workingVersionToSave(UUID identifier, String contentType,
+                                                   ContentItemVersionEntity draft,
+                                                   Optional<ContentItemVersionEntity> existingWorking) {
         return existingWorking
             .map(working -> working.withData(draft.getData()))
             .orElseGet(() -> draft.asNewVersion(UuidV7.generate(), identifier, contentType,

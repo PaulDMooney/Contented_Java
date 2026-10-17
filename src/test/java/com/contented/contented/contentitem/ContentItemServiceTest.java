@@ -3,10 +3,10 @@ package com.contented.contented.contentitem;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.exceptions.ContentItemConflictException;
 import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
-import com.contented.contented.contentitem.model.ContentItemDTO;
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.contentitem.model.ContentItemMapper;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemState;
 import com.contented.contented.contentitem.transformation.StandardDMSContentTransformer;
 import com.contented.contented.contentitem.transformation.TransformationHandler;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.contented.contented.contentitem.testutils.StubbingUtils.passthroughContentItemRepository;
+import static com.contented.contented.contentitem.testutils.StubbingUtils.passthroughContentItemVersionRepository;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -39,20 +39,20 @@ import static org.mockito.Mockito.verify;
 @DisplayName("ContentItemService")
 public class ContentItemServiceTest {
 
-    static ContentItemService newServiceWith(ContentItemRepository repository) {
-        passthroughContentItemRepository(repository);
+    static ContentItemService newServiceWith(ContentItemVersionRepository repository) {
+        passthroughContentItemVersionRepository(repository);
         Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         var transformationHandler = new TransformationHandler(List.of(new StandardDMSContentTransformer(clock)));
         return new ContentItemService(repository, transformationHandler, new ContentItemMapper(),
             mock(ApplicationEventPublisher.class));
     }
 
-    static ContentItemDTO dto(String contentType, Map<String, Object> fields) {
-        return ContentItemDTO.builder().contentType(contentType).data(fields).build();
+    static ContentItemVersionDTO dto(String contentType, Map<String, Object> fields) {
+        return ContentItemVersionDTO.builder().contentType(contentType).data(fields).build();
     }
 
-    static ContentItemEntity version(UUID versionId, UUID identifier, String contentType, ContentItemState state) {
-        return ContentItemEntity.newVersion(versionId, identifier, contentType, state, Instant.now(), Map.of());
+    static ContentItemVersionEntity version(UUID versionId, UUID identifier, String contentType, ContentItemState state) {
+        return ContentItemVersionEntity.newVersion(versionId, identifier, contentType, state, Instant.now(), Map.of());
     }
 
     @Nested
@@ -63,8 +63,8 @@ public class ContentItemServiceTest {
         @DisplayName("When the `contentType` matches no transformer")
         class WhenContentTypeMatchesNoTransformer {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
-            ContentItemResponseDTO created;
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
+            ContentItemVersionResponseDTO created;
 
             @BeforeAll
             void when() {
@@ -72,15 +72,15 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should pass the entity to `ContentItemRepository#save`")
+            @DisplayName("It should pass the entity to `ContentItemVersionRepository#save`")
             void should_save_content_item() {
-                verify(repository, times(1)).save(any(ContentItemEntity.class));
+                verify(repository, times(1)).save(any(ContentItemVersionEntity.class));
             }
 
             @Test
             @DisplayName("It should create the version as a new WORKING draft with a generated version id and identifier")
             void should_create_a_working_draft() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository).save(captor.capture());
                 assertThat(captor.getValue().isNew()).isTrue();
                 assertThat(created.getVersionId()).isNotNull();
@@ -93,7 +93,7 @@ public class ContentItemServiceTest {
         @DisplayName("When the content matches a transformer's criteria")
         class WhenContentMatchesATransformer {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
 
             @BeforeAll
             void when() {
@@ -103,7 +103,7 @@ public class ContentItemServiceTest {
             @Test
             @DisplayName("It should apply transformations before saving")
             void it_should_apply_transformations_before_saving() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository).save(captor.capture());
 
                 assertThat(captor.getValue().getData())
@@ -116,7 +116,7 @@ public class ContentItemServiceTest {
         @DisplayName("When no `contentType` is supplied")
         class WhenNoContentType {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             Throwable thrown;
 
             @BeforeAll
@@ -131,7 +131,7 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should not call `ContentItemRepository#save`")
+            @DisplayName("It should not call `ContentItemVersionRepository#save`")
             void should_not_save_anything() {
                 verify(repository, never()).save(any());
             }
@@ -146,10 +146,10 @@ public class ContentItemServiceTest {
         @DisplayName("Given the content already has a WORKING version")
         class GivenAWorkingVersionExists {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             UUID workingId = UuidV7.generate();
-            Optional<ContentItemResponseDTO> result;
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -163,7 +163,7 @@ public class ContentItemServiceTest {
             @Test
             @DisplayName("It should update the existing working version in place")
             void should_update_working_in_place() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository).save(captor.capture());
                 assertThat(captor.getValue().getVersionId()).isEqualTo(workingId);
                 assertThat(captor.getValue().isNew()).isFalse();
@@ -175,10 +175,10 @@ public class ContentItemServiceTest {
         @DisplayName("Given the content has only a LIVE version (no working)")
         class GivenOnlyALiveVersionExists {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             UUID liveId = UuidV7.generate();
-            Optional<ContentItemResponseDTO> result;
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -194,7 +194,7 @@ public class ContentItemServiceTest {
             @Test
             @DisplayName("It should create a new WORKING version")
             void should_create_a_new_working_version() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository).save(captor.capture());
                 assertThat(captor.getValue().isNew()).isTrue();
                 assertThat(captor.getValue().getState()).isEqualTo(ContentItemState.WORKING);
@@ -207,8 +207,8 @@ public class ContentItemServiceTest {
         @DisplayName("Given the identifier is unknown")
         class GivenUnknownIdentifier {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
-            Optional<ContentItemResponseDTO> result;
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -223,7 +223,7 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should not call `ContentItemRepository#save`")
+            @DisplayName("It should not call `ContentItemVersionRepository#save`")
             void should_not_save() {
                 verify(repository, never()).save(any());
             }
@@ -233,7 +233,7 @@ public class ContentItemServiceTest {
         @DisplayName("Given a stored content whose `contentType` is `Blog`")
         class GivenStoredContentTypeIsBlog {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             Throwable thrown;
 
@@ -253,7 +253,7 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should not call `ContentItemRepository#save`")
+            @DisplayName("It should not call `ContentItemVersionRepository#save`")
             void should_not_save() {
                 verify(repository, never()).save(any());
             }
@@ -268,11 +268,11 @@ public class ContentItemServiceTest {
         @DisplayName("Given a WORKING version and a current LIVE version exist")
         class GivenWorkingAndLiveExist {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             UUID workingId = UuidV7.generate();
             UUID liveId = UuidV7.generate();
-            Optional<ContentItemResponseDTO> result;
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -288,7 +288,7 @@ public class ContentItemServiceTest {
             @Test
             @DisplayName("It should archive the old live version and promote the working version to live")
             void should_archive_old_live_and_promote_working() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository, times(2)).save(captor.capture());
                 assertThat(captor.getAllValues())
                     .anySatisfy(saved -> {
@@ -314,10 +314,10 @@ public class ContentItemServiceTest {
         @DisplayName("Given a WORKING version exists but nothing is live yet")
         class GivenWorkingButNoLive {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             UUID workingId = UuidV7.generate();
-            Optional<ContentItemResponseDTO> result;
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -335,7 +335,7 @@ public class ContentItemServiceTest {
             void should_promote_working() {
                 assertThat(result).isPresent();
                 assertThat(result.get().getState()).isEqualTo(ContentItemState.LIVE);
-                verify(repository, times(1)).save(any(ContentItemEntity.class));
+                verify(repository, times(1)).save(any(ContentItemVersionEntity.class));
             }
         }
 
@@ -343,8 +343,8 @@ public class ContentItemServiceTest {
         @DisplayName("Given the identifier is unknown")
         class GivenUnknownIdentifier {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
-            Optional<ContentItemResponseDTO> result;
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -367,7 +367,7 @@ public class ContentItemServiceTest {
         @DisplayName("Given the content exists but has no WORKING version to publish")
         class GivenNothingToPublish {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             Throwable thrown;
 
@@ -396,15 +396,15 @@ public class ContentItemServiceTest {
         @DisplayName("Given a known version whose content has no working version")
         class GivenVersionAndNoWorking {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
             UUID identifier = UuidV7.generate();
             UUID archivedId = UuidV7.generate();
-            Optional<ContentItemResponseDTO> result;
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
                 var service = newServiceWith(repository);
-                var archived = ContentItemEntity.newVersion(archivedId, identifier, "SomeType",
+                var archived = ContentItemVersionEntity.newVersion(archivedId, identifier, "SomeType",
                     ContentItemState.ARCHIVED, Instant.now(), Map.of("field1", "historic"));
                 Mockito.when(repository.findById(archivedId)).thenReturn(Optional.of(archived));
                 Mockito.when(repository.findByIdentifierAndState(identifier, ContentItemState.WORKING)).thenReturn(Optional.empty());
@@ -415,7 +415,7 @@ public class ContentItemServiceTest {
             @Test
             @DisplayName("It should create a new WORKING version copying the source content")
             void should_create_working_from_source() {
-                var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
+                var captor = ArgumentCaptor.forClass(ContentItemVersionEntity.class);
                 verify(repository).save(captor.capture());
                 assertThat(captor.getValue().isNew()).isTrue();
                 assertThat(captor.getValue().getState()).isEqualTo(ContentItemState.WORKING);
@@ -427,8 +427,8 @@ public class ContentItemServiceTest {
         @DisplayName("Given the version is unknown")
         class GivenUnknownVersion {
 
-            ContentItemRepository repository = Mockito.mock(ContentItemRepository.class);
-            Optional<ContentItemResponseDTO> result;
+            ContentItemVersionRepository repository = Mockito.mock(ContentItemVersionRepository.class);
+            Optional<ContentItemVersionResponseDTO> result;
 
             @BeforeAll
             void when() {
@@ -443,7 +443,7 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should not call `ContentItemRepository#save`")
+            @DisplayName("It should not call `ContentItemVersionRepository#save`")
             void should_not_save() {
                 verify(repository, never()).save(any());
             }

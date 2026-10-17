@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Getter
 @SuperBuilder
-public abstract class AbstractContentItemDTO {
+public abstract class AbstractContentItemVersionDTO {
 
     private final String contentType;
 

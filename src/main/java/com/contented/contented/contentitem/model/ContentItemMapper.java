@@ -7,13 +7,13 @@ import java.util.LinkedHashMap;
 @Component
 public class ContentItemMapper {
 
-    public ContentItemEntity toEntity(ContentItemDTO dto) {
+    public ContentItemVersionEntity toEntity(ContentItemVersionDTO dto) {
         // Identity is assigned by the service, not the client; the entity is built id-less here.
-        return new ContentItemEntity(null, dto.getContentType(), dto.getData());
+        return new ContentItemVersionEntity(null, dto.getContentType(), dto.getData());
     }
 
-    public ContentItemResponseDTO toResponse(ContentItemEntity entity) {
-        return ContentItemResponseDTO.builder()
+    public ContentItemVersionResponseDTO toResponse(ContentItemVersionEntity entity) {
+        return ContentItemVersionResponseDTO.builder()
             .versionId(entity.getVersionId())
             .identifier(entity.getIdentifier())
             .contentType(entity.getContentType())
@@ -23,7 +23,7 @@ public class ContentItemMapper {
             .build();
     }
 
-    public ContentItemVersionSummaryDTO toSummary(ContentItemEntity entity) {
+    public ContentItemVersionSummaryDTO toSummary(ContentItemVersionEntity entity) {
         return new ContentItemVersionSummaryDTO(entity.getVersionId(), entity.getState(), entity.getVersionCreatedDatetime());
     }
 }

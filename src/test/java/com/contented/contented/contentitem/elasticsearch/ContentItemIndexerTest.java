@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.elasticsearch;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.elasticsearch.transformation.ESRecordTransformer;
 import org.assertj.core.api.Condition;
@@ -49,7 +49,7 @@ class ContentItemIndexerTest {
         @Nested
         class WhenCalledWithMultiEntityContentItem {
 
-            ContentItemEntity contentItemEntity = new ContentItemEntity(UuidV7.generate(), "TestMultiEntityContentType",
+            ContentItemVersionEntity contentItemEntity = new ContentItemVersionEntity(UuidV7.generate(), "TestMultiEntityContentType",
                 Map.of("identifier", "identifier1"));
 
             @Test
@@ -93,7 +93,7 @@ class ContentItemIndexerTest {
         @Nested
         class WhenCalledWithUnmatchedContentItem {
 
-            ContentItemEntity contentItemEntity = new ContentItemEntity(UuidV7.generate(), "TypeWithNoTransformer",
+            ContentItemVersionEntity contentItemEntity = new ContentItemVersionEntity(UuidV7.generate(), "TypeWithNoTransformer",
                 Map.of("identifier", "identifier1"));
 
             @Test
@@ -110,7 +110,7 @@ class ContentItemIndexerTest {
 
     static class MultiEntityContentItemTransformer implements ESRecordTransformer {
         @Override
-        public Collection<EntityAsMap> transform(ContentItemEntity toTransform) {
+        public Collection<EntityAsMap> transform(ContentItemVersionEntity toTransform) {
             EntityAsMap entityAsMap1 = new EntityAsMap();
             entityAsMap1.put("identifier", toTransform.get("identifier") + "_1");
 
@@ -124,7 +124,7 @@ class ContentItemIndexerTest {
         }
 
         @Override
-        public boolean test(ContentItemEntity contentItemEntity) {
+        public boolean test(ContentItemVersionEntity contentItemEntity) {
             return "TestMultiEntityContentType".equals(contentItemEntity.getContentType());
         }
     }

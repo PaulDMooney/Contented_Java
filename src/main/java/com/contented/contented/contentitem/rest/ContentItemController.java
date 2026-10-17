@@ -2,8 +2,8 @@ package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.contentitem.ContentItemService;
 import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
-import com.contented.contented.contentitem.model.ContentItemDTO;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ public class ContentItemController {
     }
 
     @PostMapping
-    ResponseEntity<ContentItemResponseDTO> createContentItem(@RequestBody ContentItemDTO contentItemDTO,
+    ResponseEntity<ContentItemVersionResponseDTO> createContentItem(@RequestBody ContentItemVersionDTO contentItemDTO,
                                                            UriComponentsBuilder uriBuilder) {
         var created = contentItemService.create(contentItemDTO);
         var location = uriBuilder.path("/{base}/{identifier}")
@@ -36,15 +36,15 @@ public class ContentItemController {
     }
 
     @PutMapping("/{identifier}")
-    ResponseEntity<ContentItemResponseDTO> updateWorking(@PathVariable UUID identifier,
-                                                       @RequestBody ContentItemDTO contentItemDTO) {
+    ResponseEntity<ContentItemVersionResponseDTO> updateWorking(@PathVariable UUID identifier,
+                                                       @RequestBody ContentItemVersionDTO contentItemDTO) {
         return contentItemService.updateWorking(identifier, contentItemDTO)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(identifier));
     }
 
     @PostMapping("/{identifier}/publish")
-    ResponseEntity<ContentItemResponseDTO> publish(@PathVariable UUID identifier) {
+    ResponseEntity<ContentItemVersionResponseDTO> publish(@PathVariable UUID identifier) {
         return contentItemService.publish(identifier)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(identifier));
@@ -65,14 +65,14 @@ public class ContentItemController {
     }
 
     @GetMapping("/versions/{versionId}")
-    ResponseEntity<ContentItemResponseDTO> getVersion(@PathVariable UUID versionId) {
+    ResponseEntity<ContentItemVersionResponseDTO> getVersion(@PathVariable UUID versionId) {
         return contentItemService.getVersion(versionId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(versionId));
     }
 
     @PostMapping("/versions/{versionId}/restore")
-    ResponseEntity<ContentItemResponseDTO> restore(@PathVariable UUID versionId) {
+    ResponseEntity<ContentItemVersionResponseDTO> restore(@PathVariable UUID versionId) {
         return contentItemService.restore(versionId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ContentItemNotFoundException(versionId));

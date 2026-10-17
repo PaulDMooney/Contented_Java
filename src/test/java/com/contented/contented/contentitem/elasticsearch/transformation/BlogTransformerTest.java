@@ -1,6 +1,6 @@
 package com.contented.contented.contentitem.elasticsearch.transformation;
 
-import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemVersionEntity;
 import com.contented.contented.contentitem.model.ContentItemState;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.transformation.StandardDMSContentTransformer;
@@ -32,10 +32,10 @@ class BlogTransformerTest {
         @DisplayName("When called with a `contentItem` entity that has `Blog` fields")
         class WhenCalledWithBlogContentItem {
 
-            ContentItemEntity toTransform = blogEntity();
+            ContentItemVersionEntity toTransform = blogEntity();
 
-            static ContentItemEntity blogEntity() {
-                return ContentItemEntity.newVersion(UuidV7.generate(), UuidV7.generate(), "Blog",
+            static ContentItemVersionEntity blogEntity() {
+                return ContentItemVersionEntity.newVersion(UuidV7.generate(), UuidV7.generate(), "Blog",
                         ContentItemState.WORKING, Instant.now(),
                         Map.ofEntries(
                                 entry("title", "Blog Title"),

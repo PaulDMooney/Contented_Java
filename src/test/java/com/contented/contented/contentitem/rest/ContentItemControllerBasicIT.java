@@ -2,8 +2,8 @@ package com.contented.contented.contentitem.rest;
 
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
-import com.contented.contented.contentitem.model.ContentItemDTO;
-import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionDTO;
+import com.contented.contented.contentitem.model.ContentItemVersionResponseDTO;
 import com.contented.contented.contentitem.model.ContentItemState;
 import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.model.ContentItemVersionSummaryDTO;
@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("`ContentItemController` basic tests")
 public class ContentItemControllerBasicIT extends AbstractContentItemControllerIT {
 
-    // ContentItemRepository needs a database to communicate with
+    // ContentItemVersionRepository needs a database to communicate with
     @Container
     static PostgreSQLContainer postgres = postgresContainer();
 
@@ -54,10 +54,10 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
     }
 
     UUID createDraft(String contentType, Map<String, Object> fields) {
-        var dto = ContentItemDTO.builder().contentType(contentType).data(fields).build();
+        var dto = ContentItemVersionDTO.builder().contentType(contentType).data(fields).build();
         return contentItemEndpointClient.post().body(dto).exchange()
             .expectStatus().isCreated()
-            .expectBody(ContentItemResponseDTO.class)
+            .expectBody(ContentItemVersionResponseDTO.class)
             .returnResult().getResponseBody().getIdentifier();
     }
 
@@ -67,7 +67,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
     }
 
     void updateWorking(UUID identifier, String contentType, Map<String, Object> fields) {
-        var dto = ContentItemDTO.builder().contentType(contentType).data(fields).build();
+        var dto = ContentItemVersionDTO.builder().contentType(contentType).data(fields).build();
         contentItemEndpointClient.put().uri("/{identifier}", identifier).body(dto).exchange()
             .expectStatus().isOk();
     }
@@ -81,10 +81,10 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         class CreateANewContentItem {
 
             // Given a body with no id (ids are server-assigned)
-            ContentItemDTO toCreate = ContentItemDTO.builder()
+            ContentItemVersionDTO toCreate = ContentItemVersionDTO.builder()
                 .contentType("SomeType").data(Map.of("field1", "value1")).build();
 
-            EntityExchangeResult<ContentItemResponseDTO> result;
+            EntityExchangeResult<ContentItemVersionResponseDTO> result;
 
             @BeforeAll()
             void beforeAll() {
@@ -93,7 +93,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 result = contentItemEndpointClient.post()
                         .body(toCreate)
                         .exchange()
-                        .expectBody(ContentItemResponseDTO.class)
+                        .expectBody(ContentItemVersionResponseDTO.class)
                         .returnResult();
             }
 
@@ -140,7 +140,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             @DisplayName("It should create the content, ignoring the supplied identity")
             void should_ignore_supplied_identity() {
                 response.expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .value(created -> {
                         assertThat(created.getIdentifier()).isNotNull();
                         assertThat(created.getData()).doesNotContainKey("identifier");
@@ -153,7 +153,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
         class CreateWithoutContentType {
 
             // Given a body with no contentType
-            ContentItemDTO toCreate = ContentItemDTO.builder().data(Map.of("field1", "value1")).build();
+            ContentItemVersionDTO toCreate = ContentItemVersionDTO.builder().data(Map.of("field1", "value1")).build();
 
             RestTestClient.ResponseSpec response;
 
@@ -187,7 +187,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 identifier = createDraft("SomeType", Map.of("field1", "original"));
 
-                var update = ContentItemDTO.builder()
+                var update = ContentItemVersionDTO.builder()
                     .contentType("SomeType").data(Map.of("field1", "updatedValue")).build();
 
                 response = contentItemEndpointClient.put()
@@ -221,7 +221,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             @BeforeAll()
             void beforeAll() {
                 mockContentItemIndexer();
-                var update = ContentItemDTO.builder().contentType("SomeType").build();
+                var update = ContentItemVersionDTO.builder().contentType("SomeType").build();
 
                 response = contentItemEndpointClient.put()
                         .uri("/{identifier}", UuidV7.generate())
@@ -247,7 +247,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 mockContentItemIndexer();
                 var identifier = createDraft("Blog", Map.of());
 
-                var update = ContentItemDTO.builder().contentType("News").build();
+                var update = ContentItemVersionDTO.builder().contentType("News").build();
 
                 response = contentItemEndpointClient.put()
                         .uri("/{identifier}", identifier)
@@ -285,7 +285,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             @DisplayName("It should return the now-live version")
             void should_return_the_live_version() {
                 response.expectStatus().isOk()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .value(live -> assertThat(live.getState()).isEqualTo(ContentItemState.LIVE));
             }
 
@@ -445,7 +445,7 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
                 contentItemEndpointClient.post()
                     .uri("/versions/{versionId}/restore", archivedVersionId).exchange()
                     .expectStatus().isOk()
-                    .expectBody(ContentItemResponseDTO.class)
+                    .expectBody(ContentItemVersionResponseDTO.class)
                     .value(working -> {
                         assertThat(working.getState()).isEqualTo(ContentItemState.WORKING);
                         assertThat(working.getData()).containsEntry("field1", "original");
