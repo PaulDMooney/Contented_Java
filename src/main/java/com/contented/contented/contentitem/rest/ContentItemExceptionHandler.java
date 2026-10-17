@@ -1,5 +1,6 @@
 package com.contented.contented.contentitem.rest;
 
+import com.contented.contented.contentitem.exceptions.ContentItemConflictException;
 import com.contented.contented.contentitem.exceptions.ContentItemNotFoundException;
 import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,11 +28,21 @@ public class ContentItemExceptionHandler extends ResponseEntityExceptionHandler 
         return problem;
     }
 
+    // The content exists but is in a state where the requested operation does not apply (e.g.
+    // publishing with no working draft) — a conflict with the content's current state, not a
+    // malformed request.
+    @ExceptionHandler(ContentItemConflictException.class)
+    ProblemDetail handleConflict(ContentItemConflictException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Conflicting contentItem request");
+        return problem;
+    }
+
     // The one-LIVE / one-WORKING-per-identifier invariants are enforced by partial unique indexes.
     // Concurrent writes to the same content can race past the service's read-then-write and collide at
     // commit; the loser surfaces here as a conflict rather than a generic 500.
     @ExceptionHandler(DataIntegrityViolationException.class)
-    ProblemDetail handleConflict(DataIntegrityViolationException ex) {
+    ProblemDetail handleConcurrentWriteConflict(DataIntegrityViolationException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
             "The contentItem was modified concurrently; please retry.");
         problem.setTitle("Conflicting contentItem write");

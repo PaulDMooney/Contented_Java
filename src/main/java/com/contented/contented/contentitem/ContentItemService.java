@@ -3,6 +3,7 @@ package com.contented.contented.contentitem;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.events.ContentItemDeletedEvent;
 import com.contented.contented.contentitem.events.ContentItemPublishedEvent;
+import com.contented.contented.contentitem.exceptions.ContentItemConflictException;
 import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemEntity;
@@ -91,8 +92,9 @@ public class ContentItemService {
     /**
      * Publishes the WORKING draft: the current LIVE version (if any) is demoted to ARCHIVED, then the
      * working version is promoted to LIVE in place. Returns empty for an unknown identifier (404);
-     * throws {@link InvalidContentItemException} (400) when there is nothing to publish. The now-live
-     * version is indexed after the transaction commits (see {@code ContentItemIndexingListener}).
+     * throws {@link ContentItemConflictException} (409) when the content exists but has nothing to
+     * publish. The now-live version is indexed after the transaction commits (see
+     * {@code ContentItemIndexingListener}).
      */
     @Transactional
     public Optional<ContentItemResponseDTO> publish(UUID identifier) {
@@ -102,7 +104,7 @@ public class ContentItemService {
                 log.info("No content for identifier `{}`; nothing to publish", identifier);
                 return Optional.empty();
             }
-            throw new InvalidContentItemException(
+            throw new ContentItemConflictException(
                 "There is no working version to publish for `" + identifier + "`.");
         }
         // Demote the current live version first so the one-LIVE-per-identifier invariant always holds.

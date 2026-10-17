@@ -296,9 +296,9 @@ All failures carry an RFC 9457 `application/problem+json` body.
 
 | Status | When |
 |---|---|
-| `400` | blank `contentType`; `contentType` changed on update; nothing to publish |
+| `400` | blank `contentType`; `contentType` changed on update |
 | `404` | unknown `identifier`; unknown `versionId` |
-| `409` | a concurrent write lost the race on a uniqueness invariant |
+| `409` | nothing to publish (the content exists but has no working draft); a concurrent write lost the race on a uniqueness invariant |
 
 ## 4. Dual write to Elasticsearch
 

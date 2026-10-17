@@ -1,6 +1,7 @@
 package com.contented.contented.contentitem;
 
 import com.contented.contented.common.UuidV7;
+import com.contented.contented.contentitem.exceptions.ContentItemConflictException;
 import com.contented.contented.contentitem.exceptions.InvalidContentItemException;
 import com.contented.contented.contentitem.model.ContentItemDTO;
 import com.contented.contented.contentitem.model.ContentItemEntity;
@@ -380,9 +381,9 @@ public class ContentItemServiceTest {
             }
 
             @Test
-            @DisplayName("It should reject the publish as invalid")
+            @DisplayName("It should reject the publish as a conflict")
             void should_reject_publish() {
-                assertThat(thrown).isInstanceOf(InvalidContentItemException.class);
+                assertThat(thrown).isInstanceOf(ContentItemConflictException.class);
             }
         }
     }

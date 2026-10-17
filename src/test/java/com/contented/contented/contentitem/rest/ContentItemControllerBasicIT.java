@@ -330,9 +330,9 @@ public class ContentItemControllerBasicIT extends AbstractContentItemControllerI
             }
 
             @Test
-            @DisplayName("It should return a `400 BAD REQUEST` status code")
-            void should_return_a_400() {
-                response.expectStatus().isBadRequest();
+            @DisplayName("It should return a `409 CONFLICT` status code")
+            void should_return_a_409() {
+                response.expectStatus().isEqualTo(HttpStatus.CONFLICT);
             }
         }
     }
