@@ -3,9 +3,9 @@ package com.contented.contented.contentitem;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemState;
+import com.contented.contented.contentitem.testutils.RealDataJdbcTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 // ContentItemExceptionHandler's 409 mapping depends on — a genuine Postgres constraint violation,
 // translated by Spring's own exception translation, not a hand-constructed exception.
 @Tag(INTEGRATION_TESTS)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@RealDataJdbcTest
 @Testcontainers
 @DisplayName("`ContentItemRepository` invariant enforcement")
 public class ContentItemRepositoryIT {

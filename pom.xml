@@ -110,6 +110,17 @@
 			<artifactId>spring-boot-web-server-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- @DataJdbcTest / @DataElasticsearchTest slices live in their own modules in Boot 4 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-data-jdbc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-data-elasticsearch-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-elasticsearch</artifactId>
