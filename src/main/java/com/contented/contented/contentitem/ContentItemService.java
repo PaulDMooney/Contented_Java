@@ -141,21 +141,16 @@ public class ContentItemService {
      * (404) if the identifier is unknown.
      */
     public Optional<ContentItemWorkAndLiveDTO> getContentState(UUID identifier) {
-        var versions = contentItemRepository.findByIdentifierOrderByVersionCreatedDatetimeDesc(identifier);
-        if (versions.isEmpty()) {
+        var working = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.WORKING);
+        var live = contentItemRepository.findByIdentifierAndState(identifier, ContentItemState.LIVE);
+        // A known content always has a WORKING and/or LIVE version (no operation leaves only archived
+        // versions); their mutual absence means the identifier is unknown.
+        if (working.isEmpty() && live.isEmpty()) {
             return Optional.empty();
         }
-        var working = firstInState(versions, ContentItemState.WORKING);
-        var live = firstInState(versions, ContentItemState.LIVE);
-        return Optional.of(new ContentItemWorkAndLiveDTO(working, live));
-    }
-
-    private ContentItemResponseDTO firstInState(List<ContentItemEntity> versions, ContentItemState state) {
-        return versions.stream()
-            .filter(version -> version.getState() == state)
-            .findFirst()
-            .map(contentItemMapper::toResponse)
-            .orElse(null);
+        return Optional.of(new ContentItemWorkAndLiveDTO(
+            working.map(contentItemMapper::toResponse).orElse(null),
+            live.map(contentItemMapper::toResponse).orElse(null)));
     }
 
     /**
