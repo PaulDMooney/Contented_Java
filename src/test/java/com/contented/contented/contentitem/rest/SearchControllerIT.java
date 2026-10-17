@@ -171,6 +171,61 @@ public class SearchControllerIT {
 
             }
 
+            @Nested
+            @DisplayName("When a query excludes `_source`")
+            class WhenSourceIsExcluded {
+
+                String queryForContentTemplate = """
+                {
+                    "_source": false,
+                    "query": {
+                        "term": {
+                            "id": "%s"
+                        }
+                    }
+                }
+                """;
+
+                RestTestClient.ResponseSpec response;
+
+                ExpectedResponseStructure result;
+
+                record ExpectedResponseStructure(
+                    SearchResponse<?> esResponse,
+                    List<ContentItemResponseDTO> contentItems
+                ){}
+
+                @BeforeAll
+                void when() {
+                    var queryString = String.format(queryForContentTemplate, identifier.toString());
+                    response = searchEndpointClient.post().uri("/withcontent").body(queryString).exchange();
+
+                    var body = response.expectBody(String.class).returnResult().getResponseBody();
+                    var module = new SimpleModule();
+                    module.addDeserializer(SearchResponse.class, new SearchResponseDeserializer<>(new Jackson3JsonpMapper()));
+                    var mapper = JsonMapper.builder().addModule(module).build();
+                    result = mapper.readValue(body, ExpectedResponseStructure.class);
+                }
+
+                @Test
+                @DisplayName("It should return a `200 OK` status code rather than fail on the sourceless hit")
+                void it_should_return_a_200_OK_status_code() {
+                    response.expectStatus().isOk();
+                }
+
+                @Test
+                @DisplayName("It should still match the document in the raw ES response")
+                void the_esResponse_should_still_contain_the_hit() {
+                    assertThat(result.esResponse().hits().hits()).hasSize(1);
+                }
+
+                @Test
+                @DisplayName("It should skip hydrating the sourceless hit rather than return it")
+                void it_should_not_hydrate_a_content_item_for_the_hit() {
+                    assertThat(result.contentItems()).isEmpty();
+                }
+            }
+
         }
     }
 }
