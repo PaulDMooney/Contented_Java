@@ -1,9 +1,7 @@
 # Content model: versions, lifecycle, and API surface
 
-How a **content item** is stored, how its versions move through the editorial lifecycle, and how
-that model is exposed over REST. This is the reference for roadmap item 5
-(*content versioning: live / working / history*); see [roadmap.md](roadmap.md) for the surrounding
-initiatives and the deferred follow-ups.
+How a **content item** is stored, how its versions move through the editorial lifecycle
+(working / live / history), and how that model is exposed over REST.
 
 ## 1. Persistence model
 
@@ -47,16 +45,36 @@ Both are server-generated UUIDv7 (`common.UuidV7`); clients never supply either.
 
 ### Invariants
 
-Enforced by partial unique indexes (a payoff of the Postgres move, roadmap item 3) rather than by
-application logic, so concurrent writers cannot break them:
+An **invariant** is a rule about the data that must hold at all times, regardless of which
+operation last touched it: *"a content has at most one LIVE version"* is a statement about every
+row sharing an `identifier` together, not about any single write.
 
-| Index | Rule |
+That's why it can't just live in `ContentItemService` as a check. A check like "look up the
+current LIVE row, then write" only guards one request's view of the data — if two publish calls
+for the same content run at the same moment, both can pass that check before either has written
+anything, and both then write. The invariant would be violated and nothing in the application code
+would have caught it. The fix is to make the rule physically impossible to break, not merely
+checked for: Postgres enforces it as a constraint on the table itself, so **whichever write loses
+the race fails outright** rather than silently corrupting the data. The loser surfaces to the
+client as a `409 Conflict` (see [Error semantics](#error-semantics) below) — a clean "you lost a
+race, retry," not data quietly going wrong.
+
+The mechanism is a **partial unique index**: a uniqueness constraint that only applies to rows
+matching a `WHERE` clause, rather than to the whole table. A plain `UNIQUE (identifier)` would be
+wrong here — `ARCHIVED` is history, and the same `identifier` legitimately appears on many archived
+rows. Scoping the constraint to `WHERE state = 'LIVE'` (and separately to `WHERE state =
+'WORKING'`) says "unique only *among* the rows in this state," which is exactly the one-LIVE /
+one-WORKING rule and nothing more:
+
+| Index | Rule it enforces |
 |---|---|
-| `uq_content_item_live` — `UNIQUE (identifier) WHERE state = 'LIVE'` | at most **one LIVE** version per content |
-| `uq_content_item_working` — `UNIQUE (identifier) WHERE state = 'WORKING'` | at most **one WORKING** draft per content |
-| `ix_content_item_identifier` | (lookup support — every read is by identifier) |
+| `uq_content_item_live` — `UNIQUE (identifier) WHERE state = 'LIVE'` | at most **one `LIVE`** row per `identifier` |
+| `uq_content_item_working` — `UNIQUE (identifier) WHERE state = 'WORKING'` | at most **one `WORKING`** row per `identifier` |
+| `ix_content_item_identifier` | not an invariant — a plain (non-unique) index supporting every by-`identifier` lookup |
 
-`ARCHIVED` is uncapped: it is the history, and retention limits are deferred.
+`ARCHIVED` is deliberately uncapped by any index: it is the history, and nothing limits how many
+archived versions one content accumulates (retention limits are a possible later addition, not
+built now).
 
 ### Mutability
 
@@ -104,9 +122,9 @@ stateDiagram-v2
 | Step | Trigger | What happens |
 |---|---|---|
 | ① create | `POST /contentitems` | a new row is inserted, state `WORKING` |
-| ② publish | `POST /{identifier}/publish` | the row is promoted in place — same `version_id`, state flips to `LIVE` |
-| ③ next publish | a later `POST /{identifier}/publish` | *this* row is demoted in place to `ARCHIVED`, and a (different) `WORKING` row is promoted to take its place as `LIVE` |
-| ④ update | `PUT /{identifier}` | the `WORKING` row's `data` is overwritten in place; `version_id` and `version_created_datetime` are unchanged |
+| ② publish | `POST /contentitems/{identifier}/publish` | the row is promoted in place — same `version_id`, state flips to `LIVE` |
+| ③ next publish | a later `POST /contentitems/{identifier}/publish` | *this* row is demoted in place to `ARCHIVED`, and a (different) `WORKING` row is promoted to take its place as `LIVE` |
+| ④ update | `PUT /contentitems/{identifier}` | the `WORKING` row's `data` is overwritten in place; `version_id` and `version_created_datetime` are unchanged |
 
 Publish is a two-row change inside one transaction, and the order matters: the current `LIVE` row
 is demoted to `ARCHIVED` *before* the `WORKING` row is promoted, so the one-`LIVE`-per-identifier
@@ -134,12 +152,12 @@ flowchart LR
     S["Any existing version\n(LIVE or ARCHIVED)\nversionId = V"]
     W["WORKING draft\nsame identifier\n(created if absent,\noverwritten if present)"]
 
-    S -- "⑤ POST /versions/V/restore\ncopies data only" --> W
+    S -- "⑤ POST /contentitems/versions/V/restore\ncopies data only" --> W
 ```
 
 | Step | Trigger | What happens |
 |---|---|---|
-| ⑤ restore | `POST /versions/{versionId}/restore` | `data` is copied from any version (`LIVE` or `ARCHIVED`) into the `WORKING` draft; the source row's state and content are never modified |
+| ⑤ restore | `POST /contentitems/versions/{versionId}/restore` | `data` is copied from any version (`LIVE` or `ARCHIVED`) into the `WORKING` draft; the source row's state and content are never modified |
 
 The restored draft can then be published like any other edit (step ②).
 
@@ -173,18 +191,18 @@ flowchart TD
 
     R -->|POST| C["create a WORKING draft<br/>201 + Location"]
 
-    R --> ID["/{identifier}<br/>content-level"]
+    R --> ID["/contentitems/{identifier}<br/>content-level"]
     ID -->|GET| G["working + live envelope"]
     ID -->|PUT| U["update the WORKING draft"]
     ID -->|DELETE| D["delete every version<br/>204"]
-    ID --> PUB["/publish"]
+    ID --> PUB["/contentitems/{identifier}/publish"]
     PUB -->|POST| P["WORKING becomes LIVE<br/>old LIVE becomes ARCHIVED"]
-    ID --> VS["/versions"]
+    ID --> VS["/contentitems/{identifier}/versions"]
     VS -->|GET| L["history summaries<br/>newest first"]
 
-    R --> V["/versions/{versionId}<br/>version-level"]
+    R --> V["/contentitems/versions/{versionId}<br/>version-level"]
     V -->|GET| GV["one version, full content"]
-    V --> RS["/restore"]
+    V --> RS["/contentitems/versions/{versionId}/restore"]
     RS -->|POST| RSP["copy content into<br/>the WORKING draft"]
 ```
 
@@ -201,7 +219,21 @@ flowchart TD
 | `POST /contentitems/versions/{versionId}/restore` | restore | `200` | copies into the `WORKING` draft; source row unchanged |
 | `DELETE /contentitems/{identifier}` | delete | `204` | removes every version, and the search document |
 
-### Response shapes
+### Request and response shapes
+
+Only one of these four types is ever sent *by a client* — `ContentItemDTO` is the request body,
+and it is never returned. The other three are response-only, each shaped for a different endpoint:
+
+| DTO | Direction | Used by |
+|---|---|---|
+| `ContentItemDTO` | request only | body of `POST /contentitems` and `PUT /contentitems/{identifier}` |
+| `ContentItemResponseDTO` | response only | the single-version response, returned by every operation that acts on exactly one version: `POST /contentitems`, `PUT /contentitems/{identifier}`, `POST /contentitems/{identifier}/publish`, `GET /contentitems/versions/{versionId}`, `POST /contentitems/versions/{versionId}/restore` |
+| `ContentItemWorkAndLiveDTO` | response only | `GET /contentitems/{identifier}` — the only endpoint that returns two versions at once |
+| `ContentItemVersionSummaryDTO` | response only | `GET /contentitems/{identifier}/versions` — the history list; it omits `data` so listing many versions stays cheap |
+
+`POST /contentitems/{identifier}/publish` and `POST /contentitems/versions/{versionId}/restore`
+take no request body at all — the path alone identifies what to act on. `DELETE
+/contentitems/{identifier}` has no body in either direction (`204 No Content`).
 
 ```mermaid
 classDiagram
@@ -307,8 +339,6 @@ sequenceDiagram
 
 ## Known gaps
 
-Tracked as deferred follow-ups under item 5 in [roadmap.md](roadmap.md):
-
 - **Lost update on the working draft.** Two concurrent edits to the same `WORKING` row both UPDATE
   it and the last write silently wins. A `@Version` optimistic-lock column would turn the losing
   edit into a handled conflict.
@@ -316,4 +346,4 @@ Tracked as deferred follow-ups under item 5 in [roadmap.md](roadmap.md):
   version's `data` blob only for the mapper to drop it.
 
 Also out of scope here: indexing working versions for editorial search, history retention caps, and
-content grouping / language variants (item 6).
+content grouping / language variants (a separate, not-yet-designed extension of this model).
