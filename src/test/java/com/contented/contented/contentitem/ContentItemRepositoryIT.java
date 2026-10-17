@@ -5,7 +5,9 @@ import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemState;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -25,8 +27,11 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 // Exercises the real DB-level enforcement (partial unique indexes) that
 // ContentItemExceptionHandler's 409 mapping depends on — a genuine Postgres constraint violation,
 // translated by Spring's own exception translation, not a hand-constructed exception.
+// The @DataJdbcTest slice picks up JdbcConfig, whose jsonb converters need Jackson's ObjectMapper.
 @Tag(INTEGRATION_TESTS)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@DataJdbcTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@AutoConfigureJson
 @Testcontainers
 @DisplayName("`ContentItemRepository` invariant enforcement")
 public class ContentItemRepositoryIT {
