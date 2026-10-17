@@ -180,13 +180,25 @@ version's content never changes under its `inode` — only which version *is* li
 
 **Deferred follow-ups** (surfaced while implementing the working/live/history model):
 
-- **Optimistic locking on the WORKING draft.** `updateWorking` edits the single WORKING row in
-  place, so two concurrent edits both load and UPDATE it — last write silently wins (lost update).
-  Add a `@Version` column so a stale edit raises `OptimisticLockingFailureException`, mapped to a
-  409. (The exception handler already maps `DataIntegrityViolationException` to 409 — extend it.)
-  This is distinct from the publish / lazy-working-create INSERT race, which the partial unique
-  indexes (`uq_content_item_live` / `uq_content_item_working`) already guard and which already
-  surfaces as a 409.
+- **Optimistic locking (`@Version`) — concurrent writes can silently overwrite a LIVE row, not
+  just lose a WORKING edit.** Every `withData`/`withState` save is a full-row UPDATE keyed only by
+  `version_id`, with no check that the row is still in the state the writer last saw. Two races,
+  found in PR review:
+  - Two concurrent edits to the same WORKING row: last write silently wins (a plain lost update).
+  - **Worse:** `updateWorking`/`restore` load a WORKING row; a concurrent `publish` promotes that
+    same row to LIVE and commits (and indexes it); the first request's stale `withData(...)` save
+    still lands, overwriting the now-LIVE row's content and flipping it back to WORKING. The
+    content ends up with no LIVE row, the published data is gone, and the already-indexed ES
+    document is now stale — with no unique index to catch it (`version_id` alone is always a valid
+    UPDATE target), so it doesn't surface as the documented 409 either. `publish` has a milder
+    version of the same race: a concurrent edit committed between its read and its save is
+    silently overwritten with the data `publish` read earlier.
+  - Fix: a `@Version` column, so every UPDATE additionally requires `version = <value read>`; a
+    stale write then fails with `OptimisticLockingFailureException`, mappable to 409 (the handler
+    already maps `DataIntegrityViolationException` to 409 — extend it). This is distinct from the
+    publish / lazy-working-create INSERT race, which the partial unique indexes
+    (`uq_content_item_live` / `uq_content_item_working`) already guard and which already surfaces
+    as a 409.
 - **Skip the `data` blob when listing versions.** `GET /contentitems/{identifier}/versions` returns
   `ContentItemVersionSummaryDTO` (versionId, state, versionCreatedDatetime) — no content — but
   `findByIdentifierOrderByVersionCreatedDatetimeDesc` loads full `ContentItemEntity` rows, fetching

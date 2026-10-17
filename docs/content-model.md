@@ -339,9 +339,13 @@ sequenceDiagram
 
 ## Known gaps
 
-- **Lost update on the working draft.** Two concurrent edits to the same `WORKING` row both UPDATE
-  it and the last write silently wins. A `@Version` optimistic-lock column would turn the losing
-  edit into a handled conflict.
+- **No optimistic locking — a concurrent write can overwrite a `LIVE` row, not just lose a
+  `WORKING` edit.** Every save is a full-row UPDATE keyed only by `version_id`, with no check that
+  the row is still in the state the writer last saw. Two concurrent edits to the same `WORKING` row
+  is a plain lost update (last write wins). Worse: if `updateWorking`/`restore` load a `WORKING`
+  row and a concurrent `publish` promotes that same row to `LIVE` in between, the stale edit's save
+  still lands — overwriting the now-`LIVE` row's content and flipping it back to `WORKING`, with no
+  unique index to catch it. A `@Version` column would turn either race into a handled conflict.
 - **Version listing reads content it discards.** The history query loads full rows, fetching every
   version's `data` blob only for the mapper to drop it.
 
