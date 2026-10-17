@@ -200,7 +200,7 @@ public class ContentItemService {
                                                    ContentItemEntity draft,
                                                    Optional<ContentItemEntity> existingWorking) {
         return existingWorking
-            .map(working -> working.withData(draft.getSchemalessData()))
+            .map(working -> working.withData(draft.getData()))
             .orElseGet(() -> draft.asNewVersion(UuidV7.generate(), identifier, contentType,
                 ContentItemState.WORKING, Instant.now()));
     }

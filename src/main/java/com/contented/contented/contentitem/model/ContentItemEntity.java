@@ -54,8 +54,8 @@ public class ContentItemEntity implements Persistable<UUID> {
         this.isNew = isNew;
     }
 
-    public ContentItemEntity(UUID versionId, String contentType, Map<String, Object> schemalessData) {
-        this(versionId, null, contentType, null, null, new SchemalessData(new LinkedHashMap<>(schemalessData)), true);
+    public ContentItemEntity(UUID versionId, String contentType, Map<String, Object> data) {
+        this(versionId, null, contentType, null, null, new SchemalessData(new LinkedHashMap<>(data)), true);
     }
 
     // Spring Data instantiates loaded rows here; an existing row is by definition not new.
@@ -70,9 +70,9 @@ public class ContentItemEntity implements Persistable<UUID> {
      */
     public static ContentItemEntity newVersion(UUID versionId, UUID identifier, String contentType,
                                                ContentItemState state, Instant versionCreatedDatetime,
-                                               Map<String, Object> schemalessData) {
+                                               Map<String, Object> data) {
         return new ContentItemEntity(versionId, identifier, contentType, state, versionCreatedDatetime,
-            new SchemalessData(new LinkedHashMap<>(schemalessData)), true);
+            new SchemalessData(new LinkedHashMap<>(data)), true);
     }
 
     /**
@@ -108,9 +108,9 @@ public class ContentItemEntity implements Persistable<UUID> {
      * working draft. The version id and creation date are kept and the copy is marked not-new, so it
      * UPDATEs the existing row rather than inserting a new one.
      */
-    public ContentItemEntity withData(Map<String, Object> schemalessData) {
+    public ContentItemEntity withData(Map<String, Object> data) {
         return toBuilder()
-            .data(new SchemalessData(new LinkedHashMap<>(schemalessData)))
+            .data(new SchemalessData(new LinkedHashMap<>(data)))
             .isNew(false)
             .build();
     }
@@ -148,7 +148,7 @@ public class ContentItemEntity implements Persistable<UUID> {
         return isNew;
     }
 
-    public Map<String, Object> getSchemalessData() {
+    public Map<String, Object> getData() {
         return data.values();
     }
 

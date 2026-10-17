@@ -106,7 +106,7 @@ public class ContentItemServiceTest {
                 var captor = ArgumentCaptor.forClass(ContentItemEntity.class);
                 verify(repository).save(captor.capture());
 
-                assertThat(captor.getValue().getSchemalessData())
+                assertThat(captor.getValue().getData())
                     .hasEntrySatisfying("language", value -> assertThat(value).isEqualTo("en"))
                     .containsKey("modDate");
             }

@@ -19,7 +19,7 @@ public class ContentItemMapper {
             .contentType(entity.getContentType())
             .state(entity.getState())
             .versionCreatedDatetime(entity.getVersionCreatedDatetime())
-            .data(new LinkedHashMap<>(entity.getSchemalessData()))
+            .data(new LinkedHashMap<>(entity.getData()))
             .build();
     }
 
