@@ -30,10 +30,10 @@ public class StandardDMSContentTransformer implements ContentItemEntityTransform
     @Override
     public ContentItemEntity transform(ContentItemEntity toTransform) {
 
-        Map<String, Object> mutableSchemalessData = new HashMap<>(toTransform.getSchemalessData());
+        Map<String, Object> mutableSchemalessData = new HashMap<>(toTransform.getData());
         normalizeLanguage(mutableSchemalessData);
         setModDate(mutableSchemalessData);
-        return new ContentItemEntity(toTransform.getId(), toTransform.getContentType(),
+        return new ContentItemEntity(toTransform.getVersionId(), toTransform.getContentType(),
                 Collections.unmodifiableMap(mutableSchemalessData));
     }
 

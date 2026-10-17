@@ -3,18 +3,19 @@ package com.contented.contented.contentitem.rest;
 import com.contented.contented.contentitem.elasticsearch.ContentItemIndexer;
 import com.contented.contented.contentitem.model.ContentItemEntity;
 import com.contented.contented.contentitem.model.ContentItemResponseDTO;
+import com.contented.contented.contentitem.model.ContentItemWorkAndLiveDTO;
 import com.contented.contented.contentitem.testutils.StubbingUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.contented.contented.contentitem.testutils.TestTypeTags.INTEGRATION_TESTS;
@@ -39,6 +40,11 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
         startAndRegisterPostgresContainer(postgres, registry);
     }
 
+    // The wire shape: a contentType plus the schemaless content nested under `data`.
+    static Map<String, Object> requestBody(String contentType, Map<String, Object> data) {
+        return Map.of("contentType", contentType, "data", data);
+    }
+
     @Nested
     @DisplayName("`POST` endpoint")
     class PostEndPoint {
@@ -47,168 +53,102 @@ public class ContentItemControllerFieldIT extends AbstractContentItemControllerI
         @DisplayName("When creating a `contentItem` with fields")
         class CreateANewContentItem {
 
-            // Given a body with no id (ids are server-assigned)
-            SomethingThatLooksLikeAContentItem toSave =
-                new SomethingThatLooksLikeAContentItem(null, "SomeType", "field1Value", 123);
+            Map<String, Object> data = Map.of("field1", "field1Value", "field2", 123);
 
-            UUID createdId;
+            UUID createdVersionId;
 
             @BeforeAll
             void when() {
-
-                // Not concerned with indexing, mock the indexer to just pass through
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
-                // When
-                createdId = contentItemEndpointClient.post().body(toSave).exchange()
+                createdVersionId = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
+                    .returnResult().getResponseBody().getVersionId();
             }
 
             @Test
-            @DisplayName("It should save the `contentItem` with its given fields")
+            @DisplayName("It should save the working version with its given fields")
             void it_should_save_the_content_item_with_its_given_fields() {
 
-                ContentItemEntity savedEntity = contentItemRepository.findById(createdId).orElseThrow();
+                ContentItemEntity savedEntity = contentItemRepository.findById(createdVersionId).orElseThrow();
 
-                assertThat((String) savedEntity.get("field1")).isEqualTo(toSave.field1());
-                assertThat((Integer) savedEntity.get("field2")).isEqualTo(toSave.field2());
+                assertThat((String) savedEntity.get("field1")).isEqualTo("field1Value");
+                assertThat((Integer) savedEntity.get("field2")).isEqualTo(123);
             }
         }
     }
 
     @Nested
-    @DisplayName("`GET /{id}` endpoint")
-    class GetByIdEndPoint {
+    @DisplayName("`GET /{identifier}` endpoint")
+    class GetByIdentifierEndPoint {
 
         @Nested
-        @DisplayName("Given a `contentItem` with fields was saved")
+        @DisplayName("Given a draft `contentItem` with fields was created")
         class GivenAContentItemWithFieldsWasSaved {
-            // Given a body with no id (ids are server-assigned)
-            SomethingThatLooksLikeAContentItem toSave =
-                new SomethingThatLooksLikeAContentItem(null, "SomeType", "field1Value", 123);
 
-            UUID createdId;
+            Map<String, Object> data = Map.of("field1", "field1Value", "field2", 123);
+
+            UUID identifier;
 
             @BeforeAll
             void beforeAll() {
-
-                // Not concerned with indexing, mock the indexer to just pass through
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
-                // When
-                createdId = contentItemEndpointClient.post().body(toSave).exchange()
+                identifier = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
+                    .returnResult().getResponseBody().getIdentifier();
             }
 
-            @Nested
-            @DisplayName("When getting that `contentItem` with fields")
-            class GetAContentItem {
+            @Test
+            @DisplayName("It should return the working version with its fields")
+            void it_should_return_the_content_item_with_its_fields() {
 
-                RestTestClient.ResponseSpec response;
-
-                @BeforeAll
-                void beforeAll() {
-
-                    // Not concerned with indexing, mock the indexer to just pass through
-                    StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
-
-                    // When
-                    response = contentItemEndpointClient.get()
-                        .uri("/" + createdId)
-                        .exchange();
-                }
-
-                @Test
-                @DisplayName("It should return the `contentItem` with its fields")
-                void it_should_return_the_content_item_with_its_fields() {
-
-                    // Then
-                    response.expectStatus().is2xxSuccessful()
-                        .expectBody(SomethingThatLooksLikeAContentItem.class)
-                        .value(contentItem -> {
-                            assertThat(contentItem.id()).isEqualTo(createdId.toString());
-                            assertThat(contentItem.field1()).isEqualTo(toSave.field1());
-                            assertThat(contentItem.field2()).isEqualTo(toSave.field2());
-                        });
-                }
+                contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
+                    .expectStatus().is2xxSuccessful()
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
+                    .value(state -> {
+                        assertThat(state.working().getData()).containsEntry("field1", "field1Value");
+                        assertThat(state.working().getData()).containsEntry("field2", 123);
+                    });
             }
         }
 
         @Nested
-        @DisplayName("Given a `contentItem` with complex fields was saved")
+        @DisplayName("Given a draft `contentItem` with complex fields was created")
         class GivenAContentItemWithComplexFieldsWasSaved {
 
-            record ContentItemWithComplexFields(String id, String contentType, List<String> strings, List<ComplexField> stuff) {
-            }
+            List<String> strings = List.of("string1", "string2");
+            List<Map<String, Object>> stuff = List.of(
+                Map.of("field1", "field1Value", "field2", 123),
+                Map.of("field1", "field2Value", "field2", 456));
+            Map<String, Object> data = Map.of("strings", strings, "stuff", stuff);
 
-            record ComplexField(String field1, int field2) {
-            }
-
-            ContentItemWithComplexFields toSave = new ContentItemWithComplexFields(
-                null,
-                "SomeType",
-                List.of("string1", "string2"),
-                List.of(new ComplexField("field1Value", 123), new ComplexField("field2Value", 456))
-            );
-
-            UUID createdId;
+            UUID identifier;
 
             @BeforeAll
             void given() {
-
-                // Not concerned with indexing, mock the indexer to just pass through
                 StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
 
-                // Given a body with no id (ids are server-assigned)
-                createdId = contentItemEndpointClient.post().body(toSave).exchange()
+                identifier = contentItemEndpointClient.post().body(requestBody("SomeType", data)).exchange()
                     .expectStatus().isCreated()
                     .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
-
+                    .returnResult().getResponseBody().getIdentifier();
             }
 
-            @Nested
-            @DisplayName("When getting that `contentItem` with complex fields")
-            class GetContentItemWithComplexFields {
+            @Test
+            @DisplayName("It should return the working version with its complex fields")
+            void it_should_return_the_content_item_with_its_complex_fields() {
 
-                RestTestClient.ResponseSpec response;
-
-                @BeforeAll
-                void when() {
-
-                    // Not concerned with indexing, mock the indexer to just pass through
-                    StubbingUtils.passThrough_indexContentItem(contentItemIndexer);
-
-                    // When
-                    response = contentItemEndpointClient.get()
-                        .uri("/" + createdId)
-                        .exchange();
-
-                }
-
-                @Test
-                @DisplayName("It should return the `contentItem` with its complex fields")
-                void it_should_return_the_content_item_with_its_complex_fields() {
-
-                    // Then
-                    response.expectStatus().is2xxSuccessful()
-                        .expectBody(ContentItemWithComplexFields.class)
-                        .value(contentItem -> {
-                            assertThat(contentItem.id()).isEqualTo(createdId.toString());
-                            assertThat(contentItem.strings()).isEqualTo(toSave.strings());
-                            assertThat(contentItem.stuff()).isEqualTo(toSave.stuff());
-                        });
-                }
+                contentItemEndpointClient.get().uri("/{identifier}", identifier).exchange()
+                    .expectStatus().is2xxSuccessful()
+                    .expectBody(ContentItemWorkAndLiveDTO.class)
+                    .value(state -> {
+                        assertThat(state.working().getData()).containsEntry("strings", strings);
+                        assertThat(state.working().getData()).containsKey("stuff");
+                    });
             }
-
         }
-
-    }
-
-    record SomethingThatLooksLikeAContentItem(String id, String contentType, String field1, int field2) {
     }
 }

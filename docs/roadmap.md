@@ -10,7 +10,7 @@ fleshed out before implementation.
 | 2 | Micrometer trace ids in logs | Mostly done | — |
 | 3 | MongoDB → Postgres migration | Mostly done | — |
 | 4 | Bring tests up to new testing standards | In progress | `spring-boot-testing` skill |
-| 5 | Content versioning (live / working / history) | Idea | — |
+| 5 | Content versioning (live / working / history) | In review (PR #27) | [content-model.md](content-model.md) |
 | 6 | Content grouping (language variants) | Idea | — |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
@@ -177,6 +177,35 @@ version's content never changes under its `inode` — only which version *is* li
 - **Interaction with item 8**: the rebuild walks "all content items" — under versioning this
   becomes "all live versions (+ working, if indexed)". The keyset/checkpoint design is
   unaffected, but the batch query and the ES transformers gain version-awareness.
+
+**Deferred follow-ups** (surfaced while implementing the working/live/history model):
+
+- **Optimistic locking (`@Version`) — concurrent writes can silently overwrite a LIVE row, not
+  just lose a WORKING edit.** Every `withData`/`withState` save is a full-row UPDATE keyed only by
+  `version_id`, with no check that the row is still in the state the writer last saw. Two races,
+  found in PR review:
+  - Two concurrent edits to the same WORKING row: last write silently wins (a plain lost update).
+  - **Worse:** `updateWorking`/`restore` load a WORKING row; a concurrent `publish` promotes that
+    same row to LIVE and commits (and indexes it); the first request's stale `withData(...)` save
+    still lands, overwriting the now-LIVE row's content and flipping it back to WORKING. The
+    content ends up with no LIVE row, the published data is gone, and the already-indexed ES
+    document is now stale — with no unique index to catch it (`version_id` alone is always a valid
+    UPDATE target), so it doesn't surface as the documented 409 either. `publish` has a milder
+    version of the same race: a concurrent edit committed between its read and its save is
+    silently overwritten with the data `publish` read earlier.
+  - Fix: a `@Version` column, so every UPDATE additionally requires `version = <value read>`; a
+    stale write then fails with `OptimisticLockingFailureException`, mappable to 409 (the handler
+    already maps `DataIntegrityViolationException` to 409 — extend it). This is distinct from the
+    publish / lazy-working-create INSERT race, which the partial unique indexes
+    (`uq_content_item_live` / `uq_content_item_working`) already guard and which already surfaces
+    as a 409.
+- **Skip the `data` blob when listing versions.** `GET /contentitems/{identifier}/versions` returns
+  `ContentItemVersionSummaryDTO` (versionId, state, versionCreatedDatetime) — no content — but
+  `findByIdentifierOrderByVersionCreatedDatetimeDesc` loads full `ContentItemEntity` rows, fetching
+  every version's `data` jsonb only to discard it in the mapper. Add a column-restricted projection
+  query for the summary listing so the content blobs are never read (matters when a content has many
+  or large versions). The `{working, live}` state read still needs full rows, so this is a
+  listing-only optimization.
 
 ## 6. Content grouping (language variants)
 

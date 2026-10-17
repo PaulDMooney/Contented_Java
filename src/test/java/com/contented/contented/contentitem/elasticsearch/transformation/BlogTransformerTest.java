@@ -1,6 +1,7 @@
 package com.contented.contented.contentitem.elasticsearch.transformation;
 
 import com.contented.contented.contentitem.model.ContentItemEntity;
+import com.contented.contented.contentitem.model.ContentItemState;
 import com.contented.contented.common.UuidV7;
 import com.contented.contented.contentitem.transformation.StandardDMSContentTransformer;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,15 +32,17 @@ class BlogTransformerTest {
         @DisplayName("When called with a `contentItem` entity that has `Blog` fields")
         class WhenCalledWithBlogContentItem {
 
-            ContentItemEntity toTransform = new StandardDMSContentTransformer(clock)
-                    .transform(
-                            new ContentItemEntity(UuidV7.generate(), "Blog",
-                                    Map.ofEntries(
-                                            entry("title", "Blog Title"),
-                                            entry("body", "Blog Body"),
-                                            entry("language", "en")
-                                    )
-                            ));
+            ContentItemEntity toTransform = blogEntity();
+
+            static ContentItemEntity blogEntity() {
+                return ContentItemEntity.newVersion(UuidV7.generate(), UuidV7.generate(), "Blog",
+                        ContentItemState.WORKING, Instant.now(),
+                        Map.ofEntries(
+                                entry("title", "Blog Title"),
+                                entry("body", "Blog Body"),
+                                entry("language", "en")
+                        ));
+            }
 
             BlogTransformer blogTransformer = new BlogTransformer();
 
@@ -76,12 +79,13 @@ class BlogTransformerTest {
             }
 
             @Test
-            @DisplayName("It should build the `identifier` from the `id` and `language`")
-            void it_should_return_an_entity_map_with_an_identifier() {
+            @DisplayName("It should key the document on the version-agnostic identifier and carry the version id")
+            void it_should_key_on_identifier_and_carry_version_id() {
 
                 assertThat(result).element(0)
                     .satisfies(entityAsMap -> assertThat(entityAsMap)
-                        .containsEntry("identifier", toTransform.getId() + "_en"));
+                        .containsEntry("id", toTransform.getIdentifier().toString())
+                        .containsEntry("versionId", toTransform.getVersionId().toString()));
             }
         }
     }

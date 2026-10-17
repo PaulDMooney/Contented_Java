@@ -15,13 +15,13 @@ import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.contented.contented.elasticsearch.ElasticSearchConfig.INDEX_PROPERTY_KEY;
@@ -68,28 +68,30 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
         elasticSearchIndexCreator.createIndex();
     }
 
-    record SomeContentItem(String id, String contentType, String title, String body) {
+    UUID createAndPublish(String title, String body) {
+        var requestBody = Map.of("contentType", "Blog", "data", Map.of("title", title, "body", body));
+        var identifier = contentItemEndpointClient.post().body(requestBody).exchange()
+            .expectStatus().isCreated()
+            .expectBody(ContentItemResponseDTO.class)
+            .returnResult().getResponseBody().getIdentifier();
+        contentItemEndpointClient.post().uri("/{identifier}/publish", identifier).exchange()
+            .expectStatus().isOk();
+        return identifier;
     }
 
     @Nested
-    @DisplayName("`POST` endpoint")
-    class PostEndpoint {
+    @DisplayName("`POST /{identifier}/publish`")
+    class PublishEndpoint {
         @Nested
-        @DisplayName("Given content that is indexed by its `identifier` was saved")
+        @DisplayName("Given content that was published and indexed by its `identifier`")
         class GivenContentIndexedByIdentifier {
 
-            // Given a body with no id (ids are server-assigned)
-            SomeContentItem toSave = new SomeContentItem(null, "Blog", "Some title", "Some body");
-
-            UUID createdId;
+            UUID identifier;
 
             @BeforeAll
             void given() {
-                createdId = contentItemEndpointClient.post().body(toSave).exchange()
-                    .expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
-                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
+                identifier = createAndPublish("Some title", "Some body");
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), identifier.toString(), 1);
             }
 
             @Nested
@@ -119,17 +121,17 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
 
                 @BeforeAll
                 void when() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(createdId.toString()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(identifier.toString()));
                     results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .getSearchHits();
 
                 }
 
                 @Test
-                @DisplayName("It should return a hit with the same `identifier`")
+                @DisplayName("It should return a hit keyed on the `identifier`")
                 void thenContentIsReturned() {
                     Assertions.assertThat(results).hasSize(1);
-                    Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", createdId.toString());
+                    Assertions.assertThat(results.get(0).getContent()).hasFieldOrPropertyWithValue("id", identifier.toString());
                 }
             }
         }
@@ -140,23 +142,15 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
     class DeleteEndpoint {
 
         @Nested
-        @DisplayName("Given content that is indexed by its `identifier` was saved")
+        @DisplayName("Given published content indexed by its `identifier`")
         class GivenContentIndexedByIdentifier {
 
-            // Given a body with no id (ids are server-assigned)
-            static SomeContentItem toDelete = new SomeContentItem(null, "Blog", "Delete Me", "Some body");
-
-            static UUID createdId;
-
-            static RestTestClient.ResponseSpec response;
+            UUID identifier;
 
             @BeforeAll
             void given() {
-                createdId = contentItemEndpointClient.post().body(toDelete).exchange()
-                    .expectStatus().isCreated()
-                    .expectBody(ContentItemResponseDTO.class)
-                    .returnResult().getResponseBody().getId();
-                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 1);
+                identifier = createAndPublish("Delete Me", "Some body");
+                waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), identifier.toString(), 1);
             }
 
             @Nested
@@ -165,15 +159,16 @@ public class ContentItemControllerSearchIndexIT extends AbstractContentItemContr
 
                 @BeforeAll
                 void when() {
-                    response = contentItemEndpointClient.delete().uri("/{id}", createdId).exchange();
+                    contentItemEndpointClient.delete().uri("/{identifier}", identifier).exchange()
+                        .expectStatus().isNoContent();
 
-                    waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), createdId.toString(), 0);
+                    waitForESDocumentCount(elasticsearchOperations, IndexCoordinates.of(INDEX_NAME), identifier.toString(), 0);
                 }
 
                 @Test
                 @DisplayName("It should no longer be found when searching by its `identifier`")
                 void then_the_content_should_not_longer_be_found() {
-                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(createdId.toString()));
+                    CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(identifier.toString()));
                     List<SearchHit<EntityAsMap>> results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, IndexCoordinates.of(INDEX_NAME))
                             .getSearchHits();
 

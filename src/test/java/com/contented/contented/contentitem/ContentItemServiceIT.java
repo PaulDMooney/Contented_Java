@@ -66,23 +66,21 @@ public class ContentItemServiceIT {
     }
 
     @Nested
-    @DisplayName("`create()`")
-    class Create {
+    @DisplayName("`publish()`")
+    class Publish {
 
         @Nested
-        @DisplayName("When saving a `contentItem` that matches Elasticsearch transformation criteria")
-        class WhenSavingContentItemMatchingESCriteria {
+        @DisplayName("When publishing a `contentItem` that matches Elasticsearch transformation criteria")
+        class WhenPublishingContentItemMatchingESCriteria {
 
             // contentType = "Blog" will match criteria for a transformation
             ContentItemDTO toSave = newBlogDTO();
 
             static ContentItemDTO newBlogDTO() {
-                var dto = new ContentItemDTO();
-                dto.setContentType("Blog");
-                dto.add("language", "en");
-                dto.add("title", "Blog Title");
-                dto.add("slug", "blog-slug");
-                return dto;
+                return ContentItemDTO.builder()
+                    .contentType("Blog")
+                    .data(Map.of("language", "en", "title", "Blog Title", "slug", "blog-slug"))
+                    .build();
             }
 
             ContentItemResponseDTO created;
@@ -90,13 +88,15 @@ public class ContentItemServiceIT {
             @BeforeAll
             void when() {
                 created = contentItemService.create(toSave);
-                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, created.getId().toString(), 1);
+                // Drafts are not indexed; publishing makes the live version searchable.
+                contentItemService.publish(created.getIdentifier());
+                waitForESDocumentCount(elasticsearchOperations, indexCoordinates, created.getIdentifier().toString(), 1);
             }
 
             @Test
             @DisplayName("It should index the transformed fields into the Elasticsearch record")
             void es_should_contain_transformations() {
-                CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(created.getId().toString()));
+                CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("id").is(created.getIdentifier().toString()));
                 var results = elasticsearchOperations.search(criteriaQuery, EntityAsMap.class, indexCoordinates).getSearchHits();
 
                 var hitSource = Objects.requireNonNull(results).get(0).getContent();
