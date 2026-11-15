@@ -211,11 +211,12 @@ Three things are new:
 
 ### Where this leads
 
-Everything past this point is detail on the same three tables, and it lives in
-[content-model-redesign.md](content-model-redesign.md): the REST surface (content-, variant- and
-version-level URLs), creating and publishing several variants in one transaction, the delivery
-read with `Accept-Language` fallback, an optional shared `zxx` layer merged under the language
-variants per content type, and files as `Asset` content items in write-once object storage.
+Everything past this point is detail on the same three tables. The reasoning lives in
+[content-model-redesign.md](content-model-redesign.md): creating and publishing several variants
+in one transaction, the delivery read with `Accept-Language` fallback, an optional shared `zxx`
+layer merged under the language variants per content type, and files as `Asset` content items
+in write-once object storage. The REST surface itself — URLs, bodies, status codes — is in
+[api-proposal.md](api-proposal.md).
 
 ## The shape of the evolution
 
