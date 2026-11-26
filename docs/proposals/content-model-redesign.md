@@ -435,18 +435,7 @@ pattern, and `ResolvedVariant` is the input that lets the outbound ones see both
   image, a product's datasheet), and that relationship is modelled explicitly rather than as an
   opaque URL inside `data`.
 
-Open questions for that design:
-
-- How a file reference interacts with versioning — whether a live version can keep pointing at a
-  file that is later replaced, and so whether stored objects need to be write-once to keep
-  history trustworthy.
-- Whether the relationship between content items and file metadata is a table of its own, and
-  whether it is per version, per variant or per content item.
-- Whether file metadata needs language variants of its own (translated alt text, a French PDF),
-  or whether that belongs on the referring content.
-- What search documents carry for a referenced file, and therefore whether a file change has to
-  re-index the content that references it.
-- The upload flow, and how unreferenced uploads are cleaned up.
+The open questions for that design are listed in [todo.md](todo.md#5-files).
 
 ## 6. Alternatives considered
 
