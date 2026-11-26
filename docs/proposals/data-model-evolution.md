@@ -28,7 +28,7 @@ One table. One row per piece of content.
 erDiagram
     CONTENT_ITEM {
         uuid identifier PK "UUIDv7, server-generated"
-        text content_type "the discriminator - e.g. Blog, Asset, Person"
+        text content_type "the discriminator - e.g. Blog, Product, Person"
         jsonb data "the schemaless content - its shape is implied by content_type"
     }
 ```
@@ -126,15 +126,11 @@ Because the live and archived versions never change, history is trustworthy for 
 did this say last month" is a row lookup, rollback is a copy, and anything downstream (search
 documents, caches) can treat a `version_id` as permanent.
 
-Every write to a content item starts by locking its row, so two editors or an editor and a
-publish never interleave. Only the working version is ever written to, so that lock is the
-whole concurrency story.
-
 ### What it can't do
 
 A blog post in French is a *different content item* from the same post in English. Nothing links
-them, nothing says one is a translation of the other, and a reader who wants French with an
-English fallback has no way to ask for it.
+them, nothing says one is a translation of the other, and a client that wants "this post, in
+French" has no way to ask for it.
 
 ## Stage 3: language variants
 
@@ -144,8 +140,8 @@ The same logical content exists in several languages. Each language has to be ed
 published on its own — publishing the French translation must not publish the English draft —
 yet they are one thing: one id, one content type, one delete. Some content is not in any
 language at all (an image, a settings record), and that has to be sayable too, not quietly
-labelled "English". And delivery needs a fallback: `fr-CA`, else `fr`, else the
-language-agnostic content, else nothing.
+labelled "English". And a client needs to be able to see which languages a content has, and
+ask for one.
 
 ### The model
 
@@ -156,9 +152,9 @@ what is shared by every language: the `identifier` and the `content_type`.
 ```mermaid
 erDiagram
     CONTENT_ITEM ||--|{ CONTENT_VARIANT : "one row per language"
-    CONTENT_VARIANT ||--o{ CONTENT_ITEM_VERSION : "history - every version ever made"
-    CONTENT_VARIANT |o--o| CONTENT_ITEM_VERSION : "live_version_id"
-    CONTENT_VARIANT |o--o| CONTENT_ITEM_VERSION : "working_version_id"
+    CONTENT_VARIANT ||--o{ CONTENT_VARIANT_VERSION : "history - every version ever made"
+    CONTENT_VARIANT |o--o| CONTENT_VARIANT_VERSION : "live_version_id"
+    CONTENT_VARIANT |o--o| CONTENT_VARIANT_VERSION : "working_version_id"
 
     CONTENT_ITEM {
         uuid identifier PK
@@ -171,13 +167,17 @@ erDiagram
         uuid live_version_id FK "nullable"
         uuid working_version_id FK "nullable"
     }
-    CONTENT_ITEM_VERSION {
+    CONTENT_VARIANT_VERSION {
         uuid version_id PK
         uuid variant_id FK
         timestamptz version_created_datetime
         jsonb data
     }
 ```
+
+The version table is renamed `content_variant_version` to match: each table is named after the
+row it belongs to — a variant of a content item, a version of a variant — so the name says
+which table it joins.
 
 Nothing from stage 2 changes meaning. State is still derived from the pointers; the working
 version is still the only mutable one; publish is still one row's pointers moving; restore still
@@ -191,8 +191,8 @@ Three things are new:
   content item that only ever needs one language has one variant, and that variant is `zxx` or
   `en` depending on which is *true*.
 - **"The French version of X"** is one key lookup: the variant `(X, fr)`, then the version its
-  `live_version_id` names. The fallback chain is one query for X's variants, then a standard
-  language lookup over the ones with a live pointer.
+  `live_version_id` names. Which languages X has, and which of them are live, is one query
+  for X's variants — enough for a client to apply whatever fallback it wants.
 - **The content item is an FK target.** Anything that needs to point at "this content, whichever
   version is live" — a group membership, a file reference, a relationship between two content
   items — now has a real row to reference.
@@ -213,16 +213,16 @@ Three things are new:
 
 Everything past this point is detail on the same three tables. The reasoning lives in
 [content-model-redesign.md](content-model-redesign.md): creating and publishing several variants
-in one transaction, the delivery read with `Accept-Language` fallback, an optional shared `zxx`
-layer merged under the language variants per content type, and files as `Asset` content items
-in write-once object storage. The REST surface itself — URLs, bodies, status codes — is in
+in one transaction, the per-language delivery read, an optional shared `zxx`
+layer merged under the language variants per content type, and the still-open question of how
+files relate to content items. The REST surface itself — URLs, bodies, status codes — is in
 [api-proposal.md](api-proposal.md).
 
 ## The shape of the evolution
 
 | | Stage 1 | Stage 2 | Stage 3 |
 |---|---|---|---|
-| Tables | `content_item` | `content_item`, `content_item_version` | `content_item`, `content_variant`, `content_item_version` |
+| Tables | `content_item` | `content_item`, `content_item_version` | `content_item`, `content_variant`, `content_variant_version` |
 | Where `data` lives | the content item | the version | the version |
 | What is mutable | everything | the working version | the working version, per variant |
 | Where the live/working pointers live | — | the content item | the variant |
