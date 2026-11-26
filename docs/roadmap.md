@@ -11,7 +11,7 @@ fleshed out before implementation.
 | 3 | MongoDB → Postgres migration | Mostly done | — |
 | 4 | Bring tests up to new testing standards | In progress | `spring-boot-testing` skill |
 | 5 | Content versioning (live / working / history) | In review (PR #27) | [content-model.md](content-model.md) |
-| 6 | Content grouping (language variants) | Idea | — |
+| 6 | Content grouping (language variants) | Designed | [content-grouping.md](content-grouping.md) |
 | 7 | Restructure into libraries / modulith | Idea | — |
 | 8 | Index rebuild mechanism | Designed | [index-rebuild-design.md](index-rebuild-design.md) |
 | 9 | Clarify web/service/persistence boundary (commands + response DTOs) | Done | — |
@@ -209,29 +209,23 @@ version's content never changes under its `inode` — only which version *is* li
 
 ## 6. Content grouping (language variants)
 
-A **group** of content items shares a common identifier; each member represents a variant of
-the same logical content — primarily language variants (e.g. the same blog post in `en`,
-`fr`, `de`).
+Implemented as cross-identifier **group membership**, designed in
+**[content-grouping.md](content-grouping.md)**: new `content_group`/`content_group_membership`
+tables (independent of `content_item_version`), a `GroupType` enum (starting with `LANGUAGE`) kept
+schema-agnostic on purpose so a new group type is a code-only addition, and a `groups` list
+embedded alongside `contentItem` in the create/update request and response bodies — full-sync
+semantics on `PUT`, matching how `data` is already replaced wholesale rather than patched. An
+identifier can belong to more than one group, but at most one per `group_type`.
 
-**Key design questions to resolve**:
+**Still open, beyond what the design doc covers**: indexing/search implications — search should
+likely be language-filterable, and "with content" hydration (see `SearchController`) may want to
+return the whole group or the best variant. The `language` field is already normalized by
+`StandardDMSContentTransformer`, which will need revisiting once `language` is expressed as group
+membership instead.
 
-- **Group identity**: this is plausibly the same `identifier` concept as in item 5 — one
-  logical content, many language variants, each variant having its own working/live/history
-  chain. Decide deliberately whether group id and version-agnostic id are one concept or two
-  (the legacy DMS model they echo treats `identifier` + `language` as the variant key).
-- **API shape**: fetching by group identifier **returns all content items in that group**
-  (e.g. `GET /contentitems/group/{identifier}` → every language variant). Beyond that:
-  possibly a convenience fetch for a single best-match variant by language with fallback
-  rules (requested language → default language?), and creating a variant of an existing
-  group.
-- **Constraints**: at most one variant per language per group; what happens on delete — does
-  deleting the last variant delete the group?
-- **Indexing/search**: search should likely be language-filterable, and "with content"
-  hydration (see `SearchController`) may want to return the whole group or the best variant.
-  The `language` field is already normalized by `StandardDMSContentTransformer`.
-- **Interaction with item 5**: versioning is per-variant, not per-group (publishing the French
-  version must not publish the English one). Designing items 5 and 6 together is strongly
-  recommended — they share the identity model.
+**Interaction with item 5**: versioning stays per-variant, not per-group — publishing the French
+version must not publish the English one. Group membership lives entirely on the identifier,
+untouched by publish/restore.
 
 ## 7. Restructure into libraries / modulith
 
